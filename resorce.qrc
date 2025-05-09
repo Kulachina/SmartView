@@ -1,0 +1,6 @@
+<RCC>
+<qresource prefix="/">
+        <file>SmartView.png</file>
+		<file>SmartView.ico</file>
+    </qresource>
+</RCC>
