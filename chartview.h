@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QLineSeries>
 #include <QCheckBox>
+#include <QPointer>
 
 #include "data_base.h"
 
@@ -22,8 +23,11 @@ public:
     QWidget* GetWidgetLegend();
     void CreateSeries();
     void CreateLegend(QString name, QList<QLineSeries*> series);
+    void PanelLegend();
     QChart* GetChart();
     QDateTimeAxis* GetAxisX();
+    void ToogledFlagShiftSeries();
+    void ToogledFlagLineInMouse();
 protected slots:
     //void wheelEvent(QWheelEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override ;
@@ -32,15 +36,27 @@ protected slots:
     //void leaveEvent(QEvent *event) override;
     //void enterEvent(QEnterEvent *event) override;
 private:
+    void MoveSeries(QLineSeries* series, qreal dx);
+    void CreateMapSeries();
+    void CreateMapLabel();
     QChartView *chart_view_;
     QChart *chart_;
     QWidget *widget_legend_;
     DataBase& data_base_;
     QDateTimeAxis *axis_time_;
     QVBoxLayout *vbox_legend_;
+    QLineSeries* line_from_mouse_;
+    QMap<QString,QList<QLineSeries*>> map_series_;
+    QMap<QString,QLabel*> map_data_label_;
+    QList<QLineSeries*> active_series_;
     QPoint last_pos_mouse_;
+    QRect hit_area_;
     bool move_ = false,
-         is_dragging_ = false;
+        is_dragging_ = false,
+        is_dragging_series_ = false,
+        shift_series_ = false,
+        change_cursor_ = false,
+        data_in_time_ = false;
 };
 
 #endif // CHARTVIEW_H

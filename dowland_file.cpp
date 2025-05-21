@@ -5,13 +5,48 @@
 #include <QTextStream>
 #include <QDataStream>
 #include <QStandardPaths>
+#include <QElapsedTimer>
 
 DowlandFile::DowlandFile(DataBase& data_base)
     : data_base_(data_base)
 {
 
 }
-void DowlandFile::LoadDocumentData(QString path) {
+void DowlandFile::LoadDocACM(QString path){
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly)){
+        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        return;
+    }
+    QTextStream in(&file);
+    QString all_text = in.readAll();
+    file.close();
+    QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
+    QStringList words;
+    for(int i = 0;i < line_text.size()-1; ++ i){
+        if(i == 7){
+            words = line_text[i].split(" ",Qt::SkipEmptyParts);
+            CreateSeriesACM(words);
+        }
+        if(i > 8){
+            words = line_text[i].split(" ",Qt::SkipEmptyParts);
+            AddDataACM(words);
+        }
+        if(i == line_text.size()-2){
+            words = line_text[i].split(" ",Qt::SkipEmptyParts);
+            axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[1])));
+        }
+
+    }
+    DataSeriesACM& data = data_acm_.back();
+    data.series_bar->replace(p_bar_);
+    data.series_temp->replace(p_temp_);
+    first_min_max_ = false;
+    p_temp_.clear();
+    p_bar_.clear();
+}
+
+void DowlandFile::LoadDocEtalon(QString path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         qWarning() << "Не удалось открыть файл для чтения:" << path;
@@ -26,7 +61,7 @@ void DowlandFile::LoadDocumentData(QString path) {
         if (strncmp(headerMagic, "HEAD", 4) == 0) {
             in >> header.header_1 >> header.header_2;
             header_words << "Время" << header.header_1 << header.header_2;
-            CreateSeries(header_words);
+            CreateSeriesEtalon(header_words);
         }
     }
     while (!in.atEnd()) {
@@ -35,11 +70,46 @@ void DowlandFile::LoadDocumentData(QString path) {
         if (in.readRawData(data_magic, sizeof(data_magic)) == sizeof(data_magic) && strncmp(data_magic, "DATA", 4) == 0) {
             in >> data.time >> data.value_1 >> data.value_2 >> data.gap_series_1 >> data.gap_series_2 >> data.check_point;
         }
-        AddDataSeries(data);
+        AddDataEtalon(data);
+        axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(data.time));
     }
+
     file.close();
 }
-void DowlandFile::CreateSeries(QStringList words){
+void DowlandFile::CreateSeriesACM(QStringList words){
+    DataSeriesACM data;
+    data.name_sensor = words[2] + " " + words[3].trimmed();
+    data.label_sensor = new QLabel(data.name_sensor);
+    data.data_sensor_bar = new QLabel(".........");
+    data.data_sensor_temp = new QLabel("..........");
+    data.series_bar = new QLineSeries();
+    data.series_bar->setName(data.name_sensor + "bar");
+    data.series_bar->setColor("red");
+    data.series_temp = new QLineSeries();
+    data.series_temp->setName(data.name_sensor + "temp");
+    data.series_temp->setColor("blue");
+    data.axis_y_temp = new QValueAxis();
+    data.axis_y_temp->setTitleText("Температура, °C");
+    data.axis_y_temp->setTickCount(21);
+    data.axis_y_temp->setRange(0,100);
+    data.axis_y_temp->setVisible(false);
+    data.axis_y_bar = new QValueAxis();
+    data.axis_y_bar->setTitleText("Давление, кг/см2");
+    data.axis_y_bar->setTickCount(21);
+    data.axis_y_bar->setRange(0,1000);
+    data.axis_y_bar->setVisible(false);
+    chart_->addAxis(data.axis_y_temp, Qt::AlignLeft);
+    chart_->addAxis(data.axis_y_bar, Qt::AlignLeft);
+    chart_->addSeries(data.series_temp);
+    chart_->addSeries(data.series_bar);
+    data.series_bar->attachAxis(data.axis_y_bar);
+    data.series_temp->attachAxis(data.axis_y_temp);
+    data.series_bar->attachAxis(axis_x_);
+    data.series_temp->attachAxis(axis_x_);
+    data_acm_.push_back(data);
+    data_base_.AddDataSerACM(data_acm_.back());
+}
+void DowlandFile::CreateSeriesEtalon(QStringList words){
     DataSeriesEtalon doc;
     for(int i =1 ;i <= words.size()-1;++i){
         doc.name_series = words[i];
@@ -49,7 +119,7 @@ void DowlandFile::CreateSeries(QStringList words){
         doc.point_series->setMarkerShape(QScatterSeries::MarkerShapeCircle);
         doc.point_series->setPointLabelsVisible(true);
         doc.point_series->setPointLabelsFormat("@yPoint");
-        doc.point_series->setMarkerSize(15);
+        doc.point_series->setMarkerSize(5);
         doc.point_series->setColor("green");
         doc.axis_y->setTickCount(21);
         doc.label_point = new QLabel();
@@ -75,19 +145,31 @@ void DowlandFile::CreateSeries(QStringList words){
         doc.point_series->attachAxis(doc.axis_y);
         doc.series->attachAxis(axis_x_);
         doc.series->attachAxis(doc.axis_y);
-        data_document_.push_back(doc);
-        data_base_.AddDataSerEtalon(data_document_.back());
+        data_etalon_.push_back(doc);
+        data_base_.AddDataSerEtalon(data_etalon_.back());
     }
 }
-void DowlandFile::AddDataSeries(DataEtalon data){
+void DowlandFile::AddDataACM(QStringList words){
+    double temp = words[3].toDouble();
+    double bar =words[2].toDouble();
+    if(!first_min_max_){
+        axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(words[1])));
+        first_min_max_ = true;
+    }
+    double time = TextToInt(words[1]);
+
+    p_bar_.append(QPointF(time,bar));
+    p_temp_.append(QPointF(time,temp));
+
+}
+
+void DowlandFile::AddDataEtalon(DataEtalon data){
     if(!set_axis_x_){
-        QDateTime now = QDateTime::fromMSecsSinceEpoch(data.time);
-        now_time_ = now;
-        axis_x_->setRange(now, now.addSecs(100));
+        axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(data.time));
         set_axis_x_ = true;
     }
     if(gap_){
-        for(DataSeriesEtalon& doc : data_document_){
+        for(DataSeriesEtalon& doc : data_etalon_){
             GapSeries(doc);
         }
         gap_ = false;
@@ -96,27 +178,27 @@ void DowlandFile::AddDataSeries(DataEtalon data){
         gap_ = true;
     }
     if(data.check_point){
-        data_document_[0].point_series->append(data.time,data.value_1);
-        data_document_[1].point_series->append(data.time,data.value_2);
+        data_etalon_[0].point_series->append(data.time,data.value_1);
+        data_etalon_[1].point_series->append(data.time,data.value_2);
     }
     if((data.value_1 == 999) && error_flag_1_){
-        DataSeriesEtalon& doc = data_document_[0];
+        DataSeriesEtalon& doc = data_etalon_[0];
         GapSeries(doc);
         error_flag_1_ = false;
     }
     if((data.value_2 == 999) && error_flag_2_){
-        DataSeriesEtalon& doc = data_document_[1];
+        DataSeriesEtalon& doc = data_etalon_[1];
         GapSeries(doc);
         error_flag_2_ = false;
     }
-    if(data_document_[0].series && (data.value_1 != 999)){
-        SetAxisY(data_document_[0],data.value_1);
-        data_document_[0].series->append(data.time,data.value_1);
+    if(data_etalon_[0].series && (data.value_1 != 999)){
+        SetAxisY(data_etalon_[0].axis_y,data.value_1);
+        data_etalon_[0].series->append(data.time,data.value_1);
         error_flag_1_ = true;
     }
-    if(data_document_[1].series && (data.value_2 != 999)){
-        SetAxisY(data_document_[1],data.value_2);
-        data_document_[1].series->append(data.time,data.value_2);
+    if(data_etalon_[1].series && (data.value_2 != 999)){
+        SetAxisY(data_etalon_[1].axis_y,data.value_2);
+        data_etalon_[1].series->append(data.time,data.value_2);
         error_flag_2_ = true;
     }
 }
@@ -136,9 +218,9 @@ void DowlandFile::SetChartDoc(QChart* chart){
     chart_ = chart;
 }
 QVector<DataSeriesEtalon>& DowlandFile::GetDataSeriesEtalon(){
-    if(data_document_.empty()){
+    if(data_etalon_.empty()){
     }
-    return data_document_;
+    return data_etalon_;
 }
 void DowlandFile::GapSeries(DataSeriesEtalon& doc){
     doc.old_series.push_back(doc.series);
@@ -160,11 +242,11 @@ void DowlandFile::CheckFlag(){
     create_file_ = false;
     create_title_ = false;
 }
-void DowlandFile::SetAxisY(DataSeriesEtalon& data, double y){
-    if(data.axis_y->min() > y ){
-        data.axis_y->setMin(y);
+void DowlandFile::SetAxisY(QValueAxis* axis, double y){
+    if(axis->min() > y ){
+        axis->setMin(y + (y * 0.1));
     }
-    if(data.axis_y->max() < y ){
-        data.axis_y->setMax(y);
+    if(axis->max() < y ){
+        axis->setMax(y + (y * 0.1));
     }
 }

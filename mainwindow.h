@@ -20,7 +20,9 @@ public:
     void SetWindow();
 public slots:
     void LoadDocument();
-
+    void ToggledLegendPanel();
+    void ShiftSeries();
+    void ShiftLineinMouse();
 
 private:
     DataBase data_base_;

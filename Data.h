@@ -6,11 +6,15 @@
 #include <QScatterSeries>
 #include <QValueAxis>
 #include <QLabel>
-struct Data{
+struct DataSeriesACM{
     QString name_sensor;
-    QVector<double> temp;
-    QVector<double> bar;
-    QVector<qint64> time;
+    QLineSeries *series_temp;
+    QLineSeries *series_bar;
+    QValueAxis *axis_y_bar;
+    QValueAxis *axis_y_temp;
+    QLabel *label_sensor;
+    QLabel *data_sensor_temp;
+    QLabel *data_sensor_bar;
 };
 struct DataEtalon{
     char magic[4];
