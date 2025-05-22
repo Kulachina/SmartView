@@ -43,7 +43,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     tool_bar->addAction(data_in_time);
     addToolBar(tool_bar);
     SetWindow();
-    dow_file_.SetChartDoc(chart_view_->GetChart());
+    dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
     dow_file_.SetAxisTime(chart_view_->GetAxisX());
 }
 MainWindow::~MainWindow()
@@ -66,11 +66,11 @@ void MainWindow::LoadDocument(){
     }
     if(path_doc.endsWith(".txt", Qt::CaseInsensitive)){
         dow_file_.LoadDocACM(path_doc);
-        chart_view_->PanelLegend();
+        chart_view_->PanelLegendACM();
     }
     if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
         dow_file_.LoadDocEtalon(path_doc);
-
+        chart_view_->PanelLegendEtalon();
     }
 }
 void MainWindow::ToggledLegendPanel(){

@@ -36,8 +36,9 @@ struct DataSeriesEtalon{
     QLineSeries *series;
     QScatterSeries *point_series;
     QList<QLineSeries*> old_series;
-    QValueAxis *axis_y;
-    QLabel *label_point;
+    QLabel *label_point,
+           *label_sensor,
+           *data_sensor;
 };
 
 #endif // DATA_H

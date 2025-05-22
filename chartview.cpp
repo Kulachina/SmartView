@@ -2,7 +2,8 @@
 
 ChartView::ChartView(QChartView *parent, DataBase& data_base)
     :QChartView(parent),
-    data_base_(data_base)
+    data_base_(data_base),
+    band_(QRubberBand::Rectangle,this)
 
 {
     chart_ = new QChart();
@@ -12,15 +13,17 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     axis_time_->setRange(QDateTime::currentDateTime(), QDateTime::currentDateTime().addSecs(600));
     axis_time_->setTickCount(21);
     axis_time_->setLabelsAngle(90);
-    QValueAxis *axis_y = new QValueAxis();
-    axis_y->setTitleVisible(false);
-    axis_y->setRange(0, 500);
-    axis_y->setTickCount(21);
-    axis_y->setLabelsAngle(90);
-    axis_y->setTitleVisible(false);
-    axis_y->setLabelsVisible(false);
+    axis_temp_ = new QValueAxis();
+    axis_temp_->setTitleText("Температура, °C");
+    axis_bar_ = new QValueAxis();
+    axis_bar_->setTitleText("Давление, кг/см2");
+    axis_bar_->setRange(0, 0);
+    axis_bar_->setTickCount(21);
+    axis_temp_->setRange(0, 0);
+    axis_temp_->setTickCount(21);
     chart_->addAxis(axis_time_,Qt::AlignBottom);
-    chart_->addAxis(axis_y,Qt::AlignLeft);
+    chart_->addAxis(axis_temp_,Qt::AlignLeft);
+    chart_->addAxis(axis_bar_,Qt::AlignLeft);
     chart_->legend()->setVisible(false);
     chart_->setActive(true);
     setChart(chart_);
@@ -34,6 +37,9 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     widget_legend_->setLayout(vbox_legend_);
     line_from_mouse_ = new QLineSeries();
     chart_->addSeries(line_from_mouse_);
+    line_from_mouse_->attachAxis(axis_time_);
+    line_from_mouse_->attachAxis(axis_temp_);
+    line_from_mouse_->setName("line_from_mouse");
 }
 QChart* ChartView::GetChart(){
     return chart_;
@@ -41,10 +47,16 @@ QChart* ChartView::GetChart(){
 QDateTimeAxis* ChartView::GetAxisX(){
     return axis_time_;
 }
+QValueAxis* ChartView::GetAxisBar(){
+    return axis_bar_;
+}
+QValueAxis* ChartView::GetAxisTemp(){
+    return axis_temp_;
+}
 QWidget* ChartView::GetWidgetLegend(){
     return widget_legend_;
 }
-void ChartView::PanelLegend(){
+void ChartView::PanelLegendACM(){
     DataSeriesACM data = data_base_.GetDataSerACM().back();
     QHBoxLayout *hbox_temp = new QHBoxLayout();
     QHBoxLayout *hbox_bar = new QHBoxLayout();
@@ -64,8 +76,38 @@ void ChartView::PanelLegend(){
     hbox_bar->addWidget(data.data_sensor_bar);
     vbox_legend_->addLayout(hbox_bar);
     vbox_legend_->addLayout(hbox_temp);
-    CreateMapSeries();
+    data_base_.AddLabelSensor(l_name_temp,leg_temp);
+    data_base_.AddLabelSensor(l_name_bar,leg_bar);
     CreateMapLabel();
+    CreateMapSeries();
+}
+void ChartView::PanelLegendEtalon(){
+    QList<QLineSeries*> list_series;
+    for(auto data : data_base_.GetDataSerEtalon()){
+        QHBoxLayout *hbox = new QHBoxLayout();
+        QLabel *l_name = new QLabel(data.name_series);
+        QLabel *leg = new QLabel();
+        if(data.name_series == "ЛТ300" || data.name_series == "Имитатор ЛТ300" ){
+            leg->setText("- Температура");
+            leg->setStyleSheet("color: blue");
+            l_name->setStyleSheet("color: blue");
+        }
+        if(data.name_series == "ДМ5002М" || data.name_series == "Имитатор ДМ5002М"){
+            leg->setText("- Давление");
+            leg->setStyleSheet("color: red");
+            l_name->setStyleSheet("color: red");
+        }
+        hbox->addWidget(leg);
+        hbox->addWidget(l_name);
+        hbox->addWidget(data.data_sensor);
+        vbox_legend_->addLayout(hbox);
+        list_series << data.series;
+        data_base_.AddLabelSensor(l_name,leg);
+    }
+    for(auto data : data_base_.GetDataSerEtalon()){
+        QPointer<QLabel> point = data.data_sensor;
+        map_data_label_[data.series->name()] = point;
+    }
 }
 void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
     for(QLineSeries* s : series){
@@ -125,16 +167,23 @@ void ChartView::mousePressEvent(QMouseEvent *event){
         is_dragging_ = false;
         last_pos_mouse_ = event->pos();
     }
+    if(event->button() == Qt::LeftButton){
+        last_pos_mouse_ = event->pos();
+        band_.setGeometry(QRect(last_pos_mouse_, QSize()));
+        band_.show();
+    }
     if(event->button() == Qt::LeftButton && shift_series_){
         for(QAbstractSeries* abstract_series : chart_->series()){
-            QLineSeries *series = qobject_cast<QLineSeries*>(abstract_series);
-            for(QPointF& p : series->points()){
-                QPoint screen_pos = chart_->mapToPosition(p,series).toPoint();
-                if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
-                    active_series_ = map_series_[series->name()];
-                    is_dragging_series_ = true;
-                    last_pos_mouse_ = event->pos();
-                    return;
+            if(abstract_series->name() != "check_series" && abstract_series->name() != "Имитатор ЛТ300" && abstract_series->name() != "Имитатор ДМ5002М" && abstract_series->name() != "ЛТ300" && abstract_series->name() != "ДМ5002М"){
+                QLineSeries *series = qobject_cast<QLineSeries*>(abstract_series);
+                for(QPointF& p : series->points()){
+                    QPoint screen_pos = chart_->mapToPosition(p,series).toPoint();
+                    if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
+                        active_series_ = map_series_[series->name()];
+                        is_dragging_series_ = true;
+                        last_pos_mouse_ = event->pos();
+                        return;
+                    }
                 }
             }
         }
@@ -146,20 +195,25 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         move_ = false;
         is_dragging_ = true;
     }
+    if(band_.isVisible()){
+        band_.setGeometry(QRect(last_pos_mouse_,event->pos()).normalized());
+    }
     if(shift_series_){
         change_cursor_ = false;
         for(QAbstractSeries* abstract_series : chart_->series()){
-            QLineSeries *series = qobject_cast<QLineSeries*>(abstract_series);
-            for(QPointF& p : series->points()){
-                QPoint screen_pos = chart_->mapToPosition(p,series).toPoint();
-                if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
-                    setCursor(Qt::PointingHandCursor);
-                    change_cursor_ = true;
+            if(abstract_series->name() != "check_series" && abstract_series->name() != "Имитатор ЛТ300" && abstract_series->name() != "Имитатор ДМ5002М" && abstract_series->name() != "ЛТ300" && abstract_series->name() != "ДМ5002М"){
+                QLineSeries *series = qobject_cast<QLineSeries*>(abstract_series);
+                for(QPointF& p : series->points()){
+                    QPoint screen_pos = chart_->mapToPosition(p,series).toPoint();
+                    if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
+                        setCursor(Qt::PointingHandCursor);
+                        change_cursor_ = true;
+                        break;
+                    }
+                }
+                if(change_cursor_){
                     break;
                 }
-            }
-            if(change_cursor_){
-                break;
             }
         }
         if(!change_cursor_){
@@ -186,7 +240,7 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         double mouse_x = mouse_pos.x();
         QList<QAbstractAxis*> axes = chart_->axes(Qt::Vertical);
         if (!axes.isEmpty()) {
-            QValueAxis* axisY = qobject_cast<QValueAxis*>(axes.back());
+            QValueAxis* axisY = qobject_cast<QValueAxis*>(axes.first());
             if (axisY) {
                 double y_min = axisY->min();
                 double y_max = axisY->max();
@@ -217,6 +271,15 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     if(event->button() == Qt::LeftButton){
         is_dragging_series_ = false;
+    }
+    if(event->button() == Qt::LeftButton && band_.isVisible()){
+        band_.hide();
+        if(last_pos_mouse_.x() > event->pos().x() && last_pos_mouse_.y() > event->pos().y()){
+            chart()->zoomReset();
+        } else {
+            QRectF zoom_rect(last_pos_mouse_,event->pos());
+            chart()->zoomIn(zoom_rect);
+        }
     }
     chart_->update();
 }

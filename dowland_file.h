@@ -13,6 +13,7 @@
 #include <QLabel>
 #include <QStandardItemModel>
 #include <QScatterSeries>
+#include <QPointer>
 
 class DowlandFile
 {
@@ -24,26 +25,32 @@ public:
     void AddDataEtalon(DataEtalon data);
     void AddDataACM(QStringList words);
     void SetAxisTime(QDateTimeAxis* axis_x);
-    void SetChartDoc(QChart* chart);
+    void SetChartDoc(QChart* chart,QValueAxis* axis_temp,QValueAxis* axis_bar);
     void GapSeries(DataSeriesEtalon& doc);
     void CreateHeader();
     void ClearTable();
     void CheckFlag();
     void LoadDocEtalon(QString path);
-    void SetAxisY(QValueAxis* data, double y);
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime(); 
 private:
+    void SetMinMaxY(double temp, double bar);
     qint64 TextToInt(QString time);
     DataBase& data_base_;
     QVector<DataSeriesEtalon> data_etalon_;
     QVector<DataSeriesACM> data_acm_;
     QVector<QPointF> p_bar_;
     QVector<QPointF> p_temp_;
-    QDateTimeAxis *axis_x_;
+    QPointer<QDateTimeAxis> axis_x_;
     QDateTime now_time_;
-    QChart* chart_;
+    QPointer<QChart> chart_;
+    QPointer<QValueAxis> axis_temp_,
+                         axis_bar_;
     QFile file_;
+    double bar_max_ = 0,
+        bar_min_ = 0,
+        temp_max_ = 0,
+        temp_min_ = 0;
     bool set_axis_x_ = false,
          error_flag_1_ = true,
          error_flag_2_ = true,
