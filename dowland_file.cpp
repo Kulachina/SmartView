@@ -34,7 +34,7 @@ void DowlandFile::LoadDocACM(QString path){
         }
         if(i == line_text.size()-2){
             words = line_text[i].split(" ",Qt::SkipEmptyParts);
-            axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[1])));
+            axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
         }
     }
     DataSeriesACM& data = data_acm_.back();
@@ -43,8 +43,9 @@ void DowlandFile::LoadDocACM(QString path){
     first_min_max_ = false;
     p_temp_.clear();
     p_bar_.clear();
-    axis_bar_->setRange(bar_min_,bar_max_ + bar_max_ * 0.2 );
-    axis_temp_->setRange(temp_min_,temp_max_ + temp_max_ * 0.2);
+    qDebug() << temp_max_ << temp_min_;
+    axis_bar_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
+    axis_temp_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
 }
 
 void DowlandFile::LoadDocEtalon(QString path) {
@@ -74,8 +75,12 @@ void DowlandFile::LoadDocEtalon(QString path) {
         AddDataEtalon(data);
         axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(data.time));
     }
-    axis_bar_->setRange(bar_min_,bar_max_ + bar_max_ * 0.2 );
-    axis_temp_->setRange(temp_min_,temp_max_ + temp_max_ * 0.2);
+    data_etalon_[0].series->replace(p_temp_);
+    data_etalon_[1].series->replace(p_bar_);
+    p_temp_.clear();
+    p_bar_.clear();
+    data_etalon_[1].axis_y_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
+    data_etalon_[0].axis_y_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
     file.close();
 }
 void DowlandFile::CreateSeriesACM(QStringList words){
@@ -107,6 +112,9 @@ void DowlandFile::CreateSeriesEtalon(QStringList words){
         doc.name_series = words[i];
         doc.series = new QLineSeries();
         doc.data_sensor = new QLabel();
+        doc.axis_y_ = new QValueAxis();
+        doc.axis_y_->setRange(0, 0);
+        doc.axis_y_->setTickCount(21);
         doc.data_sensor->setFixedWidth(50);
         doc.point_series = new QScatterSeries();
         doc.point_series->setName("check_series");
@@ -119,28 +127,32 @@ void DowlandFile::CreateSeriesEtalon(QStringList words){
         doc.series->setName(words[i]);
         chart_->addSeries(doc.series);
         chart_->addSeries(doc.point_series);
+        chart_->addAxis(doc.axis_y_,Qt::AlignLeft);
         if(words[i] == "ЛТ300" || words[i] == "Имитатор ЛТ300"){
+            doc.axis_y_->setTitleText("Эталон Температура, °C");
             doc.series->setColor("blue");
-            doc.series->attachAxis(axis_temp_);
-            doc.point_series->attachAxis(axis_temp_);
+            doc.series->attachAxis(doc.axis_y_);
+            doc.point_series->attachAxis(doc.axis_y_);
         }
         if(words[i] == "ДМ5002М" || words[i] == "Имитатор ДМ5002М"){
+            doc.axis_y_->setTitleText("Эталон Давление, кг/см2");
             doc.series->setColor("red");
-            doc.series->attachAxis(axis_bar_);
-            doc.point_series->attachAxis(axis_bar_);
+            doc.series->attachAxis(doc.axis_y_);
+            doc.point_series->attachAxis(doc.axis_y_);
         }
         doc.name_series = words[i];
         doc.point_series->attachAxis(axis_x_);
         doc.series->attachAxis(axis_x_);
         data_etalon_.push_back(doc);
         data_base_.AddDataSerEtalon(data_etalon_.back());
+        data_base_.AddListAxis(data_etalon_.back().axis_y_);
     }
 }
 void DowlandFile::AddDataACM(QStringList words){
     double temp = words[3].toDouble();
     double bar =words[2].toDouble();
     if(!first_min_max_){
-        axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(words[1])));
+        axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
         bar_max_ = bar;
         bar_min_ = bar;
         temp_max_ = temp;
@@ -148,7 +160,7 @@ void DowlandFile::AddDataACM(QStringList words){
         first_min_max_ = true;
     }
     SetMinMaxY(temp,bar);
-    double time = TextToInt(words[1]);
+    qint64 time = TextToInt(words[0]+ " " +words[1]);
     p_bar_.append(QPointF(time,bar));
     p_temp_.append(QPointF(time,temp));
 
@@ -179,26 +191,29 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
     }
     if((data.value_1 == 999) && error_flag_1_){
         DataSeriesEtalon& doc = data_etalon_[0];
+        data_etalon_[0].series->replace(p_temp_);
+        p_temp_.clear();
         GapSeries(doc);
         error_flag_1_ = false;
     }
     if((data.value_2 == 999) && error_flag_2_){
         DataSeriesEtalon& doc = data_etalon_[1];
+        data_etalon_[1].series->replace(p_bar_);
+        p_bar_.clear();
         GapSeries(doc);
         error_flag_2_ = false;
     }
     if(data_etalon_[0].series && (data.value_1 != 999)){
-        data_etalon_[0].series->append(data.time,data.value_1);
+        p_temp_.append(QPointF(data.time,data.value_1));
         error_flag_1_ = true;
     }
     if(data_etalon_[1].series && (data.value_2 != 999)){
-        data_etalon_[1].series->append(data.time,data.value_2);
+        p_bar_.append(QPointF(data.time,data.value_2));
         error_flag_2_ = true;
     }
 }
 qint64 DowlandFile::TextToInt(QString word){
-    QDateTime time = QDateTime::fromString(word, "hh:mm:ss");
-    time.setDate(QDate::currentDate());
+    QDateTime time = QDateTime::fromString(word, "dd.MM.yyyy hh:mm:ss");
     qint64 result = time.toMSecsSinceEpoch();
     return result;
 }
@@ -224,12 +239,11 @@ void DowlandFile::GapSeries(DataSeriesEtalon& doc){
     chart_->addSeries(doc.series);
     if(doc.name_series == "ЛТ300" || doc.name_series == "Имитатор ЛТ300"){
         doc.series->setColor("blue");
-        doc.series->attachAxis(axis_temp_);
     }
     if(doc.name_series == "ДМ5002М" || doc.name_series == "Имитатор ДМ5002М"){
-        doc.series->setColor("red");
-        doc.series->attachAxis(axis_bar_);
-    }    
+        doc.series->setColor("red");  
+    }
+    doc.series->attachAxis(doc.axis_y_);
     doc.series->attachAxis(axis_x_);
     doc.series->setName(doc.name_series);
     doc.series->setPointLabelsFormat("@yPoint");

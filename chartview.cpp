@@ -6,6 +6,7 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     band_(QRubberBand::Rectangle,this)
 
 {
+    setMouseTracking(true);
     chart_ = new QChart();
     axis_time_ = new QDateTimeAxis();
     axis_time_->setTitleText("Время");
@@ -17,6 +18,8 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     axis_temp_->setTitleText("Температура, °C");
     axis_bar_ = new QValueAxis();
     axis_bar_->setTitleText("Давление, кг/см2");
+    axis_bar_->setVisible(false);
+    axis_temp_->setVisible(false);
     axis_bar_->setRange(0, 0);
     axis_bar_->setTickCount(21);
     axis_temp_->setRange(0, 0);
@@ -40,6 +43,8 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     line_from_mouse_->attachAxis(axis_time_);
     line_from_mouse_->attachAxis(axis_temp_);
     line_from_mouse_->setName("line_from_mouse");
+    data_base_.AddListAxis(axis_temp_);
+    data_base_.AddListAxis(axis_bar_);
 }
 QChart* ChartView::GetChart(){
     return chart_;
@@ -68,14 +73,14 @@ void ChartView::PanelLegendACM(){
     l_name_bar->setStyleSheet("color: red");
     leg_bar->setStyleSheet("color: red");
     leg_temp->setStyleSheet("color: blue");
-    hbox_bar->addWidget(leg_bar);
     hbox_temp->addWidget(leg_temp);
+    hbox_bar->addWidget(leg_bar);
     hbox_temp->addWidget(l_name_temp);
     hbox_temp->addWidget(data.data_sensor_temp);
     hbox_bar->addWidget(l_name_bar);
     hbox_bar->addWidget(data.data_sensor_bar);
-    vbox_legend_->addLayout(hbox_bar);
     vbox_legend_->addLayout(hbox_temp);
+    vbox_legend_->addLayout(hbox_bar);
     data_base_.AddLabelSensor(l_name_temp,leg_temp);
     data_base_.AddLabelSensor(l_name_bar,leg_bar);
     CreateMapLabel();
@@ -83,6 +88,11 @@ void ChartView::PanelLegendACM(){
 }
 void ChartView::PanelLegendEtalon(){
     QList<QLineSeries*> list_series;
+    QHBoxLayout *hbox_time = new QHBoxLayout();
+    QLabel *time = new QLabel();
+    hbox_time->addWidget(new QLabel("- Время:"));
+    hbox_time->addWidget(time);
+    vbox_legend_->addLayout(hbox_time);
     for(auto data : data_base_.GetDataSerEtalon()){
         QHBoxLayout *hbox = new QHBoxLayout();
         QLabel *l_name = new QLabel(data.name_series);
@@ -108,6 +118,8 @@ void ChartView::PanelLegendEtalon(){
         QPointer<QLabel> point = data.data_sensor;
         map_data_label_[data.series->name()] = point;
     }
+    QPointer<QLabel> point = time;
+    map_data_label_["time"] = point;
 }
 void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
     for(QLineSeries* s : series){
@@ -196,7 +208,11 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         is_dragging_ = true;
     }
     if(band_.isVisible()){
-        band_.setGeometry(QRect(last_pos_mouse_,event->pos()).normalized());
+        QRectF plot_area = chart_->plotArea();
+        QPoint p1(last_pos_mouse_.x(), plot_area.top());
+        QPoint p2(event->pos().x(), plot_area.bottom());
+        QRect rect = QRect(p1, p2).normalized();
+        band_.setGeometry(rect.normalized());
     }
     if(shift_series_){
         change_cursor_ = false;
@@ -256,6 +272,9 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
                     for(QPointF point :series_line->points()){
                         QPoint screen_pos = chart_->mapToPosition(point,series).toPoint();
                         if(event->pos().x() == screen_pos.x()){
+                            QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
+                            QString time_str = time.toString("dd.MM.yyyy hh:mm:ss");
+                            map_data_label_.value("time")->setText(time_str);
                             map_data_label_.value(series->name())->setText(QString::number(point.y()));
                         }
                     }
@@ -274,11 +293,16 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     if(event->button() == Qt::LeftButton && band_.isVisible()){
         band_.hide();
-        if(last_pos_mouse_.x() > event->pos().x() && last_pos_mouse_.y() > event->pos().y()){
+
+
+        if(last_pos_mouse_.x() > event->pos().x()){
             chart()->zoomReset();
         } else {
-            QRectF zoom_rect(last_pos_mouse_,event->pos());
-            chart()->zoomIn(zoom_rect);
+            QRectF plot_area = chart_->plotArea();
+            QPoint p1(last_pos_mouse_.x(), plot_area.top());
+            QPoint p2(event->pos().x(), plot_area.bottom());
+            QRect rect = QRect(p1, p2).normalized();
+            chart_->zoomIn(rect);
         }
     }
     chart_->update();

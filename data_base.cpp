@@ -24,4 +24,10 @@ void DataBase::AddLabelSensor(QLabel* sensor,QLabel* name){
     vector_name_sensor_.push_back(point);
     vector_name_.push_back(point_2);
 }
-
+void DataBase::AddListAxis(QValueAxis *axis){
+    QPointer<QValueAxis> point = axis;
+    list_axis_y_.push_back(point);
+}
+QList<QPointer<QValueAxis>>& DataBase::GetListAxis(){
+    return list_axis_y_;
+}

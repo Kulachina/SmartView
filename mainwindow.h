@@ -6,6 +6,8 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QFileDialog>
+#include <QCheckBox>
+
 #include "chartview.h"
 #include "data_base.h"
 #include "dowland_file.h"
@@ -23,11 +25,17 @@ public slots:
     void ToggledLegendPanel();
     void ShiftSeries();
     void ShiftLineinMouse();
+    void WindowAxis();
+    void WindowSeries();
 
 private:
     DataBase data_base_;
     ChartView* chart_view_;
     DowlandFile dow_file_;
+    QWidget *window_axes_,
+            *window_series_;
+    bool first_open_ = false,
+         first_open_2 = false;
 
 
 };

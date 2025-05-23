@@ -10,8 +10,6 @@ struct DataSeriesACM{
     QString name_sensor;
     QLineSeries *series_temp;
     QLineSeries *series_bar;
-    QValueAxis *axis_y_bar;
-    QValueAxis *axis_y_temp;
     QLabel *label_sensor;
     QLabel *data_sensor_temp;
     QLabel *data_sensor_bar;
@@ -34,6 +32,7 @@ struct DataHeaderEtalon{
 struct DataSeriesEtalon{
     QString name_series;
     QLineSeries *series;
+    QValueAxis *axis_y_;
     QScatterSeries *point_series;
     QList<QLineSeries*> old_series;
     QLabel *label_point,

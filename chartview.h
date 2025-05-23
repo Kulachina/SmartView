@@ -54,7 +54,7 @@ private:
     QVBoxLayout *vbox_legend_;
     QLineSeries* line_from_mouse_;
     QMap<QString,QList<QLineSeries*>> map_series_;
-    QMap<QString,QLabel*> map_data_label_;
+    QMap<QString,QPointer<QLabel>> map_data_label_;
     QList<QLineSeries*> active_series_;
     QPoint last_pos_mouse_;
     QRect hit_area_;

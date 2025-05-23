@@ -47,7 +47,8 @@ private:
     QPointer<QValueAxis> axis_temp_,
                          axis_bar_;
     QFile file_;
-    double bar_max_ = 0,
+    int count = 0;
+    qint64 bar_max_ = 0,
         bar_min_ = 0,
         temp_max_ = 0,
         temp_min_ = 0;
