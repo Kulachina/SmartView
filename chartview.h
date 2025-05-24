@@ -13,6 +13,7 @@
 #include <QCheckBox>
 #include <QPointer>
 #include <QRubberBand>
+#include <QtMath>
 
 #include "data_base.h"
 
@@ -41,6 +42,8 @@ protected slots:
     //void leaveEvent(QEvent *event) override;
     //void enterEvent(QEnterEvent *event) override;
 private:
+    void ZoomChart(QRect rect);
+    void ResetZoom();
     void MoveSeries(QLineSeries* series, qreal dx);
     void CreateMapSeries();
     void CreateMapLabel();
@@ -59,12 +62,22 @@ private:
     QPoint last_pos_mouse_;
     QRect hit_area_;
     QRubberBand band_;
+    QDateTime axis_min_,
+              axis_max_;
     bool move_ = false,
         is_dragging_ = false,
         is_dragging_series_ = false,
         shift_series_ = false,
         change_cursor_ = false,
         data_in_time_ = false;
+    int bar_max_etalon_,
+        bar_min_etalon_,
+        bar_max_acm_,
+        bar_min_acm_,
+        temp_max_etalon_,
+        temp_min_etalon_,
+        temp_max_acm_,
+        temp_min_acm_;
 };
 
 #endif // CHARTVIEW_H

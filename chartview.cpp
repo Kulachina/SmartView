@@ -293,8 +293,6 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     if(event->button() == Qt::LeftButton && band_.isVisible()){
         band_.hide();
-
-
         if(last_pos_mouse_.x() > event->pos().x()){
             chart()->zoomReset();
         } else {
@@ -302,8 +300,78 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
             QPoint p1(last_pos_mouse_.x(), plot_area.top());
             QPoint p2(event->pos().x(), plot_area.bottom());
             QRect rect = QRect(p1, p2).normalized();
-            chart_->zoomIn(rect);
+            ZoomChart(rect);
         }
     }
     chart_->update();
+}
+void ChartView::ResetZoom(){
+
+}
+void ChartView::ZoomChart(QRect rect){
+    bool axis_min = false;
+    bool axis_max = false;
+    bool first_bar_etalon = false;
+    bool first_temp_etalon = false;
+    bool first_bar_acm = false;
+    bool first_temp_acm = false;
+    for(QAbstractSeries *series : chart_->series()){
+        if(QLineSeries *series_line = qobject_cast<QLineSeries*>(series)){
+            for(QPointF point :series_line->points()){
+                QPoint screen_pos = chart_->mapToPosition(point,series).toPoint();
+                if(rect.left() < screen_pos.x() && rect.right() > screen_pos.x()){
+                    int y = point.y();
+                    if(series->name() == "ЛТ300"){
+                        if(!first_temp_etalon){
+                            temp_max_etalon_ = y;
+                            temp_min_etalon_ = y;
+                            first_temp_etalon = true;
+                        }
+                        temp_max_etalon_ = qMax(temp_max_etalon_,y);
+                        temp_min_etalon_ = qMin(temp_min_etalon_,y);
+                    }
+                    if(series->name() == "ДМ5002М"){
+                        if(!first_bar_etalon){
+                            bar_max_etalon_ = y;
+                            bar_min_etalon_ = y;
+                            first_bar_etalon = true;
+                        }
+                        bar_max_etalon_ = qMax(bar_max_etalon_,y);
+                        bar_min_etalon_ = qMin(bar_min_etalon_,y);
+                    }
+                    if(series->name().endsWith("bar")){
+                        if(!first_bar_acm){
+                            bar_max_acm_ = y;
+                            bar_min_acm_ = y;
+                            first_bar_acm= true;
+                        }
+                        bar_max_acm_ = qMax(bar_max_acm_,y);
+                        bar_min_acm_ = qMin(bar_min_acm_,y);
+                    }
+                    if(series->name().endsWith("temp")){
+                        if(!first_temp_acm){
+                            temp_max_acm_ = y;
+                            temp_min_acm_ = y;
+                            first_temp_acm= true;
+                        }
+                        temp_max_acm_ = qMax(temp_max_acm_,y);
+                        temp_min_acm_ = qMin(temp_min_acm_,y);
+                    }
+                }
+                if(rect.left() == screen_pos.x() && !axis_min){
+                    QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
+                    axis_min_ = time;
+                    axis_min = true;
+                }
+                if(rect.right() == screen_pos.x() && !axis_max){
+                    QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
+                    axis_max_ = time;
+                    axis_max = true;
+                }
+            }
+        }
+    }
+    axis_time_->setRange(axis_min_,axis_max_);
+    axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_ *0.1);
+    axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.1);
 }

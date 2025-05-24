@@ -43,7 +43,6 @@ void DowlandFile::LoadDocACM(QString path){
     first_min_max_ = false;
     p_temp_.clear();
     p_bar_.clear();
-    qDebug() << temp_max_ << temp_min_;
     axis_bar_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
     axis_temp_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
 }
