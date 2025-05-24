@@ -16,6 +16,18 @@
 #include <QtMath>
 
 #include "data_base.h"
+struct BoxZoom{
+    double bar_max_etalon_,
+        bar_min_etalon_,
+        bar_max_acm_,
+        bar_min_acm_,
+        temp_max_etalon_,
+        temp_min_etalon_,
+        temp_max_acm_,
+        temp_min_acm_;
+    QDateTime axis_min,
+              axis_max;
+};
 
 class ChartView : public QChartView
 {
@@ -43,6 +55,7 @@ protected slots:
     //void enterEvent(QEnterEvent *event) override;
 private:
     void ZoomChart(QRect rect);
+    void SaveZoom();
     void ResetZoom();
     void MoveSeries(QLineSeries* series, qreal dx);
     void CreateMapSeries();
@@ -51,6 +64,8 @@ private:
     QChart *chart_;
     QValueAxis *axis_bar_,
                *axis_temp_;
+    QPointer<QValueAxis> axis_bar_etalon_,
+                         axis_temp_etalon_;
     QWidget *widget_legend_;
     DataBase& data_base_;
     QDateTimeAxis *axis_time_;
@@ -64,13 +79,14 @@ private:
     QRubberBand band_;
     QDateTime axis_min_,
               axis_max_;
+    QVector<BoxZoom> box_zoom_;
     bool move_ = false,
         is_dragging_ = false,
         is_dragging_series_ = false,
         shift_series_ = false,
         change_cursor_ = false,
         data_in_time_ = false;
-    int bar_max_etalon_,
+    double bar_max_etalon_,
         bar_min_etalon_,
         bar_max_acm_,
         bar_min_acm_,

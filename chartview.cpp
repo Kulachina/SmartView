@@ -101,11 +101,13 @@ void ChartView::PanelLegendEtalon(){
             leg->setText("- Температура");
             leg->setStyleSheet("color: blue");
             l_name->setStyleSheet("color: blue");
+            axis_temp_etalon_ = data.axis_y_;
         }
         if(data.name_series == "ДМ5002М" || data.name_series == "Имитатор ДМ5002М"){
             leg->setText("- Давление");
             leg->setStyleSheet("color: red");
             l_name->setStyleSheet("color: red");
+            axis_bar_etalon_ = data.axis_y_;
         }
         hbox->addWidget(leg);
         hbox->addWidget(l_name);
@@ -254,7 +256,7 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         line_from_mouse_->show();
         QPointF mouse_pos = chart_->mapToValue(event->pos());
         double mouse_x = mouse_pos.x();
-        QList<QAbstractAxis*> axes = chart_->axes(Qt::Vertical);
+        QList<QAbstractAxis*> axes = chart()->axes(Qt::Vertical);
         if (!axes.isEmpty()) {
             QValueAxis* axisY = qobject_cast<QValueAxis*>(axes.first());
             if (axisY) {
@@ -264,7 +266,7 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
                 *line_from_mouse_ << QPointF(mouse_x, y_min) << QPointF(mouse_x, y_max);
             }
         }
-        chart_->update();
+        chart()->update();
         for(QAbstractSeries *series : chart_->series()){
             if(series != line_from_mouse_ && line_from_mouse_){
                 QLineSeries *series_line = qobject_cast<QLineSeries*>(series);
@@ -294,7 +296,7 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     if(event->button() == Qt::LeftButton && band_.isVisible()){
         band_.hide();
         if(last_pos_mouse_.x() > event->pos().x()){
-            chart()->zoomReset();
+            ResetZoom();
         } else {
             QRectF plot_area = chart_->plotArea();
             QPoint p1(last_pos_mouse_.x(), plot_area.top());
@@ -305,10 +307,35 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     chart_->update();
 }
+void ChartView::SaveZoom(){
+    BoxZoom box;
+    box.bar_max_acm_ = axis_bar_->max();
+    box.bar_min_acm_ = axis_bar_->min();
+    box.temp_max_acm_ = axis_temp_->max();
+    box.temp_min_acm_ = axis_temp_->min();
+    box.temp_min_etalon_ = axis_temp_etalon_->min();
+    box.temp_max_etalon_ = axis_temp_etalon_->max();
+    box.bar_min_etalon_ = axis_bar_etalon_->min();
+    box.bar_max_etalon_ = axis_bar_etalon_->max();
+    box.axis_max = axis_time_->max();
+    box.axis_min = axis_time_->min();
+    box_zoom_.push_back(box);
+}
 void ChartView::ResetZoom(){
+    if(box_zoom_.empty()){
+        return;
+    }
+    BoxZoom box = box_zoom_.back();
+    axis_bar_->setRange(box.bar_min_acm_,box.bar_max_acm_);
+    axis_temp_->setRange(box.temp_min_acm_, box.temp_max_acm_);
+    axis_time_->setRange(box.axis_min,box.axis_max);
+    axis_bar_etalon_->setRange(box.bar_min_etalon_,box.bar_max_etalon_);
+    axis_temp_etalon_->setRange(box.temp_min_etalon_,box.temp_max_etalon_);
+    box_zoom_.pop_back();
 
 }
 void ChartView::ZoomChart(QRect rect){
+    SaveZoom();
     bool axis_min = false;
     bool axis_max = false;
     bool first_bar_etalon = false;
@@ -320,7 +347,7 @@ void ChartView::ZoomChart(QRect rect){
             for(QPointF point :series_line->points()){
                 QPoint screen_pos = chart_->mapToPosition(point,series).toPoint();
                 if(rect.left() < screen_pos.x() && rect.right() > screen_pos.x()){
-                    int y = point.y();
+                    double y = point.y();
                     if(series->name() == "ЛТ300"){
                         if(!first_temp_etalon){
                             temp_max_etalon_ = y;
@@ -371,7 +398,9 @@ void ChartView::ZoomChart(QRect rect){
             }
         }
     }
+    axis_bar_etalon_->setRange(bar_min_etalon_,bar_max_etalon_);
+    axis_temp_etalon_->setRange(temp_min_etalon_,temp_max_etalon_);
     axis_time_->setRange(axis_min_,axis_max_);
-    axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_ *0.1);
-    axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.1);
+    axis_bar_->setRange(bar_min_acm_,bar_max_acm_);
+    axis_temp_->setRange(temp_min_acm_,temp_max_acm_);
 }

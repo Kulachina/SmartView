@@ -15,6 +15,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     menu_file->addAction(close);
     QAction *report = new QAction("Отчеты");
     QAction *master_point = new QAction("Мастер точек");
+    connect(master_point, &QAction::triggered, this,&MainWindow::WindowCheckPoint);
     QAction *view = new QAction("Вид");
     menu->addAction(file);
     menu->addAction(report);
@@ -158,4 +159,53 @@ void MainWindow::WindowSeries(){
         window_series_->show();
     }
 }
+void MainWindow::closeEvent(QCloseEvent *event){
+    int reply = QMessageBox::question(this, "Выход", "Вы уверены что хотите выйти?",QMessageBox::Yes | QMessageBox::No);
+    if(reply == QMessageBox::Yes){
+        QApplication::closeAllWindows();
+        event->accept();
+    } else {
+        event->ignore();
+    }
+}
+void MainWindow::WindowCheckPoint(){
+    if(!first_open_3){
+        window_c_p = new QWidget();
+        window_c_p->setWindowTitle("Таблица для интерполяции");
+        QVBoxLayout *main_vbox = new QVBoxLayout();
+        QTabWidget *tab = new QTabWidget();
+        for(const auto& data : data_base_.GetDataSerACM()){
+            QWidget *tab_sensor = new QWidget();
+            QVBoxLayout *vbox = new QVBoxLayout();
+            QGroupBox *group_temp = new QGroupBox("Температура");
+            QVBoxLayout *vbox_temp = new QVBoxLayout();
+            QGroupBox *group_bar = new QGroupBox("Давление");
+            QVBoxLayout *vbox_bar = new QVBoxLayout();
+            QHBoxLayout *table_hbox = new QHBoxLayout();
+            QTableView *table_bar = new QTableView();
+            QTableView *table_temp = new QTableView();
+            QStandardItemModel *model_bar = new QStandardItemModel();
+            QStandardItemModel *model_temp = new QStandardItemModel();
+            QHBoxLayout *btn_hbox = new QHBoxLayout();
+            QPushButton *btn_create_doc = new QPushButton("Сделать отчет");
+            btn_hbox->addWidget(btn_create_doc);
+            table_temp->setModel(model_temp);
+            table_bar->setModel(model_bar);
+            vbox_temp->addWidget(table_temp);
+            vbox_bar->addWidget(table_bar);
+            group_temp->setLayout(vbox_temp);
+            group_bar->setLayout(vbox_bar);
+            table_hbox->addWidget(group_bar);
+            table_hbox->addWidget(group_temp);
+            vbox->addLayout(table_hbox);
+            vbox->addLayout(btn_hbox);
+            tab_sensor->setLayout(vbox);
+            tab->addTab(tab_sensor,data.name_sensor);
+        }
+        main_vbox->addWidget(tab);
+        window_c_p->setLayout(main_vbox);
 
+        first_open_3 = true;
+    }
+    window_c_p->show();
+}
