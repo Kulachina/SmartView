@@ -31,3 +31,9 @@ void DataBase::AddListAxis(QValueAxis *axis){
 QList<QPointer<QValueAxis>>& DataBase::GetListAxis(){
     return list_axis_y_;
 }
+void DataBase::AddCheckPoint(qreal q){
+    check_points_.push_back(q);
+}
+const QVector<qreal>& DataBase::GetCheckPoints(){
+    return check_points_;
+}

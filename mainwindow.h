@@ -10,12 +10,14 @@
 #include <QMessageBox>
 #include <QTableView>
 #include <QStandardItemModel>
+#include <QHeaderView>
 #include <QTabWidget>
 #include <QGroupBox>
 #include <QPushButton>
 #include "chartview.h"
 #include "data_base.h"
 #include "dowland_file.h"
+#include "qspinbox.h"
 
 class MainWindow : public QMainWindow
 {
@@ -33,12 +35,17 @@ public slots:
     void WindowAxis();
     void WindowSeries();
     void WindowCheckPoint();
+    void FillAllTables();
 
 private:
     void closeEvent(QCloseEvent *event) override;
+    void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
+    void AnalisingSeries(DataSeriesACM data);
     DataBase data_base_;
     ChartView* chart_view_;
     DowlandFile dow_file_;
+    QSpinBox *s_et_bar_;
+    QSpinBox *s_et_temp_;
     QWidget *window_axes_,
             *window_series_,
             *window_c_p;

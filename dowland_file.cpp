@@ -7,6 +7,7 @@ DowlandFile::DowlandFile(DataBase& data_base)
 {
     w_progress_ = new QWidget();
     w_progress_->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
+    w_progress_->setWindowTitle("Загрузка...");
     QVBoxLayout *vb = new QVBoxLayout();
     progress_ = new QProgressBar();
     //progress_->setTextVisible(false);
@@ -196,6 +197,7 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
         gap_ = true;
     }
     if(data.check_point){
+        data_base_.AddCheckPoint(data.time);
         data_etalon_[0].point_series->append(data.time,data.value_1);
         data_etalon_[1].point_series->append(data.time,data.value_2);
     }
