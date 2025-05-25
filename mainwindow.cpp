@@ -24,21 +24,27 @@ MainWindow::MainWindow(QMainWindow *parent)
     menu->addAction(master_point);
     chart_view_ = new ChartView(nullptr, data_base_);
     QToolBar *tool_bar = new QToolBar();
-    QAction *load_doc = new QAction("Открыть документ",tool_bar);
-    connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocument);
-    QAction *load_doc_2 = new QAction("Добавить документ",tool_bar);
-    //connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocument);
-    QAction *toogled_legend = new QAction("скрыть/показать панель легенд",tool_bar);
-    connect(toogled_legend, &QAction::triggered, this,&MainWindow::ToggledLegendPanel);
-    QAction *shift_series = new QAction("Сдвиг кривых",tool_bar);
-    connect(shift_series, &QAction::triggered, this,&MainWindow::ShiftSeries);
-    QAction *data_in_time = new QAction("Данные в точке",tool_bar);
-    connect(data_in_time, &QAction::triggered, this,&MainWindow::ShiftLineinMouse);
-    QAction *window_axis = new QAction("Окно осей",tool_bar);
-    connect(window_axis, &QAction::triggered, this,&MainWindow::WindowAxis);
-    QAction *window_series = new QAction("Окно кривых",tool_bar);
-    connect(window_series, &QAction::triggered, this,&MainWindow::WindowSeries);
 
+    load_doc_2 = new QAction("Добавить прибор",tool_bar);
+    load_doc_2->setEnabled(false);
+    connect(load_doc_2, &QAction::triggered, this,&MainWindow::LoadDocumentACM);
+    toogled_legend = new QAction("скрыть/показать панель легенд",tool_bar);
+    toogled_legend->setEnabled(false);
+    connect(toogled_legend, &QAction::triggered, this,&MainWindow::ToggledLegendPanel);
+    shift_series = new QAction("Сдвиг кривых",tool_bar);
+    shift_series->setEnabled(false);
+    connect(shift_series, &QAction::triggered, this,&MainWindow::ShiftSeries);
+    data_in_time = new QAction("Данные в точке",tool_bar);
+    data_in_time->setEnabled(false);
+    connect(data_in_time, &QAction::triggered, this,&MainWindow::ShiftLineinMouse);
+    window_axis = new QAction("Окно осей",tool_bar);
+    window_axis->setEnabled(false);
+    connect(window_axis, &QAction::triggered, this,&MainWindow::WindowAxis);
+    window_series = new QAction("Окно кривых",tool_bar);
+    window_series->setEnabled(false);
+    connect(window_series, &QAction::triggered, this,&MainWindow::WindowSeries);
+    QAction *load_doc = new QAction("Открыть Эталон",tool_bar);
+    connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocumentEtalon);
     tool_bar->addAction(load_doc);
     tool_bar->addAction(load_doc_2);
     tool_bar->addAction(window_axis);
@@ -63,9 +69,9 @@ void MainWindow::SetWindow(){
     w->setLayout(hbox);
     setCentralWidget(w);
 }
-void MainWindow::LoadDocument(){
+void MainWindow::LoadDocumentACM(){
     QString path = QApplication::applicationDirPath();
-    QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml);;Текстовый документ (*.txt)");
+    QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
     if(path_doc.isEmpty()){
         return;
     }
@@ -73,10 +79,23 @@ void MainWindow::LoadDocument(){
         dow_file_.LoadDocACM(path_doc);
         chart_view_->PanelLegendACM();
     }
+}
+void MainWindow::LoadDocumentEtalon(){
+    QString path = QApplication::applicationDirPath();
+    QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
+    if(path_doc.isEmpty()){
+        return;
+    }
     if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
         dow_file_.LoadDocEtalon(path_doc);
         chart_view_->PanelLegendEtalon();
     }
+    load_doc_2->setEnabled(true);
+    toogled_legend->setEnabled(true);
+    shift_series->setEnabled(true);
+    data_in_time->setEnabled(true);
+    window_axis->setEnabled(true);
+    window_series->setEnabled(true);
 }
 void MainWindow::ToggledLegendPanel(){
     if(chart_view_->GetWidgetLegend()->isVisible()){
@@ -184,6 +203,7 @@ void MainWindow::WindowCheckPoint(){
         botton_hbox->setAlignment(Qt::AlignLeft);
         QTabWidget *tab = new QTabWidget();
         QPushButton *btn_saveas = new QPushButton("Сохранить все");
+        connect(btn_saveas,&QPushButton::clicked, this,&MainWindow::CreateAllDoc);
         QPushButton *btn_table = new QPushButton("Заполнить таблицы");
         connect(btn_table, &QPushButton::clicked,this, &MainWindow::FillAllTables);
         botton_hbox->addWidget(btn_table);
@@ -212,11 +232,15 @@ void MainWindow::WindowCheckPoint(){
             data.model_bar = model_bar;
             QHBoxLayout *btn_hbox = new QHBoxLayout();
             QPushButton *btn_create_doc = new QPushButton("Создать отчет");
+            connect(btn_create_doc, &QPushButton::clicked,this,[this,&data](){
+                QString path = QApplication::applicationDirPath();
+                QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить контрольные точки", path ,"*.txt");
+                create_raport.CreateDoc(data,path_doc);
+            });
             btn_hbox->addWidget(btn_create_doc);
             btn_hbox->setAlignment(Qt::AlignLeft);
             table_temp->setModel(model_temp);
             table_bar->setModel(model_bar);
-            FilingTable(model_temp,model_bar);
             table_temp->horizontalHeader()->hide();
             table_bar->horizontalHeader()->hide();
             table_temp->verticalHeader()->hide();
@@ -256,15 +280,15 @@ void MainWindow::WindowCheckPoint(){
     window_c_p->show();
 }
 void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
-    QVector<double> vec_bar = {0.000,200.000,400.000,600.000,800.000};
-    QVector<double> vec_temp = {10,25,50,75,95};
+    QVector<int> vec_bar = data_base_.GetCheckPointBar();
+    QVector<double> vec_temp = data_base_.GetCheckPointTemp();
     model_temp->setColumnCount(s_et_temp_->value()+1);
     model_bar->setColumnCount(s_et_temp_->value()+1);
     model_temp->setRowCount(s_et_bar_->value()+1);
     model_bar->setRowCount(s_et_bar_->value()+1);
     model_bar->setItem(0,0,new QStandardItem("P/T"));
     model_temp->setItem(0,0,new QStandardItem("P/T"));
-    for(int i = 1 ; i <= 5;++i){
+    for(int i = 1 ; i <= s_et_bar_->value();++i){
         QStandardItem *it = new QStandardItem(QString::number(vec_bar[i-1]));
         it->setTextAlignment(Qt::AlignCenter);
         model_bar->setItem(i,0,it);
@@ -272,18 +296,22 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
         it_b->setTextAlignment(Qt::AlignCenter);
         model_temp->setItem(i,0,it_b);
     }
-    for( int y = 1 ; y <= 5;++y){
-        QStandardItem *it_b = new QStandardItem(QString::number(vec_temp[y-1]));
+    int index_temp = 0;
+    for( int y = 1 ; y <= s_et_temp_->value();++y){
+        QStandardItem *it_b = new QStandardItem(QString::number(vec_temp[index_temp]));
         it_b->setTextAlignment(Qt::AlignCenter);
-        QStandardItem *it = new QStandardItem(QString::number(vec_temp[y-1]));
+        QStandardItem *it = new QStandardItem(QString::number(vec_temp[index_temp]));
         it->setTextAlignment(Qt::AlignCenter);
         model_bar->setItem(0,y,it);
         model_temp->setItem(0,y,it_b);
-
+        index_temp += s_et_temp_->value();
     }
 }
 void MainWindow::FillAllTables(){
-    for(DataSeriesACM data : data_base_.GetDataSerACM()){
+    for(DataSeriesACM& data : data_base_.GetDataSerACM()){
+        FilingTable(data.model_temp,data.model_bar);
+    }
+    for(DataSeriesACM& data : data_base_.GetDataSerACM()){
         AnalisingSeries(data);
     }
 }
@@ -330,4 +358,7 @@ void MainWindow::AnalisingSeries(DataSeriesACM data){
             column++;
         }
     }
+}
+void MainWindow::CreateAllDoc(){
+    create_raport.CreateAllDoc(data_base_.GetDataSerACM());
 }

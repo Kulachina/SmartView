@@ -398,9 +398,9 @@ void ChartView::ZoomChart(QRect rect){
             }
         }
     }
-    axis_bar_etalon_->setRange(bar_min_etalon_,bar_max_etalon_);
-    axis_temp_etalon_->setRange(temp_min_etalon_,temp_max_etalon_);
+    axis_bar_etalon_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
+    axis_temp_etalon_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
     axis_time_->setRange(axis_min_,axis_max_);
-    axis_bar_->setRange(bar_min_acm_,bar_max_acm_);
-    axis_temp_->setRange(temp_min_acm_,temp_max_acm_);
+    axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_*0.05);
+    axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.05);
 }

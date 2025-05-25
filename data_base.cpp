@@ -31,9 +31,17 @@ void DataBase::AddListAxis(QValueAxis *axis){
 QList<QPointer<QValueAxis>>& DataBase::GetListAxis(){
     return list_axis_y_;
 }
-void DataBase::AddCheckPoint(qreal q){
+void DataBase::AddCheckPoint(qreal q,double temp, int bar){
     check_points_.push_back(q);
+    check_points_temp.push_back(temp);
+    check_point_bar.push_back(bar);
 }
 const QVector<qreal>& DataBase::GetCheckPoints(){
     return check_points_;
+}
+QVector<double>& DataBase::GetCheckPointTemp(){
+    return check_points_temp;
+}
+QVector<int>& DataBase::GetCheckPointBar(){
+    return check_point_bar;
 }

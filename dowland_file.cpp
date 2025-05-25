@@ -197,7 +197,7 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
         gap_ = true;
     }
     if(data.check_point){
-        data_base_.AddCheckPoint(data.time);
+        data_base_.AddCheckPoint(data.time,data.value_1,data.value_2);
         data_etalon_[0].point_series->append(data.time,data.value_1);
         data_etalon_[1].point_series->append(data.time,data.value_2);
     }
@@ -269,17 +269,4 @@ void DowlandFile::SetMinMaxY(double temp, double bar){
     bar_max_ = qMax(bar_max_,bar);
     temp_max_ = qMax(temp_max_,temp);
     temp_min_ = qMin(temp_min_,temp);
-
-    /*if(bar_min_ > bar){
-        bar_min_ = bar;
-    }
-    if(bar_max_ < bar){
-        bar_max_ = bar;
-    }
-    if(temp_min_> temp){
-        temp_min_ = temp;
-    }
-    if(temp_max_ < temp){
-        temp_max_ = temp;
-    }*/
 }

@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     chartview.cpp \
+    createraport.cpp \
     data_base.cpp \
     dowland_file.cpp \
     main.cpp \
@@ -18,6 +19,7 @@ SOURCES += \
 HEADERS += \
     Data.h \
     chartview.h \
+    createraport.h \
     data_base.h \
     dowland_file.h \
     mainwindow.h

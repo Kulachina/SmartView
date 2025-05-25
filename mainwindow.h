@@ -18,6 +18,7 @@
 #include "data_base.h"
 #include "dowland_file.h"
 #include "qspinbox.h"
+#include "createraport.h"
 
 class MainWindow : public QMainWindow
 {
@@ -28,7 +29,8 @@ public:
     ~MainWindow();
     void SetWindow();
 public slots:
-    void LoadDocument();
+    void LoadDocumentEtalon();
+    void LoadDocumentACM();
     void ToggledLegendPanel();
     void ShiftSeries();
     void ShiftLineinMouse();
@@ -36,12 +38,13 @@ public slots:
     void WindowSeries();
     void WindowCheckPoint();
     void FillAllTables();
-
+    void CreateAllDoc();
 private:
     void closeEvent(QCloseEvent *event) override;
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
     void AnalisingSeries(DataSeriesACM data);
     DataBase data_base_;
+    CreateRaport create_raport;
     ChartView* chart_view_;
     DowlandFile dow_file_;
     QSpinBox *s_et_bar_;
@@ -49,6 +52,13 @@ private:
     QWidget *window_axes_,
             *window_series_,
             *window_c_p;
+    QAction *load_doc_2,
+            *toogled_legend,
+            *shift_series,
+            *data_in_time,
+            *window_axis,
+            *window_series;
+
     bool first_open_ = false,
          first_open_2 = false,
          first_open_3 = false;
