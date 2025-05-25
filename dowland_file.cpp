@@ -1,15 +1,17 @@
 #include "dowland_file.h"
-#include <QPointer>
-#include <QMessageBox>
-#include <QFileDialog>
-#include <QTextStream>
-#include <QDataStream>
-#include <QStandardPaths>
-#include <QElapsedTimer>
+#include <QVBoxLayout>
+#include <QtMath>
 
 DowlandFile::DowlandFile(DataBase& data_base)
     : data_base_(data_base)
 {
+    w_progress_ = new QWidget();
+    w_progress_->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
+    QVBoxLayout *vb = new QVBoxLayout();
+    progress_ = new QProgressBar();
+    //progress_->setTextVisible(false);
+    vb->addWidget(progress_);
+    w_progress_->setLayout(vb);
 
 }
 void DowlandFile::LoadDocACM(QString path){
@@ -23,20 +25,22 @@ void DowlandFile::LoadDocACM(QString path){
     file.close();
     QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
     QStringList words;
-    for(int i = 0;i < line_text.size()-1; ++ i){
-        if(i == 7){
-            words = line_text[i].split(" ",Qt::SkipEmptyParts);
-            CreateSeriesACM(words);
-        }
-        if(i > 8){
-            words = line_text[i].split(" ",Qt::SkipEmptyParts);
-            AddDataACM(words);
-        }
-        if(i == line_text.size()-2){
-            words = line_text[i].split(" ",Qt::SkipEmptyParts);
-            axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
-        }
+    int size = line_text.size();
+    progress_->setRange(0,size);
+    progress_->setValue(0);
+    w_progress_->show();
+    words = line_text[7].split(" ",Qt::SkipEmptyParts);
+    CreateSeriesACM(words);
+    int i = line_text.size()-2;
+    words = line_text[i].split(" ",Qt::SkipEmptyParts);
+    axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
+    for(int i = 9;i < line_text.size()-1; ++ i){
+        progress_->setValue(i);
+        QCoreApplication::processEvents();
+        words = line_text[i].split(" ",Qt::SkipEmptyParts);
+        AddDataACM(words);
     }
+    w_progress_->hide();
     DataSeriesACM& data = data_acm_.back();
     data.series_bar->replace(p_bar_);
     data.series_temp->replace(p_temp_);
@@ -65,15 +69,23 @@ void DowlandFile::LoadDocEtalon(QString path) {
             CreateSeriesEtalon(header_words);
         }
     }
+    int i = 0;
+    progress_->setRange(0,14000);
+    progress_->setValue(0);
+    w_progress_->show();
+    DataEtalon data;
+    char data_magic[4];
     while (!in.atEnd()) {
-        DataEtalon data;
-        char data_magic[4];
+        progress_->setValue(i);
+        QCoreApplication::processEvents();
+        ++i;
         if (in.readRawData(data_magic, sizeof(data_magic)) == sizeof(data_magic) && strncmp(data_magic, "DATA", 4) == 0) {
             in >> data.time >> data.value_1 >> data.value_2 >> data.gap_series_1 >> data.gap_series_2 >> data.check_point;
         }
-        AddDataEtalon(data);
-        axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(data.time));
+        AddDataEtalon(data); 
     }
+    axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(data.time));
+    w_progress_->hide();
     data_etalon_[0].series->replace(p_temp_);
     data_etalon_[1].series->replace(p_bar_);
     p_temp_.clear();
@@ -159,10 +171,9 @@ void DowlandFile::AddDataACM(QStringList words){
         first_min_max_ = true;
     }
     SetMinMaxY(temp,bar);
-    qint64 time = TextToInt(words[0]+ " " +words[1]);
+    qint64 time = TextToInt(words[0]+ " " + words[1]);
     p_bar_.append(QPointF(time,bar));
     p_temp_.append(QPointF(time,temp));
-
 }
 
 void DowlandFile::AddDataEtalon(DataEtalon data){
@@ -212,9 +223,8 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
     }
 }
 qint64 DowlandFile::TextToInt(QString word){
-    QDateTime time = QDateTime::fromString(word, "dd.MM.yyyy hh:mm:ss");
-    qint64 result = time.toMSecsSinceEpoch();
-    return result;
+    qint64 time = QDateTime::fromString(word, "dd.MM.yyyy hh:mm:ss").toMSecsSinceEpoch();
+    return time;
 }
 void DowlandFile::SetAxisTime(QDateTimeAxis *axis_x){
     axis_x_ = axis_x;
@@ -253,7 +263,12 @@ void DowlandFile::CheckFlag(){
     create_title_ = false;
 }
 void DowlandFile::SetMinMaxY(double temp, double bar){
-    if(bar_min_ > bar){
+    bar_min_ = qMin(bar_min_,bar);
+    bar_max_ = qMax(bar_max_,bar);
+    temp_max_ = qMax(temp_max_,temp);
+    temp_min_ = qMin(temp_min_,temp);
+
+    /*if(bar_min_ > bar){
         bar_min_ = bar;
     }
     if(bar_max_ < bar){
@@ -264,5 +279,5 @@ void DowlandFile::SetMinMaxY(double temp, double bar){
     }
     if(temp_max_ < temp){
         temp_max_ = temp;
-    }
+    }*/
 }

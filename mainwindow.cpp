@@ -100,7 +100,11 @@ void MainWindow::WindowAxis(){
         for(auto& axis : data_base_.GetListAxis()){
             QHBoxLayout *hbox = new QHBoxLayout();
             QCheckBox *check = new QCheckBox();
-            check->setCheckState(Qt::Unchecked);
+            if(axis->isVisible()){
+                check->setCheckState(Qt::Checked);
+            } else {
+                check->setCheckState(Qt::Unchecked);
+            }
             hbox->addWidget(check);
             hbox->addWidget(new QLabel(axis->titleText()));
             vbox->addLayout(hbox);
@@ -127,6 +131,8 @@ void MainWindow::WindowSeries(){
             QHBoxLayout *hbox_bar = new QHBoxLayout();
             QCheckBox *check_temp = new QCheckBox();
             QCheckBox *check_bar = new QCheckBox();
+            check_temp->setCheckState(Qt::Checked);
+            check_bar->setCheckState(Qt::Checked);
             QLabel *label_temp = new QLabel("Температура " + data.label_sensor->text());
             label_temp->setStyleSheet("color: blue");
             QLabel *label_bar = new QLabel("Давление " + data.label_sensor->text());

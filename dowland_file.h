@@ -2,6 +2,7 @@
 #define DOWLAND_FILE_H
 
 #include "data_base.h"
+#include <QProgressBar>
 #include <QApplication>
 #include <QFile>
 #include <QDir>
@@ -14,6 +15,12 @@
 #include <QStandardItemModel>
 #include <QScatterSeries>
 #include <QPointer>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QTextStream>
+#include <QDataStream>
+#include <QStandardPaths>
+
 
 class DowlandFile
 {
@@ -47,8 +54,10 @@ private:
     QPointer<QValueAxis> axis_temp_,
                          axis_bar_;
     QFile file_;
+    QProgressBar *progress_;
+    QWidget *w_progress_;
     int count = 0;
-    qint64 bar_max_ = 0,
+    double bar_max_ = 0,
         bar_min_ = 0,
         temp_max_ = 0,
         temp_min_ = 0;
