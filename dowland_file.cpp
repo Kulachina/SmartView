@@ -10,7 +10,6 @@ DowlandFile::DowlandFile(DataBase& data_base)
     w_progress_->setWindowTitle("Загрузка...");
     QVBoxLayout *vb = new QVBoxLayout();
     progress_ = new QProgressBar();
-    //progress_->setTextVisible(false);
     vb->addWidget(progress_);
     w_progress_->setLayout(vb);
 
@@ -93,6 +92,7 @@ void DowlandFile::LoadDocEtalon(QString path) {
     p_bar_.clear();
     data_etalon_[1].axis_y_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
     data_etalon_[0].axis_y_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
+    data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
     file.close();
 }
 void DowlandFile::CreateSeriesACM(QStringList words){
@@ -143,6 +143,8 @@ void DowlandFile::CreateSeriesEtalon(QStringList words){
         if(words[i] == "ЛТ300" || words[i] == "Имитатор ЛТ300"){
             doc.axis_y_->setTitleText("Эталон Температура, °C");
             doc.series->setColor("blue");
+            QLineSeries* first_line = qobject_cast<QLineSeries*>(chart_->series().value(0));
+            first_line->attachAxis(doc.axis_y_);
             doc.series->attachAxis(doc.axis_y_);
             doc.point_series->attachAxis(doc.axis_y_);
         }

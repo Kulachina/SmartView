@@ -32,7 +32,6 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     setChart(chart_);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    setMouseTracking(true);
     setRenderHint(QPainter::Antialiasing);
     widget_legend_ = new QWidget();
     vbox_legend_ = new QVBoxLayout();
@@ -41,7 +40,6 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     line_from_mouse_ = new QLineSeries();
     chart_->addSeries(line_from_mouse_);
     line_from_mouse_->attachAxis(axis_time_);
-    line_from_mouse_->attachAxis(axis_temp_);
     line_from_mouse_->setName("line_from_mouse");
     data_base_.AddListAxis(axis_temp_);
     data_base_.AddListAxis(axis_bar_);
@@ -62,6 +60,7 @@ QWidget* ChartView::GetWidgetLegend(){
     return widget_legend_;
 }
 void ChartView::PanelLegendACM(){
+    AddSeparator();
     DataSeriesACM data = data_base_.GetDataSerACM().back();
     QHBoxLayout *hbox_temp = new QHBoxLayout();
     QHBoxLayout *hbox_bar = new QHBoxLayout();
@@ -93,6 +92,7 @@ void ChartView::PanelLegendEtalon(){
     hbox_time->addWidget(new QLabel("- Время:"));
     hbox_time->addWidget(time);
     vbox_legend_->addLayout(hbox_time);
+    AddSeparator();
     for(auto data : data_base_.GetDataSerEtalon()){
         QHBoxLayout *hbox = new QHBoxLayout();
         QLabel *l_name = new QLabel(data.name_series);
@@ -181,7 +181,7 @@ void ChartView::mousePressEvent(QMouseEvent *event){
         is_dragging_ = false;
         last_pos_mouse_ = event->pos();
     }
-    if(event->button() == Qt::LeftButton){
+    if(event->button() == Qt::LeftButton && !shift_series_){
         last_pos_mouse_ = event->pos();
         band_.setGeometry(QRect(last_pos_mouse_, QSize()));
         band_.show();
@@ -255,17 +255,7 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
     if(data_in_time_){
         line_from_mouse_->show();
         QPointF mouse_pos = chart_->mapToValue(event->pos());
-        double mouse_x = mouse_pos.x();
-        QList<QAbstractAxis*> axes = chart()->axes(Qt::Vertical);
-        if (!axes.isEmpty()) {
-            QValueAxis* axisY = qobject_cast<QValueAxis*>(axes.first());
-            if (axisY) {
-                double y_min = axisY->min();
-                double y_max = axisY->max();
-                line_from_mouse_->clear();
-                *line_from_mouse_ << QPointF(mouse_x, y_min) << QPointF(mouse_x, y_max);
-            }
-        }
+        SetLineFromMouse(mouse_pos);
         chart()->update();
         for(QAbstractSeries *series : chart_->series()){
             if(series != line_from_mouse_ && line_from_mouse_){
@@ -302,10 +292,14 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
             QPoint p1(last_pos_mouse_.x(), plot_area.top());
             QPoint p2(event->pos().x(), plot_area.bottom());
             QRect rect = QRect(p1, p2).normalized();
-            ZoomChart(rect);
+            if(p2.x()-p1.x() > 10){
+                ZoomChart(rect);
+            }
         }
     }
-    chart_->update();
+    line_from_mouse_max_ = axis_temp_etalon_->max();
+    line_from_mouse_min_ = axis_temp_etalon_->min();
+    chart()->update();
 }
 void ChartView::SaveZoom(){
     BoxZoom box;
@@ -323,6 +317,8 @@ void ChartView::SaveZoom(){
 }
 void ChartView::ResetZoom(){
     if(box_zoom_.empty()){
+        std::pair<QDateTime,QDateTime> time = data_base_.GetDefaultAxisX();
+        axis_time_->setRange(time.first,time.second);
         return;
     }
     BoxZoom box = box_zoom_.back();
@@ -403,4 +399,17 @@ void ChartView::ZoomChart(QRect rect){
     axis_time_->setRange(axis_min_,axis_max_);
     axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_*0.05);
     axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.05);
+}
+void ChartView::SetLineFromMouse(QPointF point){
+    double mouse_x = point.x();
+    line_from_mouse_->clear();
+    *line_from_mouse_ << QPointF(mouse_x, line_from_mouse_min_) << QPointF(mouse_x, line_from_mouse_max_);
+}
+void ChartView::AddSeparator(){
+    QFrame *line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("background-color: grey");
+    line->setFixedHeight(1);
+    line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+    vbox_legend_->addWidget(line);
 }

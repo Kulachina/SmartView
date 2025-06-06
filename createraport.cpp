@@ -71,4 +71,5 @@ void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
             }
         }
     }
+    out << "------------------------------------------------\n";
 }

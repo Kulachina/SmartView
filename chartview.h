@@ -14,7 +14,7 @@
 #include <QPointer>
 #include <QRubberBand>
 #include <QtMath>
-
+#include <QFrame>
 #include "data_base.h"
 struct BoxZoom{
     double bar_max_etalon_,
@@ -47,13 +47,12 @@ public:
     QValueAxis* GetAxisTemp();
 
 protected slots:
-    //void wheelEvent(QWheelEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override ;
-    void mouseMoveEvent(QMouseEvent *event) override ;
-    void mouseReleaseEvent(QMouseEvent *event) override ;
-    //void leaveEvent(QEvent *event) override;
-    //void enterEvent(QEnterEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 private:
+    void AddSeparator();
+    void SetLineFromMouse(QPointF point);
     void ZoomChart(QRect rect);
     void SaveZoom();
     void ResetZoom();
@@ -93,7 +92,9 @@ private:
         temp_max_etalon_,
         temp_min_etalon_,
         temp_max_acm_,
-        temp_min_acm_;
+        temp_min_acm_,
+        line_from_mouse_min_,
+        line_from_mouse_max_ ;
 };
 
 #endif // CHARTVIEW_H

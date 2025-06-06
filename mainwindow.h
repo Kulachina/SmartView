@@ -58,7 +58,7 @@ private:
             *data_in_time,
             *window_axis,
             *window_series;
-
+    QTabWidget *tab_;
     bool first_open_ = false,
          first_open_2 = false,
          first_open_3 = false;
