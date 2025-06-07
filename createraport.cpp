@@ -9,14 +9,8 @@ CreateRaport::CreateRaport() {}
 
 
 void CreateRaport::CreateAllDoc(QVector<DataSeriesACM>& vec_data){
-    QString dir_name = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/SmartView";
-    QDir dir;
-    if(!dir.exists(dir_name)){
-        if(!dir.mkpath(dir_name)){
-            QMessageBox::warning(nullptr, "Ошибка","Неудалось создать папку для записи");
-            return;
-        }
-    }
+    QString path = QApplication::applicationDirPath();
+    QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
     for (DataSeriesACM& data : vec_data){
         QString file_data ="/" + data.name_sensor.trimmed() + "_Давление.txt";
         QString file_name = dir_name +  file_data  ;

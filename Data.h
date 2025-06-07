@@ -1,5 +1,6 @@
 #ifndef DATA_H
 #define DATA_H
+#include "qboxlayout.h"
 #include <QVector>
 #include <QDateTime>
 #include <QLineSeries>
@@ -8,6 +9,7 @@
 #include <QLabel>
 #include <QStandardItemModel>
 #include <QPointer>
+#include <QCheckBox>
 
 struct DataSeriesACM{
     QString name_sensor;
@@ -18,6 +20,11 @@ struct DataSeriesACM{
     QLabel *data_sensor_bar;
     QPointer<QStandardItemModel> model_temp;
     QPointer<QStandardItemModel> model_bar;
+    QHBoxLayout *hbox_temp;
+    QHBoxLayout *hbox_bar;
+    QCheckBox *check_temp;
+    QCheckBox *check_bar;
+    QFrame *line;
 };
 struct DataEtalon{
     char magic[4];

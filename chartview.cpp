@@ -60,10 +60,34 @@ QWidget* ChartView::GetWidgetLegend(){
     return widget_legend_;
 }
 void ChartView::PanelLegendACM(){
-    AddSeparator();
-    DataSeriesACM data = data_base_.GetDataSerACM().back();
-    QHBoxLayout *hbox_temp = new QHBoxLayout();
-    QHBoxLayout *hbox_bar = new QHBoxLayout();
+    DataSeriesACM& data = data_base_.GetDataSerACM().back();
+    data.line = new QFrame();
+    data.line->setFrameShape(QFrame::HLine);
+    data.line->setStyleSheet("background-color: grey");
+    data.line->setFixedHeight(1);
+    data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+    data.hbox_temp = new QHBoxLayout();
+    data.hbox_bar = new QHBoxLayout();
+    data.check_temp = new QCheckBox();
+    data.check_bar = new QCheckBox();
+    data.check_temp->setCheckState(Qt::Checked);
+    data.check_bar->setCheckState(Qt::Checked);
+    connect(data.check_temp, &QCheckBox::toggled, this,[=](){
+        if(data.check_temp->isChecked()){
+            data.series_temp->setVisible(true);
+        } else {
+            data.series_temp->setVisible(false);
+        }
+    });
+    connect(data.check_bar, &QCheckBox::toggled, this,[=](){
+        if(data.check_bar->isChecked()){
+            data.series_bar->setVisible(true);
+        } else {
+            data.series_bar->setVisible(false);
+        }
+    });
+    QPointer<QHBoxLayout> hbox_temp = data.hbox_temp;
+    QPointer<QHBoxLayout> hbox_bar = data.hbox_bar;
     QLabel *leg_bar = new QLabel("- Давление");
     QLabel *leg_temp = new QLabel("- Температура");
     QLabel *l_name_temp = new QLabel(data.name_sensor);
@@ -72,12 +96,15 @@ void ChartView::PanelLegendACM(){
     l_name_bar->setStyleSheet("color: red");
     leg_bar->setStyleSheet("color: red");
     leg_temp->setStyleSheet("color: blue");
+    hbox_temp->addWidget(data.check_temp);
+    hbox_bar->addWidget(data.check_bar);
     hbox_temp->addWidget(leg_temp);
     hbox_bar->addWidget(leg_bar);
     hbox_temp->addWidget(l_name_temp);
     hbox_temp->addWidget(data.data_sensor_temp);
     hbox_bar->addWidget(l_name_bar);
     hbox_bar->addWidget(data.data_sensor_bar);
+    vbox_legend_->addWidget(data.line);
     vbox_legend_->addLayout(hbox_temp);
     vbox_legend_->addLayout(hbox_bar);
     data_base_.AddLabelSensor(l_name_temp,leg_temp);
@@ -92,7 +119,6 @@ void ChartView::PanelLegendEtalon(){
     hbox_time->addWidget(new QLabel("- Время:"));
     hbox_time->addWidget(time);
     vbox_legend_->addLayout(hbox_time);
-    AddSeparator();
     for(auto data : data_base_.GetDataSerEtalon()){
         QHBoxLayout *hbox = new QHBoxLayout();
         QLabel *l_name = new QLabel(data.name_series);
@@ -120,6 +146,26 @@ void ChartView::PanelLegendEtalon(){
         QPointer<QLabel> point = data.data_sensor;
         map_data_label_[data.series->name()] = point;
     }
+    QHBoxLayout *hbox_check_all = new QHBoxLayout();
+    QCheckBox *check_all = new QCheckBox();
+    check_all->setCheckState(Qt::Checked);
+    connect(check_all, &QCheckBox::toggled,this,[=](){
+        if(check_all->isChecked()){
+            for(auto data : data_base_.GetDataSerACM()){
+                data.check_bar->setCheckState(Qt::Checked);
+                data.check_temp->setCheckState(Qt::Checked);
+            }
+        } else {
+            for(auto data : data_base_.GetDataSerACM()){
+                data.check_bar->setCheckState(Qt::Unchecked);
+                data.check_temp->setCheckState(Qt::Unchecked);
+            }
+        }
+    });
+    hbox_check_all->addWidget(check_all);
+    hbox_check_all->addWidget(new QLabel(" - Все графики"));
+    hbox_check_all->setAlignment(Qt::AlignLeft);
+    vbox_legend_->addLayout(hbox_check_all);
     QPointer<QLabel> point = time;
     map_data_label_["time"] = point;
 }
@@ -141,7 +187,7 @@ void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
 }
 void ChartView::CreateMapSeries(){
     DataSeriesACM data =data_base_.GetDataSerACM().back();
-    QList<QLineSeries*> list_series;
+    QList<QPointer<QLineSeries>> list_series;
     list_series << data.series_bar << data.series_temp;
     map_series_[data.series_temp->name()] = list_series;
     map_series_[data.series_bar->name()] = list_series;
@@ -166,6 +212,8 @@ void ChartView::ToogledFlagLineInMouse(){
         line_from_mouse_->hide();
     } else {
         data_in_time_ = true;
+        line_from_mouse_max_ = axis_temp_etalon_->max();
+        line_from_mouse_min_ = axis_temp_etalon_->min();
     }
 }
 void ChartView::MoveSeries(QLineSeries* series, qreal dx){
@@ -181,7 +229,7 @@ void ChartView::mousePressEvent(QMouseEvent *event){
         is_dragging_ = false;
         last_pos_mouse_ = event->pos();
     }
-    if(event->button() == Qt::LeftButton && !shift_series_){
+    if(event->button() == Qt::LeftButton && !shift_series_ && load_etalon_){
         last_pos_mouse_ = event->pos();
         band_.setGeometry(QRect(last_pos_mouse_, QSize()));
         band_.show();
@@ -267,7 +315,9 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
                             QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
                             QString time_str = time.toString("dd.MM.yyyy hh:mm:ss");
                             map_data_label_.value("time")->setText(time_str);
-                            map_data_label_.value(series->name())->setText(QString::number(point.y()));
+                            if(!map_data_label_.value(series->name()).isNull()){
+                                map_data_label_.value(series->name())->setText(QString::number(point.y()));
+                            }
                         }
                     }
                 }
@@ -296,9 +346,10 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
                 ZoomChart(rect);
             }
         }
+        line_from_mouse_max_ = axis_temp_etalon_->max();
+        line_from_mouse_min_ = axis_temp_etalon_->min();
     }
-    line_from_mouse_max_ = axis_temp_etalon_->max();
-    line_from_mouse_min_ = axis_temp_etalon_->min();
+
     chart()->update();
 }
 void ChartView::SaveZoom(){
@@ -405,11 +456,6 @@ void ChartView::SetLineFromMouse(QPointF point){
     line_from_mouse_->clear();
     *line_from_mouse_ << QPointF(mouse_x, line_from_mouse_min_) << QPointF(mouse_x, line_from_mouse_max_);
 }
-void ChartView::AddSeparator(){
-    QFrame *line = new QFrame();
-    line->setFrameShape(QFrame::HLine);
-    line->setStyleSheet("background-color: grey");
-    line->setFixedHeight(1);
-    line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
-    vbox_legend_->addWidget(line);
+void ChartView::ZoomOn(){
+    load_etalon_ = true;
 }

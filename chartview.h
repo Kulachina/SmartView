@@ -45,7 +45,7 @@ public:
     void ToogledFlagLineInMouse();
     QValueAxis* GetAxisBar();
     QValueAxis* GetAxisTemp();
-
+    void ZoomOn();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -70,9 +70,9 @@ private:
     QDateTimeAxis *axis_time_;
     QVBoxLayout *vbox_legend_;
     QLineSeries* line_from_mouse_;
-    QMap<QString,QList<QLineSeries*>> map_series_;
+    QMap<QString,QList<QPointer<QLineSeries>>> map_series_;
     QMap<QString,QPointer<QLabel>> map_data_label_;
-    QList<QLineSeries*> active_series_;
+    QList<QPointer<QLineSeries>> active_series_;
     QPoint last_pos_mouse_;
     QRect hit_area_;
     QRubberBand band_;
@@ -84,7 +84,8 @@ private:
         is_dragging_series_ = false,
         shift_series_ = false,
         change_cursor_ = false,
-        data_in_time_ = false;
+        data_in_time_ = false,
+        load_etalon_ = false;
     double bar_max_etalon_,
         bar_min_etalon_,
         bar_max_acm_,
