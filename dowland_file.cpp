@@ -272,3 +272,20 @@ void DowlandFile::SetMinMaxY(double temp, double bar){
     temp_max_ = qMax(temp_max_,temp);
     temp_min_ = qMin(temp_min_,temp);
 }
+void DowlandFile::ClearAll(){
+    data_etalon_.clear();
+    data_acm_.clear();
+    p_bar_.clear();
+    p_temp_.clear();
+    bar_max_ = 0;
+    bar_min_ = 0;
+    temp_max_ = 0;
+    temp_min_ = 0;
+    set_axis_x_ = false;
+    error_flag_1_ = true;
+    error_flag_2_ = true;
+    create_file_ = false;
+    create_title_ = false;
+    gap_ = false;
+    first_min_max_ = false;
+}

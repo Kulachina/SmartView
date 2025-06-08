@@ -21,6 +21,7 @@ public:
     QList<QPointer<QValueAxis>>& GetListAxis();
     void SetDefaultAxisX(QDateTime max, QDateTime min);
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();
+    void ClearAll();
 private:
     QVector<DataSeriesACM> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;

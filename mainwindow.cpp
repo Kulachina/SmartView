@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QSpinBox>
+#include <QFileInfo>
 
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
@@ -11,6 +12,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *file = new QAction("Файл");
     file->setMenu(menu_file);
     QAction *open = new QAction("Открыть...");
+    connect(open, &QAction::triggered,this, &MainWindow::LoadDocumentEtalon);
     menu_file->addAction(open);
     QAction *close = new QAction("Выход");
     menu_file->addAction(close);
@@ -74,34 +76,60 @@ void MainWindow::SetWindow(){
     setCentralWidget(w);
 }
 void MainWindow::LoadDocumentACM(){
-    QString path = QApplication::applicationDirPath();
-    QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
-    if(path_doc.isEmpty()){
+    if(!first_open_doc_){
+        QString path = QApplication::applicationDirPath();
+        path_doc_ = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
+        first_open_doc_ = true;
+    } else {
+        path_doc_ = QFileDialog::getOpenFileName(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt)");
+    }
+    if(path_doc_.isEmpty()){
         return;
     }
-    if(path_doc.endsWith(".txt", Qt::CaseInsensitive)){
-        dow_file_.LoadDocACM(path_doc);
+    if(path_doc_.endsWith(".txt", Qt::CaseInsensitive)){
+        dow_file_.LoadDocACM(path_doc_);
         chart_view_->PanelLegendACM();
+        QFileInfo file_info(path_doc_);
+        save_path_ = file_info.absolutePath();
     }
 }
 void MainWindow::LoadDocumentEtalon(){
-    QString path = QApplication::applicationDirPath();
-    QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
-    if(path_doc.isEmpty()){
-        return;
+    if(!first_open_etalon_){
+        QString path = QApplication::applicationDirPath();
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
+        if(path_doc.isEmpty()){
+            return;
+        }
+        if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
+            dow_file_.LoadDocEtalon(path_doc);
+            chart_view_->PanelLegendEtalon();
+        }
+        chart_view_->ZoomOn();
+        load_doc_2_->setEnabled(true);
+        toogled_legend_->setEnabled(true);
+        shift_series_->setEnabled(true);
+        data_in_time_->setEnabled(true);
+        window_axis_->setEnabled(true);
+        action_series_->setEnabled(true);
+        delete_sensor_->setEnabled(true);
+        first_open_etalon_ = true;
+    } else {
+        int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
+        if(reply == QMessageBox::Yes){
+            DeleteAllSens();
+            QString path = QApplication::applicationDirPath();
+            QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
+            if(path_doc.isEmpty()){
+                return;
+            }
+            if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
+                dow_file_.LoadDocEtalon(path_doc);
+                chart_view_->PanelLegendEtalon();
+                data_base_.AddListAxis(chart_view_->GetAxisBar());
+                data_base_.AddListAxis(chart_view_->GetAxisTemp());
+            }
+        }
     }
-    if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
-        dow_file_.LoadDocEtalon(path_doc);
-        chart_view_->PanelLegendEtalon();
-    }
-    chart_view_->ZoomOn();
-    load_doc_2_->setEnabled(true);
-    toogled_legend_->setEnabled(true);
-    shift_series_->setEnabled(true);
-    data_in_time_->setEnabled(true);
-    window_axis_->setEnabled(true);
-    action_series_->setEnabled(true);
-    delete_sensor_->setEnabled(true);
 }
 void MainWindow::ToggledLegendPanel(){
     if(chart_view_->GetWidgetLegend()->isVisible()){
@@ -112,6 +140,7 @@ void MainWindow::ToggledLegendPanel(){
 }
 void MainWindow::ShiftSeries(){
     chart_view_->ToogledFlagShiftSeries();
+
 }
 void MainWindow::ShiftLineinMouse(){
     chart_view_->ToogledFlagLineInMouse();
@@ -121,7 +150,21 @@ void MainWindow::WindowAxis(){
         window_axes_ = new QWidget();
         window_axes_->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
         window_axes_->setWindowTitle("Настройка осей");
-        QVBoxLayout *vbox = new QVBoxLayout();
+        vbox_axes_ = new QVBoxLayout();
+
+        window_axes_->setLayout(vbox_axes_);
+        first_open_ = true;
+    }
+    while(QLayoutItem *item = vbox_axes_->itemAt(0)){
+        if(QLayout *l = item->layout()){
+            while(QLayoutItem *it = l->itemAt(0)){
+                if(QWidget *w = it->widget()){
+                    delete w;
+                }
+            }
+        delete l;
+        }
+    }
         for(auto& axis : data_base_.GetListAxis()){
             QHBoxLayout *hbox = new QHBoxLayout();
             QCheckBox *check = new QCheckBox();
@@ -132,7 +175,7 @@ void MainWindow::WindowAxis(){
             }
             hbox->addWidget(check);
             hbox->addWidget(new QLabel(axis->titleText()));
-            vbox->addLayout(hbox);
+            vbox_axes_->addLayout(hbox);
             connect(check, &QCheckBox::toggled, this,[axis,check](){
                 if(check->isChecked()){
                     axis->setVisible(true);
@@ -141,9 +184,9 @@ void MainWindow::WindowAxis(){
                 }
             });
         }
-        window_axes_->setLayout(vbox);
-        first_open_ = true;
-    }
+
+
+
     window_axes_->show();
 }
 void MainWindow::WindowSeries(){
@@ -430,7 +473,7 @@ void MainWindow::WindowDeleteSensor(){
         hbox->addWidget(combo_del_sens_);
         QHBoxLayout *hbox_btn = new QHBoxLayout();
         QPushButton *btn_del = new QPushButton("Удалить");
-        connect(btn_del, &QPushButton::clicked, this, &MainWindow::DeleteSens);
+        connect(btn_del, &QPushButton::clicked, this, &MainWindow::DeleteOneSens);
         QPushButton *btn_cancel = new QPushButton("Отмена");
         connect(btn_cancel, &QPushButton::clicked, window_del_sens_, &QWidget::hide);
         hbox_btn->addWidget(btn_del,0,Qt::AlignLeft);
@@ -440,37 +483,70 @@ void MainWindow::WindowDeleteSensor(){
         window_del_sens_->setLayout(vb_del_sens_);
         first_open_4_ = true;
     }
+    UpdateComboBox();
+    window_del_sens_->show();
+}
+void MainWindow::UpdateComboBox(){
     QStringList sensors;
     for(DataSeriesACM data : data_base_.GetDataSerACM()){
         sensors << data.name_sensor;
     }
     combo_del_sens_->clear();
     combo_del_sens_->addItems(sensors);
-    window_del_sens_->show();
 }
-void MainWindow::DeleteSens(){
+void MainWindow::DeleteOneSens(){
     QString sens = combo_del_sens_->currentText();
     QVector<DataSeriesACM>& data = data_base_.GetDataSerACM();
-
-    for(auto it = data.begin() ;it != data.end();){
+    for(auto it = data.begin();it != data.end();){
         if(sens == it->name_sensor){
-            delete it->data_sensor_bar;
-            delete it->data_sensor_temp;
-            delete it->series_temp;
-            delete it->series_bar;
-            delete it->label_sensor;
-            delete it->hbox_bar->itemAt(2)->widget();
-            delete it->hbox_bar->itemAt(1)->widget();
-            delete it->hbox_bar->itemAt(0)->widget();
-            delete it->hbox_bar;
-            delete it->hbox_temp->itemAt(2)->widget();
-            delete it->hbox_temp->itemAt(1)->widget();
-            delete it->hbox_temp->itemAt(0)->widget();
-            delete it->hbox_temp;
-            delete it->line;
+            DeleteSens(*it);
             it = data.erase(it);
+            UpdateComboBox();
+            return;
         } else {
             ++it;
         }
     }
+}
+void MainWindow::DeleteAllSens(){
+    QVector<DataSeriesACM>& data = data_base_.GetDataSerACM();
+    for(auto it = data.begin();it != data.end();++it){
+            DeleteSens(*it);
+    }
+    data.clear();
+    QVector<DataSeriesEtalon>& dat = data_base_.GetDataSerEtalon();
+    for(DataSeriesEtalon& d : dat){
+        delete d.series;
+        delete d.axis_y_;
+        delete d.label_point;
+        delete d.data_sensor;
+        delete d.point_series;
+        if(!d.old_series.isEmpty()){
+            for(auto s : d.old_series){
+                delete s;
+            }
+            d.old_series.clear();
+        }
+    }
+    create_axis_ = false;
+    dat.clear();
+    chart_view_->ClearPanelLegend();
+    data_base_.ClearAll();
+    dow_file_.ClearAll();
+}
+void MainWindow::DeleteSens(DataSeriesACM& data){
+            delete data.data_sensor_bar;
+            delete data.data_sensor_temp;
+            delete data.series_temp;
+            delete data.series_bar;
+            delete data.label_sensor;
+            delete data.hbox_bar->itemAt(2)->widget();
+            delete data.hbox_bar->itemAt(1)->widget();
+            delete data.hbox_bar->itemAt(0)->widget();
+            delete data.hbox_bar;
+            delete data.hbox_temp->itemAt(2)->widget();
+            delete data.hbox_temp->itemAt(1)->widget();
+            delete data.hbox_temp->itemAt(0)->widget();
+            delete data.hbox_temp;
+            delete data.line;
 }

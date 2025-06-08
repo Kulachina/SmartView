@@ -45,14 +45,18 @@ private:
     void closeEvent(QCloseEvent *event) override;
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
     void AnalisingSeries(DataSeriesACM data);
-    void DeleteSens();
+    void DeleteOneSens();
+    void DeleteSens(DataSeriesACM& data);
+    void DeleteAllSens();
+    void UpdateComboBox();
     DataBase data_base_;
     CreateRaport create_raport;
     ChartView* chart_view_;
     DowlandFile dow_file_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;
-    QVBoxLayout *vb_del_sens_;
+    QVBoxLayout *vb_del_sens_,
+                *vbox_axes_;
     QWidget *window_axes_,
             *window_series_,
             *window_c_p,
@@ -66,11 +70,14 @@ private:
             *delete_sensor_;
     QTabWidget *tab_;
     QComboBox *combo_del_sens_;
+    QString path_doc_,
+            save_path_;
     bool first_open_ = false,
          first_open_2_ = false,
          first_open_3_ = false,
-         first_open_4_ = false;
-
-
+         first_open_4_ = false,
+         first_open_doc_ = false,
+         first_open_etalon_ = false,
+         create_axis_ = false;
 };
 #endif // MAINWINDOW_H

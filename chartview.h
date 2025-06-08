@@ -46,6 +46,7 @@ public:
     QValueAxis* GetAxisBar();
     QValueAxis* GetAxisTemp();
     void ZoomOn();
+    void ClearPanelLegend();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

@@ -41,8 +41,6 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     chart_->addSeries(line_from_mouse_);
     line_from_mouse_->attachAxis(axis_time_);
     line_from_mouse_->setName("line_from_mouse");
-    data_base_.AddListAxis(axis_temp_);
-    data_base_.AddListAxis(axis_bar_);
 }
 QChart* ChartView::GetChart(){
     return chart_;
@@ -167,7 +165,7 @@ void ChartView::PanelLegendEtalon(){
     hbox_check_all->setAlignment(Qt::AlignLeft);
     vbox_legend_->addLayout(hbox_check_all);
     QPointer<QLabel> point = time;
-    map_data_label_["time"] = point;
+    map_data_label_["time"] = point;  
 }
 void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
     for(QLineSeries* s : series){
@@ -458,4 +456,19 @@ void ChartView::SetLineFromMouse(QPointF point){
 }
 void ChartView::ZoomOn(){
     load_etalon_ = true;
+}
+void ChartView::ClearPanelLegend(){
+    while(QLayoutItem *item =vbox_legend_->itemAt(0)){
+        if(QWidget *wid = item->widget()){
+            delete wid;
+        }
+        if(QLayout *l = item->layout()){
+            while(QLayoutItem *it = l->itemAt(0)){
+                if(QWidget *wid = it->widget()){
+                    delete wid;
+                }
+            }
+            delete l;
+        }
+    }
 }

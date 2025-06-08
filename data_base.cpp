@@ -53,3 +53,13 @@ void DataBase::SetDefaultAxisX(QDateTime max, QDateTime min){
 std::pair<QDateTime,QDateTime> DataBase::GetDefaultAxisX(){
     return {axis_min_,axis_max_};
 }
+void DataBase::ClearAll(){
+    check_points_.clear();
+    check_points_temp.clear();
+    check_point_bar.clear();
+    map_data_sensor_.clear();
+    data_etalon_.clear();
+    list_axis_y_.clear();
+    vector_name_.clear();
+    vector_name_sensor_.clear();
+}
