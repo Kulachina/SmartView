@@ -13,7 +13,7 @@ public:
     void AddLabelSensor(QLabel* sensor,QLabel* name);
     void AddListAxis(QValueAxis *axis);
     void AddCheckPoint(qint64 q,double temp, int bar);
-    const QVector<QDateTime>& GetCheckPoints();
+    QVector<QDateTime>& GetCheckPoints();
     QVector<double>& GetCheckPointTemp();
     QVector<int>& GetCheckPointBar();
     QVector<DataSeriesACM>& GetDataSerACM();

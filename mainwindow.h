@@ -37,11 +37,13 @@ public slots:
     void ShiftLineinMouse();
     void WindowAxis();
     void WindowSeries();
-    void WindowCheckPoint();
+    void WindowMasterPoint();
+    void WindowCheckPoints();
     void WindowDeleteSensor();
     void FillAllTables();
     void CreateAllDoc();
 private:
+    void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
     void AnalisingSeries(DataSeriesACM data);
@@ -49,18 +51,22 @@ private:
     void DeleteSens(DataSeriesACM& data);
     void DeleteAllSens();
     void UpdateComboBox();
+    void CreateTableCheckPoints();
+    void ReplaceCheckSeries();
     DataBase data_base_;
     CreateRaport create_raport;
     ChartView* chart_view_;
     DowlandFile dow_file_;
     QSpinBox *s_et_bar_,
-             *s_et_temp_;
+             *s_et_temp_,
+             *s_step_bar_;
     QVBoxLayout *vb_del_sens_,
                 *vbox_axes_;
     QWidget *window_axes_,
             *window_series_,
-            *window_c_p,
-            *window_del_sens_;
+            *window_c_p_,
+            *window_del_sens_,
+            *window_check_points_;
     QAction *load_doc_2_,
             *toogled_legend_,
             *shift_series_,
@@ -72,12 +78,15 @@ private:
     QComboBox *combo_del_sens_;
     QString path_doc_,
             save_path_;
+    QStandardItemModel *fix_model_;
+    QTableView *fix_table_;
     bool first_open_ = false,
          first_open_2_ = false,
          first_open_3_ = false,
          first_open_4_ = false,
          first_open_doc_ = false,
          first_open_etalon_ = false,
+         first_open_win_check_points_ = false,
          create_axis_ = false;
 };
 #endif // MAINWINDOW_H

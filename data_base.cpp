@@ -37,7 +37,7 @@ void DataBase::AddCheckPoint(qint64 q,double temp, int bar){
     check_points_temp.push_back(temp);
     check_point_bar.push_back(bar);
 }
-const QVector<QDateTime>& DataBase::GetCheckPoints(){
+QVector<QDateTime>& DataBase::GetCheckPoints(){
     return check_points_;
 }
 QVector<double>& DataBase::GetCheckPointTemp(){
