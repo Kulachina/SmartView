@@ -53,6 +53,10 @@ MainWindow::MainWindow(QMainWindow *parent)
     delete_sensor_ = new QAction("Удалить прибор");
     delete_sensor_->setEnabled(false);
     connect(delete_sensor_,&QAction::triggered, this, &MainWindow::WindowDeleteSensor);
+    shift_check_point_ = new QAction("Сдвиг КТ");
+    shift_check_point_->setCheckable(true);
+    shift_check_point_->setEnabled(false);
+    connect(shift_check_point_, &QAction::triggered,this, &MainWindow::ShiftCheckPoint);
     QAction *load_doc = new QAction("Открыть Эталон",tool_bar);
     connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocumentEtalon);
     tool_bar->addAction(load_doc);
@@ -61,6 +65,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     //tool_bar->addAction(action_series_);
     tool_bar->addAction(toogled_legend_);
     tool_bar->addAction(shift_series_);
+    tool_bar->addAction(shift_check_point_);
     tool_bar->addAction(data_in_time_);
     tool_bar->addAction(delete_sensor_);
     addToolBar(tool_bar);
@@ -118,6 +123,7 @@ void MainWindow::LoadDocumentEtalon(){
         window_axis_->setEnabled(true);
         action_series_->setEnabled(true);
         delete_sensor_->setEnabled(true);
+        shift_check_point_->setEnabled(true);
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
@@ -131,7 +137,6 @@ void MainWindow::LoadDocumentEtalon(){
             if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
                 dow_file_.LoadDocEtalon(path_doc);
                 chart_view_->PanelLegendEtalon();
-
             }
         }
     }
@@ -145,6 +150,9 @@ void MainWindow::ToggledLegendPanel(){
 }
 void MainWindow::ShiftSeries(){
     chart_view_->ToogledFlagShiftSeries();
+}
+void MainWindow::ShiftCheckPoint(){
+    chart_view_->ToogledFlagShiftCheckPoint();
 
 }
 void MainWindow::ShiftLineinMouse(){
@@ -623,13 +631,6 @@ void MainWindow::CreateTableCheckPoints(){
     fix_model_->setHeaderData(2,Qt::Horizontal,"Температура");
 }
 void MainWindow::ReplaceCheckSeries(){
-    QVector<QPointF> bar;
-    QVector<QPointF> temp;
-    for(int i = 0; i<= data_base_.GetCheckPoints().size()-1;++i){
-        bar.append(QPointF(data_base_.GetCheckPoints()[i].toMSecsSinceEpoch(),data_base_.GetCheckPointBar()[i]));
-        temp.append(QPointF(data_base_.GetCheckPoints()[i].toMSecsSinceEpoch(),data_base_.GetCheckPointTemp()[i]));
-    }
-    data_base_.GetDataSerEtalon()[0].point_series->replace(temp);
-    data_base_.GetDataSerEtalon()[1].point_series->replace(bar);
+    chart_view_->ReplaceCheckSeries();
 }
 

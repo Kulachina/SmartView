@@ -42,11 +42,13 @@ public:
     QChart* GetChart();
     QDateTimeAxis* GetAxisX();
     void ToogledFlagShiftSeries();
+    void ToogledFlagShiftCheckPoint();
     void ToogledFlagLineInMouse();
     QValueAxis* GetAxisBar();
     QValueAxis* GetAxisTemp();
     void ZoomOn();
     void ClearPanelLegend();
+    void ReplaceCheckSeries();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -58,6 +60,7 @@ private:
     void SaveZoom();
     void ResetZoom();
     void MoveSeries(QLineSeries* series, qreal dx);
+    void MoveCheckPoint(qreal point, qreal dx);
     void CreateMapSeries();
     void CreateMapLabel();
     QChartView *chart_view_;
@@ -74,6 +77,7 @@ private:
     QMap<QString,QList<QPointer<QLineSeries>>> map_series_;
     QMap<QString,QPointer<QLabel>> map_data_label_;
     QList<QPointer<QLineSeries>> active_series_;
+    QPointer<QScatterSeries> active_check_series_;
     QPoint last_pos_mouse_;
     QRect hit_area_;
     QRubberBand band_;
@@ -83,7 +87,9 @@ private:
     bool move_ = false,
         is_dragging_ = false,
         is_dragging_series_ = false,
+        is_dragging_check_point_ = false,
         shift_series_ = false,
+        shift_check_point_ = false,
         change_cursor_ = false,
         data_in_time_ = false,
         load_etalon_ = false;
@@ -97,6 +103,7 @@ private:
         temp_min_acm_,
         line_from_mouse_min_,
         line_from_mouse_max_ ;
+    int active_check_point_;
 };
 
 #endif // CHARTVIEW_H

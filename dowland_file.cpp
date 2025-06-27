@@ -247,7 +247,8 @@ QVector<DataSeriesEtalon>& DowlandFile::GetDataSeriesEtalon(){
     return data_etalon_;
 }
 void DowlandFile::GapSeries(DataSeriesEtalon& doc){
-    doc.old_series.push_back(doc.series);
+    QLineSeries *old_s = doc.series;
+    doc.old_series.push_back(old_s);
     doc.series = new QLineSeries();
     chart_->addSeries(doc.series);
     if(doc.name_series == "ЛТ300" || doc.name_series == "Имитатор ЛТ300"){

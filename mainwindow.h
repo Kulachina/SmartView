@@ -34,6 +34,7 @@ public slots:
     void LoadDocumentACM();
     void ToggledLegendPanel();
     void ShiftSeries();
+    void ShiftCheckPoint();
     void ShiftLineinMouse();
     void WindowAxis();
     void WindowSeries();
@@ -70,6 +71,7 @@ private:
     QAction *load_doc_2_,
             *toogled_legend_,
             *shift_series_,
+            *shift_check_point_,
             *data_in_time_,
             *window_axis_,
             *action_series_,

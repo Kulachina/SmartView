@@ -204,6 +204,13 @@ void ChartView::ToogledFlagShiftSeries(){
         shift_series_ = true;
     }
 }
+void ChartView::ToogledFlagShiftCheckPoint(){
+    if(shift_check_point_){
+        shift_check_point_ = false;
+    } else {
+        shift_check_point_ = true;
+    }
+}
 void ChartView::ToogledFlagLineInMouse(){
     if(data_in_time_){
         data_in_time_ = false;
@@ -221,16 +228,56 @@ void ChartView::MoveSeries(QLineSeries* series, qreal dx){
     }
     series->replace(points);
 }
+void ChartView::MoveCheckPoint(qreal point, qreal dx){
+    qreal time_point = point + dx;
+    qint64 t = static_cast<qint64>(time_point);
+    qint64 res = ((t + 500) / 1000) * 1000;
+    QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
+    QList<QPointF> points_temp = data_base_.GetDataSerEtalon()[0].series->points();
+    QList<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].series->points();
+    qDebug() << data_base_.GetDataSerEtalon()[1].old_series.size();
+    for(QPointF& p : points_temp){
+        if(QDateTime::fromMSecsSinceEpoch(p.x()) == QDateTime::fromMSecsSinceEpoch(res)){
+            data_base_.GetCheckPointTemp()[active_check_point_] = p.y();
+            data_base_.GetCheckPoints()[active_check_point_] = QDateTime::fromMSecsSinceEpoch(p.x());
+        }
+    }
+    for(QPointF& p : points_bar){
+        if(QDateTime::fromMSecsSinceEpoch(p.x()) == QDateTime::fromMSecsSinceEpoch(res)){
+            data_base_.GetCheckPointBar()[active_check_point_] = p.y();
+        }
+    }
+    ReplaceCheckSeries();
+
+}
 void ChartView::mousePressEvent(QMouseEvent *event){
     if(event->button() == Qt::RightButton){
         move_ = true;
         is_dragging_ = false;
         last_pos_mouse_ = event->pos();
     }
-    if(event->button() == Qt::LeftButton && !shift_series_ && load_etalon_){
+    if(event->button() == Qt::LeftButton && !shift_series_ && load_etalon_ && !shift_check_point_){
         last_pos_mouse_ = event->pos();
         band_.setGeometry(QRect(last_pos_mouse_, QSize()));
         band_.show();
+    }
+    if(event->button() == Qt::LeftButton && shift_check_point_){
+        for(QAbstractSeries* abstract_series : chart_->series()){
+            if(abstract_series->name() == "check_series"){
+                QScatterSeries *series_check = qobject_cast<QScatterSeries*>(abstract_series);
+                int index_point =0;
+                for(QPointF& p : series_check->points()){
+                    QPoint screen_pos = chart_->mapToPosition(p,series_check).toPoint();
+                    if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
+                        active_check_point_ = index_point;
+                        is_dragging_check_point_ = true;
+                        active_check_series_ = series_check;
+                        return;
+                    }
+                    index_point++;
+                }
+            }
+        }
     }
     if(event->button() == Qt::LeftButton && shift_series_){
         for(QAbstractSeries* abstract_series : chart_->series()){
@@ -284,6 +331,15 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
            unsetCursor();
         }
     }
+    if(is_dragging_check_point_){
+        QPointF last = chart_->mapToValue(last_pos_mouse_,active_check_series_);
+        QPointF now = chart_->mapToValue(event->pos(),active_check_series_);
+        qreal dx = now.x() - last.x();
+        qreal point = data_base_.GetCheckPoints()[active_check_point_].toMSecsSinceEpoch();
+        MoveCheckPoint(point, dx);
+
+        last_pos_mouse_ = event->pos();
+    }
     if(is_dragging_series_){
         QPointF last = chart_->mapToValue(last_pos_mouse_,active_series_[0]);
         QPointF now = chart_->mapToValue(event->pos(),active_series_[0]);
@@ -327,6 +383,9 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
 void ChartView::mouseReleaseEvent(QMouseEvent *event){
     if(event->button() == Qt::RightButton){
         is_dragging_ = false;
+    }
+    if(event->button() == Qt::LeftButton){
+        is_dragging_check_point_ = false;
     }
     if(event->button() == Qt::LeftButton){
         is_dragging_series_ = false;
@@ -471,4 +530,14 @@ void ChartView::ClearPanelLegend(){
             delete l;
         }
     }
+}
+void ChartView::ReplaceCheckSeries(){
+    QVector<QPointF> bar;
+    QVector<QPointF> temp;
+    for(int i = 0; i<= data_base_.GetCheckPoints().size()-1;++i){
+        bar.append(QPointF(data_base_.GetCheckPoints()[i].toMSecsSinceEpoch(),data_base_.GetCheckPointBar()[i]));
+        temp.append(QPointF(data_base_.GetCheckPoints()[i].toMSecsSinceEpoch(),data_base_.GetCheckPointTemp()[i]));
+    }
+    data_base_.GetDataSerEtalon()[0].point_series->replace(temp);
+    data_base_.GetDataSerEtalon()[1].point_series->replace(bar);
 }
