@@ -93,6 +93,8 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_etalon_[1].axis_y_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
     data_etalon_[0].axis_y_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
+    data_base_.GetDataSerEtalon()[0] = data_etalon_[0];
+    data_base_.GetDataSerEtalon()[1] = data_etalon_[1];
     file.close();
 }
 void DowlandFile::CreateSeriesACM(QStringList words){

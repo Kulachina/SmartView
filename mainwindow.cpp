@@ -577,24 +577,31 @@ void MainWindow::WindowCheckPoints(){
     if(!data_base_.GetCheckPoints().isEmpty()){
         if(!first_open_win_check_points_){
             fix_table_ = new QTableView();
+            fix_table_->setSortingEnabled(true);
             fix_model_ = new QStandardItemModel();
             QPushButton *btn_delete = new QPushButton("Удалить КТ");
+            QPushButton *btn_rebuild = new QPushButton("Обновить");
+            QHBoxLayout *hbox = new QHBoxLayout();
             QVBoxLayout *vbox = new QVBoxLayout();
-            fix_table_ = new QTableView();
             fix_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
             fix_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
             connect(btn_delete,&QPushButton::clicked, this,&MainWindow::DeleteCheckPoint);
+            connect(btn_rebuild,&QPushButton::clicked, this,&MainWindow::CreateTableCheckPoints);
             fix_table_->setWindowTitle("Таблица контрольных точек");
             window_check_points_ ->setWindowFlags(Qt::WindowStaysOnTopHint);
             fix_table_->setWindowOpacity(0.9);
             fix_table_->setModel(fix_model_);
+            fix_table_->setSortingEnabled(true);
             vbox->addWidget(fix_table_);
-            vbox->addWidget(btn_delete,1,Qt::AlignLeft);
+            hbox->setAlignment(Qt::AlignLeft);
+            hbox->addWidget(btn_delete);
+            hbox->addWidget(btn_rebuild);
+            vbox->addLayout(hbox);
             window_check_points_->setLayout(vbox);
             first_open_win_check_points_ = true;
+            window_check_points_->resize(380,200);
         }
         CreateTableCheckPoints();
-        window_check_points_->resize(380,200);
         window_check_points_->show();
     }
 }
@@ -612,6 +619,7 @@ void MainWindow::DeleteCheckPoint(){
     }
 }
 void MainWindow::CreateTableCheckPoints(){
+    chart_view_->ReBuildPointSeries();
     fix_model_->clear();
     for(int i =0; i <= data_base_.GetCheckPoints().size()-1; ++i){
         QStandardItem *time = new QStandardItem(data_base_.GetCheckPoints()[i].time().toString());
@@ -629,6 +637,7 @@ void MainWindow::CreateTableCheckPoints(){
     fix_model_->setHeaderData(0,Qt::Horizontal,"Время");
     fix_model_->setHeaderData(1,Qt::Horizontal,"Давление");
     fix_model_->setHeaderData(2,Qt::Horizontal,"Температура");
+    chart_view_->GetChart()->update();
 }
 void MainWindow::ReplaceCheckSeries(){
     chart_view_->ReplaceCheckSeries();

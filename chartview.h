@@ -49,6 +49,7 @@ public:
     void ZoomOn();
     void ClearPanelLegend();
     void ReplaceCheckSeries();
+    void ReBuildPointSeries();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
