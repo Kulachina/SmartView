@@ -44,6 +44,9 @@ void DowlandFile::LoadDocACM(QString path){
     DataSeriesACM& data = data_acm_.back();
     data.series_bar->replace(p_bar_);
     data.series_temp->replace(p_temp_);
+    data_base_.GetDataSerACM().back().points_triangle_view_bar = p_bar_;
+    data_base_.GetDataSerACM().back().points_triangle_view_temp = p_temp_;
+    first_write_rectangle_ = false;
     first_min_max_ = false;
     p_temp_.clear();
     p_bar_.clear();
@@ -88,13 +91,16 @@ void DowlandFile::LoadDocEtalon(QString path) {
     w_progress_->hide();
     data_etalon_[0].series->replace(p_temp_);
     data_etalon_[1].series->replace(p_bar_);
-    p_temp_.clear();
-    p_bar_.clear();
     data_etalon_[1].axis_y_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
     data_etalon_[0].axis_y_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
     data_base_.GetDataSerEtalon()[0] = data_etalon_[0];
     data_base_.GetDataSerEtalon()[1] = data_etalon_[1];
+    data_base_.GetDataSerEtalon()[1].points_triangle_view_bar = p_bar_;
+    data_base_.GetDataSerEtalon()[0].points_triangle_view_temp = p_temp_;
+    first_write_rectangle_ = false;
+    p_temp_.clear();
+    p_bar_.clear();
     file.close();
 }
 void DowlandFile::CreateSeriesACM(QStringList words){
@@ -175,13 +181,34 @@ void DowlandFile::AddDataACM(QStringList words){
         temp_min_ = temp;
         first_min_max_ = true;
     }
-    SetMinMaxY(temp,bar);
     qint64 time = TextToInt(words[0]+ " " + words[1]);
+    QVector<QPointF>& points_bar = data_base_.GetDataSerACM().back().points_rectangle_view_bar;
+    QVector<QPointF>& points_temp = data_base_.GetDataSerACM().back().points_rectangle_view_temp;
+    if(first_write_rectangle_){
+        QPointF point_bar = points_bar.back();
+        QPointF point_temp = points_temp.back();
+        points_bar.push_back(QPointF(time,point_bar.y()));
+        points_temp.push_back(QPointF(time,point_temp.y()));
+    }
+    first_write_rectangle_ = true;
+    points_bar.push_back(QPointF(time,bar));
+    points_temp.push_back(QPointF(time,temp));
+    SetMinMaxY(temp,bar);
     p_bar_.append(QPointF(time,bar));
     p_temp_.append(QPointF(time,temp));
 }
 
 void DowlandFile::AddDataEtalon(DataEtalon data){
+    QVector<QPointF>& points_bar = data_etalon_[1].points_rectangle_view_bar;
+    QVector<QPointF>& points_temp = data_etalon_[0].points_rectangle_view_temp;
+    if(first_write_rectangle_){
+        QPointF point_bar = points_bar.back();
+        QPointF point_temp = points_temp.back();
+        points_bar.push_back(QPointF(data.time,point_bar.y()));
+        points_temp.push_back(QPointF(data.time,point_temp.y()));
+    }
+    first_write_rectangle_ = true;
+
     if(!set_axis_x_){
         axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(data.time));
         bar_max_ = data.value_2;
@@ -220,11 +247,13 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
         error_flag_2_ = false;
     }
     if(data_etalon_[0].series && (data.value_1 != 999)){
-        p_temp_.append(QPointF(data.time,data.value_1));
+        p_temp_.append(QPointF(data.time,data.value_1));   
+        points_temp.push_back(QPointF(data.time,data.value_1));
         error_flag_1_ = true;
     }
     if(data_etalon_[1].series && (data.value_2 != 999)){
         p_bar_.append(QPointF(data.time,data.value_2));
+        points_bar.push_back(QPointF(data.time,data.value_2));
         error_flag_2_ = true;
     }
 }

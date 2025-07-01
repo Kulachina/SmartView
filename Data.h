@@ -25,6 +25,10 @@ struct DataSeriesACM{
     QCheckBox *check_temp;
     QCheckBox *check_bar;
     QFrame *line;
+    QVector<QPointF> points_triangle_view_bar;
+    QVector<QPointF> points_rectangle_view_bar;
+    QVector<QPointF> points_triangle_view_temp;
+    QVector<QPointF> points_rectangle_view_temp;
 };
 struct DataEtalon{
     char magic[4];
@@ -49,6 +53,10 @@ struct DataSeriesEtalon{
     QList<QLineSeries*> old_series;
     QLabel *label_point,
            *data_sensor;
+    QVector<QPointF> points_triangle_view_bar;
+    QVector<QPointF> points_rectangle_view_bar;
+    QVector<QPointF> points_triangle_view_temp;
+    QVector<QPointF> points_rectangle_view_temp;
 };
 
 #endif // DATA_H

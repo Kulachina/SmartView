@@ -67,6 +67,7 @@ private:
          error_flag_2_ = true,
          create_file_ = false,
          create_title_ = false,
+         first_write_rectangle_ = false,
          gap_ = false,
          first_min_max_ = false;
 };

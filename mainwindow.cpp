@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QSpinBox>
 #include <QFileInfo>
+#include <QRadioButton>
 
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
@@ -20,6 +21,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *master_point = new QAction("Мастер точек");
     connect(master_point, &QAction::triggered, this,&MainWindow::WindowMasterPoint);
     QAction *view = new QAction("Вид");
+    connect(view, &QAction::triggered, this,&MainWindow::WindowView);
     QAction *check_point = new QAction("Контрольные точки");
     connect(check_point, &QAction::triggered, this,&MainWindow::WindowCheckPoints);
     menu->addAction(file);
@@ -642,4 +644,58 @@ void MainWindow::CreateTableCheckPoints(){
 void MainWindow::ReplaceCheckSeries(){
     chart_view_->ReplaceCheckSeries();
 }
+void MainWindow::WindowView(){
+    if(!first_open_win_view_){
+        window_view_ = new QWidget();
+        window_view_->setWindowTitle("Вид");
+        window_view_->setWindowFlags(Qt::WindowCloseButtonHint);
+        QGroupBox *gr_box = new QGroupBox("Вид отображения кривых");
+        QVBoxLayout *gr_vbox = new QVBoxLayout();
+        QVBoxLayout *vbox = new QVBoxLayout();
+        QRadioButton *rad_1 = new QRadioButton("В виде прямоугольников");
+        connect(rad_1,&QRadioButton::clicked,this,&MainWindow::ReplaceRectangle);
+        QRadioButton *rad_2 = new QRadioButton("В виде треугольников");
+        connect(rad_2,&QAbstractButton::clicked,this,&MainWindow::ReplaceTriangle);
+        rad_2->setChecked(true);
+        gr_vbox->setAlignment(Qt::AlignLeft);
+        gr_vbox->addWidget(rad_1);
+        gr_vbox->addWidget(rad_2);
+        gr_box->setLayout(gr_vbox);
+        vbox->addWidget(gr_box);
+        window_view_->setLayout(vbox);
+        first_open_win_view_ = true;
+    }
+    window_view_->show();
+}
+void MainWindow::ReplaceTriangle(){
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        for(DataSeriesACM data : data_base_.GetDataSerACM()){
+                data.series_bar->replace(data.points_triangle_view_bar);
+                data.series_temp->replace(data.points_triangle_view_temp);
+            }
+    }
+    if(!data_base_.GetDataSerEtalon().isEmpty()){
+        DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];
+        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_triangle_view_temp);
+        DataSeriesEtalon data_bar = data_base_.GetDataSerEtalon()[1];
+        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_triangle_view_bar);
+    }
+}
+void MainWindow::ReplaceRectangle(){
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        for(DataSeriesACM data : data_base_.GetDataSerACM()){
+                data.series_bar->replace(data.points_rectangle_view_bar);
+                data.series_temp->replace(data.points_rectangle_view_temp);
+            }
+    }
+    if(!data_base_.GetDataSerEtalon().isEmpty()){
+        DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];
+        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_rectangle_view_temp);
+        DataSeriesEtalon data_bar = data_base_.GetDataSerEtalon()[1];
+        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_rectangle_view_bar);
+    }
+}
+
+
+
 

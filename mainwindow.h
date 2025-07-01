@@ -41,8 +41,11 @@ public slots:
     void WindowMasterPoint();
     void WindowCheckPoints();
     void WindowDeleteSensor();
+    void WindowView();
     void FillAllTables();
     void CreateAllDoc();
+    void ReplaceTriangle();
+    void ReplaceRectangle();
 private:
     void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
@@ -67,7 +70,8 @@ private:
             *window_series_,
             *window_c_p_,
             *window_del_sens_,
-            *window_check_points_;
+            *window_check_points_,
+            *window_view_;
     QAction *load_doc_2_,
             *toogled_legend_,
             *shift_series_,
@@ -89,6 +93,7 @@ private:
          first_open_doc_ = false,
          first_open_etalon_ = false,
          first_open_win_check_points_ = false,
+         first_open_win_view_ = false,
          create_axis_ = false;
 };
 #endif // MAINWINDOW_H
