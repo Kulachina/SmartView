@@ -579,7 +579,6 @@ void MainWindow::WindowCheckPoints(){
     if(!data_base_.GetCheckPoints().isEmpty()){
         if(!first_open_win_check_points_){
             fix_table_ = new QTableView();
-            fix_table_->setSortingEnabled(true);
             fix_model_ = new QStandardItemModel();
             QPushButton *btn_delete = new QPushButton("Удалить КТ");
             QPushButton *btn_rebuild = new QPushButton("Обновить");
@@ -618,10 +617,10 @@ void MainWindow::DeleteCheckPoint(){
         data_base_.GetCheckPoints().erase(it_time+index.row());
         CreateTableCheckPoints();
         ReplaceCheckSeries();
+        chart_view_->ReBuildPointSeries();
     }
 }
 void MainWindow::CreateTableCheckPoints(){
-    chart_view_->ReBuildPointSeries();
     fix_model_->clear();
     for(int i =0; i <= data_base_.GetCheckPoints().size()-1; ++i){
         QStandardItem *time = new QStandardItem(data_base_.GetCheckPoints()[i].time().toString());
