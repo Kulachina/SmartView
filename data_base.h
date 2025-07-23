@@ -12,10 +12,10 @@ public:
     void AddDataSerACM(DataSeriesACM& data);
     void AddLabelSensor(QLabel* sensor,QLabel* name);
     void AddListAxis(QValueAxis *axis);
-    void AddCheckPoint(qint64 q,double temp, int bar);
+    void AddCheckPoint(qint64 q,double temp, double bar);
     QVector<QDateTime>& GetCheckPoints();
     QVector<double>& GetCheckPointTemp();
-    QVector<int>& GetCheckPointBar();
+    QVector<double>& GetCheckPointBar();
     QVector<DataSeriesACM>& GetDataSerACM();
     QVector<DataSeriesEtalon>& GetDataSerEtalon();
     QList<QPointer<QValueAxis>>& GetListAxis();
@@ -26,7 +26,7 @@ private:
     QVector<DataSeriesACM> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;
     QVector<QDateTime> check_points_;
-    QVector<int> check_point_bar;
+    QVector<double> check_point_bar;
     QVector<double> check_points_temp;
     QList<QPointer<QLabel>> vector_name_sensor_;
     QList<QPointer<QLabel>> vector_name_;

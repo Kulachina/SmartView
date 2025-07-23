@@ -31,7 +31,7 @@ void DataBase::AddListAxis(QValueAxis *axis){
 QList<QPointer<QValueAxis>>& DataBase::GetListAxis(){
     return list_axis_y_;
 }
-void DataBase::AddCheckPoint(qint64 q,double temp, int bar){
+void DataBase::AddCheckPoint(qint64 q,double temp, double bar){
     QDateTime time = QDateTime::fromMSecsSinceEpoch(q);
     check_points_.push_back(time);
     check_points_temp.push_back(temp);
@@ -43,7 +43,7 @@ QVector<QDateTime>& DataBase::GetCheckPoints(){
 QVector<double>& DataBase::GetCheckPointTemp(){
     return check_points_temp;
 }
-QVector<int>& DataBase::GetCheckPointBar(){
+QVector<double>& DataBase::GetCheckPointBar(){
     return check_point_bar;
 }
 void DataBase::SetDefaultAxisX(QDateTime max, QDateTime min){

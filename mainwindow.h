@@ -15,6 +15,7 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QComboBox>
+#include <QDoubleSpinBox>
 #include "chartview.h"
 #include "data_base.h"
 #include "dowland_file.h"
@@ -62,8 +63,8 @@ private:
     ChartView* chart_view_;
     DowlandFile dow_file_;
     QSpinBox *s_et_bar_,
-             *s_et_temp_,
-             *s_step_bar_;
+             *s_et_temp_;
+    QDoubleSpinBox *s_step_bar_;
     QVBoxLayout *vb_del_sens_,
                 *vbox_axes_;
     QWidget *window_axes_,
@@ -81,6 +82,7 @@ private:
             *action_series_,
             *delete_sensor_;
     QTabWidget *tab_;
+    QCheckBox *check_step_bar_;
     QComboBox *combo_del_sens_;
     QString path_doc_,
             save_path_;

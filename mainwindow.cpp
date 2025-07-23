@@ -263,10 +263,11 @@ void MainWindow::WindowMasterPoint(){
         s_et_temp_->setRange(0,50);
         s_et_temp_->setSingleStep(1);
         s_et_temp_->setValue(0);
-        s_step_bar_ = new QSpinBox();
+        s_step_bar_ = new QDoubleSpinBox();
         s_step_bar_->setRange(0,2000);
         s_step_bar_->setSingleStep(1);
         s_step_bar_->setValue(0);
+        s_step_bar_->setEnabled(false);
         QVBoxLayout *vbox_group = new QVBoxLayout();
         QHBoxLayout *hbox_1 = new QHBoxLayout();
         QHBoxLayout *hbox_2 = new QHBoxLayout();
@@ -274,12 +275,21 @@ void MainWindow::WindowMasterPoint(){
         QLabel *l_et_bar = new QLabel("Кол.точек температур");
         QLabel *l_et_temp = new QLabel("Кол.точек давлений");
         QLabel *l_step_bar = new QLabel("Шаг давления атм. ");
+        check_step_bar_ = new QCheckBox();
+        connect(check_step_bar_, &QCheckBox::clicked, this,[=](){
+            if(check_step_bar_->isChecked()){
+                s_step_bar_->setEnabled(true);
+            } else {
+                s_step_bar_->setEnabled(false);
+            }
+        });
         hbox_1->addWidget(l_et_bar);
-        hbox_1->addWidget(s_et_bar_);
+        hbox_1->addWidget(s_et_temp_);
         hbox_1->setAlignment(Qt::AlignLeft);
         hbox_2->addWidget(l_et_temp);
-        hbox_2->addWidget(s_et_temp_);
+        hbox_2->addWidget(s_et_bar_);
         hbox_2->setAlignment(Qt::AlignLeft);
+        hbox_2->addWidget(check_step_bar_);
         hbox_2->addWidget(l_step_bar);
         hbox_2->addWidget(s_step_bar_);
         hbox_2->setAlignment(Qt::AlignLeft);
@@ -398,14 +408,15 @@ void MainWindow::WindowMasterPoint(){
 }
 void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
     QVector<double> vec_temp = data_base_.GetCheckPointTemp();
+    QVector<double> vec_bar = data_base_.GetCheckPointBar();
     model_temp->setColumnCount(s_et_temp_->value()+1);
     model_bar->setColumnCount(s_et_temp_->value()+1);
     model_temp->setRowCount(s_et_bar_->value()+1);
     model_bar->setRowCount(s_et_bar_->value()+1);
     model_bar->setItem(0,0,new QStandardItem("P/T"));
     model_temp->setItem(0,0,new QStandardItem("P/T"));
-    int step_bar = s_step_bar_->value();
-    int bar_now = 0;
+    double step_bar = s_step_bar_->value();
+    double bar_now = 0;
     for(int i = 1 ; i <= s_et_bar_->value();++i){
         QStandardItem *it = new QStandardItem(QString::number(bar_now));
         it->setTextAlignment(Qt::AlignCenter);
@@ -413,7 +424,11 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
         QStandardItem *it_b = new QStandardItem(QString::number(bar_now));
         it_b->setTextAlignment(Qt::AlignCenter);
         model_temp->setItem(i,0,it_b);
-        bar_now += step_bar;
+        if(check_step_bar_->isChecked()){
+            bar_now += step_bar;
+        } else {
+            bar_now = vec_bar[i];
+        }
     }
     int index_temp = 0;
     for( int y = 1 ; y <= s_et_temp_->value();++y){
@@ -423,7 +438,7 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
         it->setTextAlignment(Qt::AlignCenter);
         model_bar->setItem(0,y,it);
         model_temp->setItem(0,y,it_b);
-        index_temp += s_et_temp_->value();
+        index_temp += s_et_bar_->value();
     }
 }
 void MainWindow::FillAllTables(){
