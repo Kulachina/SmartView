@@ -1,11 +1,13 @@
 #include "dowland_file.h"
 #include <QVBoxLayout>
 #include <QtMath>
+#include <QPushButton>
 
 DowlandFile::DowlandFile(DataBase& data_base)
     : data_base_(data_base)
 {
     w_progress_ = new QWidget();
+    w_select_chart_ = new QWidget();
     w_progress_->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
     w_progress_->setWindowTitle("Загрузка...");
     QVBoxLayout *vb = new QVBoxLayout();
@@ -26,34 +28,65 @@ void DowlandFile::LoadDocACM(QString path){
     QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
     QStringList words;
     int size = line_text.size();
+    SelectChart(line_text);
     progress_->setRange(0,size);
     progress_->setValue(0);
     w_progress_->show();
-    words = line_text[7].split(" ",Qt::SkipEmptyParts);
-    CreateSeriesACM(words);
+    CreateSeriesACM();
     int i = line_text.size()-2;
     words = line_text[i].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
-    for(int i = 9;i < line_text.size()-1; ++ i){
+    for(int i = index_data_;i < line_text.size(); ++i){
         progress_->setValue(i);
         QCoreApplication::processEvents();
         words = line_text[i].split(" ",Qt::SkipEmptyParts);
         AddDataACM(words);
     }
     w_progress_->hide();
-    DataSeriesACM& data = data_acm_.back();
-    data.series_bar->replace(p_bar_);
-    data.series_temp->replace(p_temp_);
-    data_base_.GetDataSerACM().back().points_triangle_view_bar = p_bar_;
-    data_base_.GetDataSerACM().back().points_triangle_view_temp = p_temp_;
-    first_write_rectangle_ = false;
-    first_min_max_ = false;
-    p_temp_.clear();
-    p_bar_.clear();
-    axis_bar_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
-    axis_temp_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
+    DataSeriesACM& data = data_base_.GetDataSerACM().back();
+    QVector<ACM>& acm = data.vec_acm;
+    for(int i =0; i < acm.size();++i){
+        acm[i].series->replace(acm[i].points_triangle);
+        acm[i].axis->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
+    }
+    chart_name_and_index_.clear();
 }
-
+void DowlandFile::SelectChart(QStringList& words){
+    QDialog dil;
+    QStringList word;
+    word = words[0].split(" ",Qt::SkipEmptyParts);
+    if(!word[4].isEmpty()){
+        dil.setWindowTitle(word[4] +" "+ word[5]);
+    }
+    QVBoxLayout *vbox = new QVBoxLayout();
+    QDialogButtonBox *btn = new QDialogButtonBox(QDialogButtonBox::Ok);
+    if(!check_list_.isEmpty()){
+        check_list_.clear();
+    }
+    for(int i = 0;i< words.size()-1;++i){
+        if(words[i].isEmpty() || words[i] == "\r"){
+            index_data_ = i+1;
+            break;
+        }
+        word = words[i].split(" ",Qt::SkipEmptyParts);
+        QCheckBox *check = new QCheckBox(word[0] + " " + (word[1].mid(1,word[1].size()-3)));
+        check->setChecked(true);
+        check_list_.append(check);
+        vbox->addWidget(check);
+    }
+    QObject::connect(btn,&QDialogButtonBox::accepted,&dil,&QDialog::accept);
+    vbox->addWidget(btn);
+    dil.setLayout(vbox);
+    dil.accept();
+    //if(dil.exec() == QDialog::Accepted){
+        for(int i=0;i < check_list_.size();++i){
+            if(check_list_[i]->isChecked()){
+                word = words[i].split(" ",Qt::SkipEmptyParts);
+                chart_name_and_index_.push_back({check_list_[i]->text(), i +2,word[1],word[2],word[4] +" "+ word[5],0,0,true});
+            }
+        }
+    //};
+}
 void DowlandFile::LoadDocEtalon(QString path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -98,31 +131,42 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_base_.GetDataSerEtalon()[1] = data_etalon_[1];
     data_base_.GetDataSerEtalon()[1].points_triangle_view_bar = p_bar_;
     data_base_.GetDataSerEtalon()[0].points_triangle_view_temp = p_temp_;
-    first_write_rectangle_ = false;
     p_temp_.clear();
     p_bar_.clear();
     file.close();
 }
-void DowlandFile::CreateSeriesACM(QStringList words){
+void DowlandFile::CreateSeriesACM(){
     DataSeriesACM data;
-    data.name_sensor = words[2] + " " + words[3].trimmed();
+    data.name_sensor = chart_name_and_index_[0].name_sensor;
     data.label_sensor = new QLabel(data.name_sensor);
-    data.data_sensor_bar = new QLabel();
-    data.data_sensor_bar->setFixedWidth(50);
-    data.data_sensor_temp = new QLabel();
-    data.data_sensor_temp->setFixedWidth(50);
-    data.series_bar = new QLineSeries();
-    data.series_bar->setName(data.name_sensor + "bar");
-    data.series_bar->setColor("red");
-    data.series_temp = new QLineSeries();
-    data.series_temp->setName(data.name_sensor + "temp");
-    data.series_temp->setColor("blue");
-    chart_->addSeries(data.series_temp);
-    chart_->addSeries(data.series_bar);
-    data.series_bar->attachAxis(axis_bar_);
-    data.series_temp->attachAxis(axis_temp_);
-    data.series_bar->attachAxis(axis_x_);
-    data.series_temp->attachAxis(axis_x_);
+    for(NameChart name_chart : chart_name_and_index_){
+        ACM acm;
+        acm.label_data = new QLabel();
+        acm.name_chart = name_chart.name;
+        acm.name_type = name_chart.name_type.mid(1,name_chart.name_type.size()-3);
+        acm.name_unit = name_chart.name_unit;
+        acm.axis = new QValueAxis();
+        acm.axis->setTitleText(data.name_sensor +", "+ acm.name_type+ " "  + name_chart.name_unit);
+        acm.axis->setVisible(false);
+        acm.axis->setRange(0, 0);
+        acm.axis->setTickCount(21);
+        acm.series = new QLineSeries();
+        acm.series->setName(data.name_sensor + name_chart.name);
+        if(name_chart.name == "PRES ADC_Давление"){
+            acm.series->setColor("red");
+        }
+        if(name_chart.name == "TEMP ADC_Температура"){
+            acm.series->setColor("blue");
+        }
+        QLabel *label = new QLabel();
+        acm.label = label;
+        chart_->addAxis(acm.axis,Qt::AlignLeft);
+        chart_->addSeries(acm.series);
+        acm.series->attachAxis(acm.axis);
+        acm.series->attachAxis(axis_x_);
+        data.vec_acm.push_back(acm);
+        data_base_.AddListAxis(acm.axis);
+    }
     data_acm_.push_back(data);
     data_base_.AddDataSerACM(data_acm_.back());
 }
@@ -171,7 +215,30 @@ void DowlandFile::CreateSeriesEtalon(QStringList words){
     }
 }
 void DowlandFile::AddDataACM(QStringList words){
-    double temp = words[3].toDouble();
+    DataSeriesACM& data =  data_base_.GetDataSerACM().back();
+    QVector<ACM>& vec_acm = data.vec_acm;
+    qint64 time = TextToInt(words[0]+ " " + words[1]);
+    for(int i =0; i < vec_acm.size();++i){
+        words[i+2].replace(',','.');
+        double num = words[i+2].toDouble();
+        if(vec_acm[i].first_unit){
+            vec_acm[i].unit_max = num;
+            vec_acm[i].unit_min = num;
+            vec_acm[i].first_unit = false;
+        }
+        vec_acm[i].unit_max = qMax(vec_acm[i].unit_max, num);
+        vec_acm[i].unit_min = qMin(vec_acm[i].unit_min, num);
+        if(vec_acm[i].first_write_rectangle){
+            QPointF point = vec_acm[i].points_rectangle.back();
+            vec_acm[i].points_rectangle.push_back(QPointF(time,point.y()));
+        }
+        vec_acm[i].first_write_rectangle = true;
+        vec_acm[i].points_rectangle.append(QPointF(time,num));
+        vec_acm[i].points_triangle.append(QPointF(time,num));
+    }
+
+
+    /*double temp = words[3].toDouble();
     double bar =words[2].toDouble();
     if(!first_min_max_){
         axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
@@ -195,7 +262,7 @@ void DowlandFile::AddDataACM(QStringList words){
     points_temp.push_back(QPointF(time,temp));
     SetMinMaxY(temp,bar);
     p_bar_.append(QPointF(time,bar));
-    p_temp_.append(QPointF(time,temp));
+    p_temp_.append(QPointF(time,temp));*/
 }
 
 void DowlandFile::AddDataEtalon(DataEtalon data){

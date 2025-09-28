@@ -59,12 +59,44 @@ QWidget* ChartView::GetWidgetLegend(){
 }
 void ChartView::PanelLegendACM(){
     DataSeriesACM& data = data_base_.GetDataSerACM().back();
+    QVector<ACM>& acm = data.vec_acm;
     data.line = new QFrame();
     data.line->setFrameShape(QFrame::HLine);
     data.line->setStyleSheet("background-color: grey");
     data.line->setFixedHeight(1);
     data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
-    data.hbox_temp = new QHBoxLayout();
+    vbox_legend_->addWidget(data.line);
+    for(int i =0;i < acm.size();++i){
+        acm[i].hbox = new QHBoxLayout();
+        acm[i].check_box = new QCheckBox();
+        acm[i].check_box->setCheckState(Qt::Checked);
+        connect(acm[i].check_box, &QCheckBox::toggled, this,[=](){
+            if(acm[i].check_box->isChecked()){
+                acm[i].series->setVisible(true);
+            } else {
+                acm[i].series->setVisible(false);
+            }
+        });
+        QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
+        QLabel *l_name_type = new QLabel(acm[i].name_type);
+        QLabel *l_name = new QLabel(data.name_sensor);
+        if(acm[i].name_chart == "PRES ADC_Давление"){
+            l_name_type->setStyleSheet("color: red");
+            l_name->setStyleSheet("color: red");
+        }
+        if(acm[i].name_chart == "TEMP ADC_Температура"){
+            l_name_type->setStyleSheet("color: blue");
+            l_name->setStyleSheet("color: blue");
+        }
+        p_hbox->addWidget(acm[i].check_box);
+        p_hbox->addWidget(l_name_type);
+        p_hbox->addWidget(l_name);
+        p_hbox->addWidget(acm[i].label_data);
+        vbox_legend_->addLayout(p_hbox);
+        data_base_.AddLabelSensor(l_name,l_name_type);
+
+    }
+    /*data.hbox_temp = new QHBoxLayout();
     data.hbox_bar = new QHBoxLayout();
     data.check_temp = new QCheckBox();
     data.check_bar = new QCheckBox();
@@ -83,10 +115,10 @@ void ChartView::PanelLegendACM(){
         } else {
             data.series_bar->setVisible(false);
         }
-    });
-    QPointer<QHBoxLayout> hbox_temp = data.hbox_temp;
-    QPointer<QHBoxLayout> hbox_bar = data.hbox_bar;
-    QLabel *leg_bar = new QLabel("- Давление");
+    });*/
+    //QPointer<QHBoxLayout> hbox_temp = data.hbox_temp;
+    //QPointer<QHBoxLayout> hbox_bar = data.hbox_bar;
+    /*QLabel *leg_bar = new QLabel("- Давление");
     QLabel *leg_temp = new QLabel("- Температура");
     QLabel *l_name_temp = new QLabel(data.name_sensor);
     l_name_temp->setStyleSheet("color: blue");
@@ -101,12 +133,12 @@ void ChartView::PanelLegendACM(){
     hbox_temp->addWidget(l_name_temp);
     hbox_temp->addWidget(data.data_sensor_temp);
     hbox_bar->addWidget(l_name_bar);
-    hbox_bar->addWidget(data.data_sensor_bar);
-    vbox_legend_->addWidget(data.line);
-    vbox_legend_->addLayout(hbox_temp);
-    vbox_legend_->addLayout(hbox_bar);
-    data_base_.AddLabelSensor(l_name_temp,leg_temp);
-    data_base_.AddLabelSensor(l_name_bar,leg_bar);
+    hbox_bar->addWidget(data.data_sensor_bar);*/
+
+    //vbox_legend_->addLayout(hbox_temp);
+   // vbox_legend_->addLayout(hbox_bar);
+    //data_base_.AddLabelSensor(l_name_temp,leg_temp);
+   // data_base_.AddLabelSensor(l_name_bar,leg_bar);
     CreateMapLabel();
     CreateMapSeries();
 }
@@ -149,14 +181,18 @@ void ChartView::PanelLegendEtalon(){
     check_all->setCheckState(Qt::Checked);
     connect(check_all, &QCheckBox::toggled,this,[=](){
         if(check_all->isChecked()){
-            for(auto data : data_base_.GetDataSerACM()){
-                data.check_bar->setCheckState(Qt::Checked);
-                data.check_temp->setCheckState(Qt::Checked);
+            for(auto& data : data_base_.GetDataSerACM()){
+                QVector<ACM>& acm = data.vec_acm;
+                for(ACM& check : acm){
+                    check.check_box->setCheckState(Qt::Checked);
+                }
             }
         } else {
-            for(auto data : data_base_.GetDataSerACM()){
-                data.check_bar->setCheckState(Qt::Unchecked);
-                data.check_temp->setCheckState(Qt::Unchecked);
+            for(auto& data : data_base_.GetDataSerACM()){
+                QVector<ACM>& acm = data.vec_acm;
+                for(ACM& check : acm){
+                    check.check_box->setCheckState(Qt::Unchecked);
+                }
             }
         }
     });
@@ -184,18 +220,24 @@ void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
     }
 }
 void ChartView::CreateMapSeries(){
-    DataSeriesACM data =data_base_.GetDataSerACM().back();
+    DataSeriesACM& data =data_base_.GetDataSerACM().back();
+    QVector<ACM>& acm = data.vec_acm;
     QList<QPointer<QLineSeries>> list_series;
-    list_series << data.series_bar << data.series_temp;
-    map_series_[data.series_temp->name()] = list_series;
-    map_series_[data.series_bar->name()] = list_series;
+    for(int i =0; i < acm.size();++i){
+        list_series << acm[i].series;
+    }
+    for(int i =0; i < acm.size();++i){
+        map_series_[acm[i].series->name()] = list_series;
+    }
 }
 void ChartView::CreateMapLabel(){
-    DataSeriesACM data =data_base_.GetDataSerACM().back();
-    QPointer<QLabel> point_temp = data.data_sensor_temp;
-    QPointer<QLabel> point_bar = data.data_sensor_bar;
-    map_data_label_[data.series_bar->name()] = point_bar;
-    map_data_label_[data.series_temp->name()] = point_temp;
+    DataSeriesACM& data =data_base_.GetDataSerACM().back();
+    QVector<ACM>& acm = data.vec_acm;
+
+    for(int i =0; i < acm.size();++i){
+        QPointer<QLabel> point = acm[i].label_data;
+        map_data_label_[acm[i].series->name()] = point;
+    }
 }
 void ChartView::ToogledFlagShiftSeries(){
     if(shift_series_){

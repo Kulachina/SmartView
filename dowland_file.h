@@ -27,7 +27,7 @@ class DowlandFile
 public:
     DowlandFile(DataBase& data_base);
     void LoadDocACM(QString path);
-    void CreateSeriesACM(QStringList words);
+    void CreateSeriesACM();
     void CreateSeriesEtalon(QStringList words);
     void AddDataEtalon(DataEtalon data);
     void AddDataACM(QStringList words);
@@ -41,6 +41,7 @@ public:
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime();
     void ClearAll();
+    void SelectChart(QStringList& words);
 private:
     void SetMinMaxY(double temp, double bar);
     qint64 TextToInt(QString time);
@@ -54,10 +55,14 @@ private:
     QPointer<QChart> chart_;
     QPointer<QValueAxis> axis_temp_,
                          axis_bar_;
+    QList<QCheckBox*> check_list_;
+    QVector<NameChart> chart_name_and_index_;
     QFile file_;
     QProgressBar *progress_;
-    QWidget *w_progress_;
-    int count = 0;
+    QWidget *w_progress_,
+            *w_select_chart_;
+    int count = 0,
+        index_data_;
     double bar_max_ = 0,
         bar_min_ = 0,
         temp_max_ = 0,
@@ -67,7 +72,7 @@ private:
          error_flag_2_ = true,
          create_file_ = false,
          create_title_ = false,
-         first_write_rectangle_ = false,
+        first_write_rectangle_ =false,
          gap_ = false,
          first_min_max_ = false;
 };

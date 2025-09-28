@@ -48,6 +48,7 @@ public slots:
     void ReplaceTriangle();
     void ReplaceRectangle();
 private:
+    void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
@@ -84,8 +85,8 @@ private:
     QTabWidget *tab_;
     QCheckBox *check_step_bar_;
     QComboBox *combo_del_sens_;
-    QString path_doc_,
-            save_path_;
+    QStringList path_doc_;
+    QString  save_path_;
     QStandardItemModel *fix_model_;
     QTableView *fix_table_;
     bool first_open_ = false,
@@ -96,6 +97,7 @@ private:
          first_open_etalon_ = false,
          first_open_win_check_points_ = false,
          first_open_win_view_ = false,
-         create_axis_ = false;
+         create_axis_ = false,
+        change_all_tables_ = false;
 };
 #endif // MAINWINDOW_H

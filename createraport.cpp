@@ -23,6 +23,17 @@ void CreateRaport::CreateAllDoc(QVector<DataSeriesACM>& vec_data){
 }
 
 void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
+    QVector<ACM>& acm = data.vec_acm;
+    QPointer<QStandardItemModel> model_bar ;
+    QPointer<QStandardItemModel> model_temp ;
+    for(ACM& a :acm){
+        if(a.name_chart == "PRES ADC_Давление"){
+            model_bar = a.model;
+        }
+        if(a.name_chart == "TEMP ADC_Температура"){
+            model_temp = a.model;
+        }
+    }
     QFile raport(name);
     if(!raport.open(QIODevice::WriteOnly | QIODevice::Text)){
         QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
@@ -32,8 +43,6 @@ void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
     out << "PRES	ADC_Давление(у.е.) " + data.name_sensor+ "\n";
     out << "Интерполяционная таблица по давлению\n";
     out << "------------------------------------------------\n";
-    QPointer<QStandardItemModel> model_bar = data.model_bar;
-    QPointer<QStandardItemModel> model_temp = data.model_temp;
     for(int row = 0; row <= model_bar->rowCount()-1; ++row){
         for(int column = 0;column <=model_bar->columnCount()-1;column++){
             QModelIndex index = model_bar->index(row,column);

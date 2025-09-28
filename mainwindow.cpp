@@ -82,7 +82,7 @@ MainWindow::~MainWindow()
 }
 void MainWindow::SetWindow(){
     QHBoxLayout *hbox = new QHBoxLayout();
-    hbox->addWidget(chart_view_,9);
+    hbox->addWidget(chart_view_,8);
     hbox->addWidget(chart_view_->GetWidgetLegend(),1);
     QWidget *w = new QWidget();
     w->setLayout(hbox);
@@ -91,20 +91,23 @@ void MainWindow::SetWindow(){
 void MainWindow::LoadDocumentACM(){
     if(!first_open_doc_){
         QString path = QApplication::applicationDirPath();
-        path_doc_ = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
         first_open_doc_ = true;
     } else {
-        path_doc_ = QFileDialog::getOpenFileName(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt)");
     }
     if(path_doc_.isEmpty()){
         return;
     }
-    if(path_doc_.endsWith(".txt", Qt::CaseInsensitive)){
-        dow_file_.LoadDocACM(path_doc_);
-        chart_view_->PanelLegendACM();
-        QFileInfo file_info(path_doc_);
-        save_path_ = file_info.absolutePath();
+    for(QString path : path_doc_){
+        if(path.endsWith(".txt", Qt::CaseInsensitive)){
+            dow_file_.LoadDocACM(path);
+            chart_view_->PanelLegendACM();
+            QFileInfo file_info(path);
+            save_path_ = file_info.absolutePath();
+        }
     }
+
 }
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
@@ -166,8 +169,6 @@ void MainWindow::WindowAxis(){
         window_axes_->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
         window_axes_->setWindowTitle("Настройка осей");
         vbox_axes_ = new QVBoxLayout();
-        data_base_.AddListAxis(chart_view_->GetAxisBar());
-        data_base_.AddListAxis(chart_view_->GetAxisTemp());
         window_axes_->setLayout(vbox_axes_);
         first_open_ = true;
     }
@@ -181,26 +182,26 @@ void MainWindow::WindowAxis(){
         delete l;
         }
     }
-    int i =0;
         for(auto& axis : data_base_.GetListAxis()){
-        qDebug() << i;
             QHBoxLayout *hbox = new QHBoxLayout();
             QCheckBox *check = new QCheckBox();
-            if(axis->isVisible()){
-                check->setCheckState(Qt::Checked);
-            } else {
-                check->setCheckState(Qt::Unchecked);
-            }
-            hbox->addWidget(check);
-            hbox->addWidget(new QLabel(axis->titleText()));
-            vbox_axes_->addLayout(hbox);
-            connect(check, &QCheckBox::toggled, this,[axis,check](){
-                if(check->isChecked()){
-                    axis->setVisible(true);
+            if(!axis.isNull()){
+                if(axis->isVisible()){
+                    check->setCheckState(Qt::Checked);
                 } else {
-                    axis->setVisible(false);
+                    check->setCheckState(Qt::Unchecked);
                 }
-            });
+                hbox->addWidget(check);
+                hbox->addWidget(new QLabel(axis->titleText()));
+                vbox_axes_->addLayout(hbox);
+                connect(check, &QCheckBox::toggled, this,[axis,check](){
+                    if(check->isChecked()){
+                        axis->setVisible(true);
+                    } else {
+                        axis->setVisible(false);
+                    }
+                });
+            }
         }
     window_axes_->show();
 }
@@ -213,21 +214,22 @@ void MainWindow::WindowSeries(){
     }
     if(first_open_2_){
         QVBoxLayout *vbox = new QVBoxLayout();
+        if(data_base_.GetDataSerACM().isEmpty()){
+            return;
+        }
         for(auto& data : data_base_.GetDataSerACM()){
-            QHBoxLayout *hbox_temp = new QHBoxLayout();
-            QHBoxLayout *hbox_bar = new QHBoxLayout();
-            QPointer<QCheckBox> check_temp = data.check_temp;
-            QPointer<QCheckBox> check_bar = data.check_bar;
-            QLabel *label_temp = new QLabel("Температура " + data.label_sensor->text());
-            label_temp->setStyleSheet("color: blue");
-            QLabel *label_bar = new QLabel("Давление " + data.label_sensor->text());
-            label_bar->setStyleSheet("color: red");
-            hbox_temp->addWidget(check_temp);
-            hbox_temp->addWidget(label_temp);
-            hbox_bar->addWidget(check_bar);
-            hbox_bar->addWidget(label_bar);
-            vbox->addLayout(hbox_temp);
-            vbox->addLayout(hbox_bar);
+            QVector<ACM>& acm = data.vec_acm;
+            if(acm.isEmpty()){
+                return;
+            }
+            for(ACM& acm_unit : acm){
+                QHBoxLayout *hbox = new QHBoxLayout();
+                QPointer<QCheckBox> check = acm_unit.check_box;
+                QLabel *label = new QLabel(acm_unit.name_type +" "+ data.label_sensor->text());
+                hbox->addWidget(check);
+                hbox->addWidget(label);
+                vbox->addLayout(hbox);
+            }
         }
         window_series_->setLayout(vbox);
         window_series_->show();
@@ -254,6 +256,8 @@ void MainWindow::WindowMasterPoint(){
         connect(btn_saveas,&QPushButton::clicked, this,&MainWindow::CreateAllDoc);
         QPushButton *btn_table = new QPushButton("Заполнить таблицы");
         connect(btn_table, &QPushButton::clicked,this, &MainWindow::FillAllTables);
+        QCheckBox *change_box = new QCheckBox("Редактирование таблицы");
+        change_box->setCheckState(Qt::Unchecked);
         botton_hbox->addWidget(btn_saveas);
         s_et_bar_ = new QSpinBox();
         s_et_bar_->setRange(0,50);
@@ -283,6 +287,15 @@ void MainWindow::WindowMasterPoint(){
                 s_step_bar_->setEnabled(false);
             }
         });
+        connect(change_box, &QCheckBox::clicked, this,[=](){
+            if(change_box->isChecked()){
+                change_all_tables_ = true;
+                btn_table->setEnabled(false);
+            } else {
+                change_all_tables_ = false;
+                btn_table->setEnabled(true);
+            }
+        });
         hbox_1->addWidget(l_et_bar);
         hbox_1->addWidget(s_et_temp_);
         hbox_1->setAlignment(Qt::AlignLeft);
@@ -296,6 +309,7 @@ void MainWindow::WindowMasterPoint(){
         vbox_group->addLayout(hbox_1);
         vbox_group->addLayout(hbox_2);
         vbox_group->addWidget(btn_table,0,Qt::AlignLeft);
+        vbox_group->addWidget(change_box,0,Qt::AlignLeft);
         group_etalon_temp->setLayout(vbox_group);
         main_vbox->addWidget(group_etalon_temp);
         main_vbox->addWidget(tab_);
@@ -305,6 +319,7 @@ void MainWindow::WindowMasterPoint(){
     }
     tab_->clear();
     for(auto& data : data_base_.GetDataSerACM()){
+        QVector<ACM>& acm = data.vec_acm;
         QWidget *tab_sensor = new QWidget();
         QVBoxLayout *vbox = new QVBoxLayout();
         QGroupBox *group_temp = new QGroupBox("Температура");
@@ -316,8 +331,19 @@ void MainWindow::WindowMasterPoint(){
         QTableView *table_temp = new QTableView();
         QStandardItemModel *model_bar = new QStandardItemModel();
         QStandardItemModel *model_temp = new QStandardItemModel();
-        data.model_temp = model_temp;
-        data.model_bar = model_bar;
+        for(ACM& a :acm){
+            if(a.name_chart == "PRES ADC_Давление"){
+                a.model = model_bar;
+            }
+            if(a.name_chart == "TEMP ADC_Температура"){
+                a.model = model_temp;
+            }
+            connect(a.model, &QStandardItemModel::itemChanged,this,[&](QStandardItem *item){
+                if(change_all_tables_){
+                    ChangeAllTables(item);
+                }
+            });
+        }
         QHBoxLayout *btn_hbox = new QHBoxLayout();
         QPushButton *btn_create_doc = new QPushButton("Создать отчет");
         QPushButton *btn_delete_row = new QPushButton("Удалить строку");
@@ -339,6 +365,8 @@ void MainWindow::WindowMasterPoint(){
         });
         QPushButton *btn_delete_col = new QPushButton("Удалить столбец");
         connect(btn_delete_col, &QPushButton::clicked, this,[=](){
+
+
             if(table_bar->selectionModel()->hasSelection()){
                 QModelIndex index_bar = table_bar->currentIndex();
                 if(index_bar.isValid()){
@@ -387,6 +415,7 @@ void MainWindow::WindowMasterPoint(){
         btn_hbox->addWidget(btn_append_row);
         btn_hbox->addWidget(btn_append_col);
         btn_hbox->setAlignment(Qt::AlignLeft);
+
         table_temp->setModel(model_temp);
         table_bar->setModel(model_bar);
         table_temp->horizontalHeader()->hide();
@@ -409,21 +438,29 @@ void MainWindow::WindowMasterPoint(){
 void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
     QVector<double> vec_temp = data_base_.GetCheckPointTemp();
     QVector<double> vec_bar = data_base_.GetCheckPointBar();
-    model_temp->setColumnCount(s_et_temp_->value()+1);
-    model_bar->setColumnCount(s_et_temp_->value()+1);
-    model_temp->setRowCount(s_et_bar_->value()+1);
-    model_bar->setRowCount(s_et_bar_->value()+1);
-    model_bar->setItem(0,0,new QStandardItem("P/T"));
-    model_temp->setItem(0,0,new QStandardItem("P/T"));
+    if(model_temp){
+        model_temp->setColumnCount(s_et_temp_->value()+1);
+        model_temp->setRowCount(s_et_bar_->value()+1);
+        model_temp->setItem(0,0,new QStandardItem("P/T"));
+    }
+    if(model_bar){
+        model_bar->setColumnCount(s_et_temp_->value()+1);
+        model_bar->setRowCount(s_et_bar_->value()+1);
+        model_bar->setItem(0,0,new QStandardItem("P/T"));
+    }
     double step_bar = s_step_bar_->value();
     double bar_now = 0;
     for(int i = 1 ; i <= s_et_bar_->value();++i){
-        QStandardItem *it = new QStandardItem(QString::number(bar_now));
-        it->setTextAlignment(Qt::AlignCenter);
-        model_bar->setItem(i,0,it);
-        QStandardItem *it_b = new QStandardItem(QString::number(bar_now));
-        it_b->setTextAlignment(Qt::AlignCenter);
-        model_temp->setItem(i,0,it_b);
+        if(model_bar){
+            QStandardItem *it = new QStandardItem(QString::number(bar_now));
+            it->setTextAlignment(Qt::AlignCenter);
+            model_bar->setItem(i,0,it);
+        }
+        if(model_temp){
+            QStandardItem *it_b = new QStandardItem(QString::number(bar_now));
+            it_b->setTextAlignment(Qt::AlignCenter);
+            model_temp->setItem(i,0,it_b);
+        }
         if(check_step_bar_->isChecked()){
             bar_now += step_bar;
         } else {
@@ -436,66 +473,117 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
         it_b->setTextAlignment(Qt::AlignCenter);
         QStandardItem *it = new QStandardItem(QString::number(vec_temp[index_temp]));
         it->setTextAlignment(Qt::AlignCenter);
+        if(model_bar){
         model_bar->setItem(0,y,it);
-        model_temp->setItem(0,y,it_b);
+        }
+        if(model_temp){
+            model_temp->setItem(0,y,it_b);
+        }
         index_temp += s_et_bar_->value();
     }
 }
 void MainWindow::FillAllTables(){
     if(!data_base_.GetDataSerACM().isEmpty()){
         for(DataSeriesACM& data : data_base_.GetDataSerACM()){
-            FilingTable(data.model_temp,data.model_bar);
+            QVector<ACM>& acm = data.vec_acm;
+            QStandardItemModel *model_bar = new QStandardItemModel();
+            QStandardItemModel *model_temp = new QStandardItemModel();
+            for(ACM& a :acm){
+                if(a.name_chart == "PRES ADC_Давление"){
+                    model_bar = a.model;
+                }
+                if(a.name_chart == "TEMP ADC_Температура"){
+                    model_temp = a.model;
+                }
+            }
+            FilingTable(model_temp,model_bar);
         }
         for(DataSeriesACM& data : data_base_.GetDataSerACM()){
             AnalisingSeries(data);
         }
     }
 }
+void MainWindow::ChangeAllTables(QStandardItem * item){
+    int row = item->row();
+    int col = item->column();
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        for(DataSeriesACM& data : data_base_.GetDataSerACM()){
+            QVector<ACM>& acm = data.vec_acm;
+            for(ACM& a :acm){
+                QStandardItem *it = a.model->item(row,col);
+                it->setText(item->text());
+            }
+        }
+    }
+}
 void MainWindow::AnalisingSeries(DataSeriesACM data){
+    QVector<ACM>& acm = data.vec_acm;
+    QPointer<QLineSeries> series_bar;
+    QPointer<QLineSeries> series_temp;
+    QPointer<QStandardItemModel> model_bar ;
+    QPointer<QStandardItemModel> model_temp ;
+    for(ACM& a :acm){
+        if(a.name_chart == "PRES ADC_Давление"){
+            series_bar = a.series;
+            model_bar = a.model;
+        }
+        if(a.name_chart == "TEMP ADC_Температура"){
+            series_temp = a.series;
+            model_temp = a.model;
+        }
+    }
     const QVector<QDateTime> vec = data_base_.GetCheckPoints();
     int count = 0;
     int etalon_bar = s_et_bar_->value();
     int row = 1;
     int column = 1;
-    for(QPointF& point : data.series_bar->points()){
-        if(count == data_base_.GetCheckPoints().size()){
-            break;
+    if(series_bar){
+        for(QPointF& point : series_bar->points()){
+            if(count == data_base_.GetCheckPoints().size()){
+                break;
+            }
+            qint64 t = static_cast<qint64>(point.x());
+            qint64 res = ((t + 500) / 1000) * 1000;
+            QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
+            if(time == vec[count]){
+                count++;
+                QStandardItem *it = new QStandardItem(QString::number(point.y()));
+                it->setTextAlignment(Qt::AlignCenter);
+                if(model_bar){
+                    model_bar->setItem(row,column,it);
+                }
+                row++;
+            }
+            if(row > etalon_bar){
+                row = 1;
+                column++;
+            }
         }
-        qint64 t = static_cast<qint64>(point.x());
-        qint64 res = ((t + 500) / 1000) * 1000;
-        QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-        if(time == vec[count]){
-            count++;
-            QStandardItem *it = new QStandardItem(QString::number(point.y()));
-            it->setTextAlignment(Qt::AlignCenter);
-            data.model_bar->setItem(row,column,it);
-            row++;
-        }
-        if(row > etalon_bar){
-            row = 1;
-            column++;
-        }
+        count = 0;
+        row = 1;
+        column = 1;
     }
-    count = 0;
-    row = 1;
-    column = 1;
-    for(QPointF& point : data.series_temp->points()){
-        if(count == data_base_.GetCheckPoints().size()){
-            break;
-        }
-        qint64 t = static_cast<qint64>(point.x());
-        qint64 res = ((t + 500) / 1000) * 1000;
-        QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-        if(time == vec[count]){
-            count++;
-            QStandardItem *it = new QStandardItem(QString::number(point.y()));
-            it->setTextAlignment(Qt::AlignCenter);
-            data.model_temp->setItem(row,column,it);
-            row++;
-        }
-        if(row > etalon_bar){
-            row = 1;
-            column++;
+    if(series_temp){
+        for(QPointF& point : series_temp->points()){
+            if(count == data_base_.GetCheckPoints().size()){
+                break;
+            }
+            qint64 t = static_cast<qint64>(point.x());
+            qint64 res = ((t + 500) / 1000) * 1000;
+            QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
+            if(time == vec[count]){
+                count++;
+                QStandardItem *it = new QStandardItem(QString::number(point.y()));
+                it->setTextAlignment(Qt::AlignCenter);
+                if(model_temp){
+                    model_temp->setItem(row,column,it);
+                }
+                row++;
+            }
+            if(row > etalon_bar){
+                row = 1;
+                column++;
+            }
         }
     }
 }
@@ -575,20 +663,21 @@ void MainWindow::DeleteAllSens(){
     dow_file_.ClearAll();
 }
 void MainWindow::DeleteSens(DataSeriesACM& data){
-            delete data.data_sensor_bar;
-            delete data.data_sensor_temp;
-            delete data.series_temp;
-            delete data.series_bar;
-            delete data.label_sensor;
-            delete data.hbox_bar->itemAt(2)->widget();
-            delete data.hbox_bar->itemAt(1)->widget();
-            delete data.hbox_bar->itemAt(0)->widget();
-            delete data.hbox_bar;
-            delete data.hbox_temp->itemAt(2)->widget();
-            delete data.hbox_temp->itemAt(1)->widget();
-            delete data.hbox_temp->itemAt(0)->widget();
-            delete data.hbox_temp;
-            delete data.line;
+    QVector<ACM>& acm = data.vec_acm;
+    for(ACM& a : acm){
+        delete a.axis;
+        delete a.check_box;
+        delete a.hbox->itemAt(2)->widget();
+        delete a.hbox->itemAt(1)->widget();
+        delete a.hbox->itemAt(0)->widget();
+        delete a.hbox;
+        delete a.label;
+        delete a.model;
+        delete a.series;
+    }
+    delete data.label_sensor;
+    delete data.line;
+
 }
 void MainWindow::WindowCheckPoints(){
     if(!data_base_.GetCheckPoints().isEmpty()){
@@ -684,9 +773,11 @@ void MainWindow::WindowView(){
 void MainWindow::ReplaceTriangle(){
     if(!data_base_.GetDataSerACM().isEmpty()){
         for(DataSeriesACM data : data_base_.GetDataSerACM()){
-                data.series_bar->replace(data.points_triangle_view_bar);
-                data.series_temp->replace(data.points_triangle_view_temp);
+            QVector<ACM>& acm = data.vec_acm;
+            for(ACM& a : acm){
+                a.series->replace(a.points_triangle);
             }
+        }
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
         DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];
@@ -698,9 +789,11 @@ void MainWindow::ReplaceTriangle(){
 void MainWindow::ReplaceRectangle(){
     if(!data_base_.GetDataSerACM().isEmpty()){
         for(DataSeriesACM data : data_base_.GetDataSerACM()){
-                data.series_bar->replace(data.points_rectangle_view_bar);
-                data.series_temp->replace(data.points_rectangle_view_temp);
+            QVector<ACM>& acm = data.vec_acm;
+            for(ACM& a : acm){
+                a.series->replace(a.points_rectangle);
             }
+        }
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
         DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];

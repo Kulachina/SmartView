@@ -11,24 +11,49 @@
 #include <QPointer>
 #include <QCheckBox>
 
+struct ACM{
+    QLineSeries* series;
+    QLabel* label;
+    QLabel* label_data;
+    QVector<QPointF> points_triangle;
+    QVector<QPointF> points_rectangle;
+    QValueAxis* axis;
+    QHBoxLayout* hbox;
+    QCheckBox* check_box;
+    QPointer<QStandardItemModel> model;
+    QString name_type;
+    QString name_chart;
+    QString name_unit;
+    double unit_min = 0;
+    double unit_max = 0;
+    bool first_unit = true;
+    bool first_write_rectangle = false;
+};
+
+
 struct DataSeriesACM{
     QString name_sensor;
-    QLineSeries *series_temp;
-    QLineSeries *series_bar;
+    QVector<ACM> vec_acm;
+    QFrame *line;
     QLabel *label_sensor;
+
+    /*QLineSeries *series_temp;
+    QLineSeries *series_bar;
     QLabel *data_sensor_temp;
     QLabel *data_sensor_bar;
+
+
     QPointer<QStandardItemModel> model_temp;
     QPointer<QStandardItemModel> model_bar;
     QHBoxLayout *hbox_temp;
     QHBoxLayout *hbox_bar;
     QCheckBox *check_temp;
     QCheckBox *check_bar;
-    QFrame *line;
+
     QVector<QPointF> points_triangle_view_bar;
     QVector<QPointF> points_rectangle_view_bar;
     QVector<QPointF> points_triangle_view_temp;
-    QVector<QPointF> points_rectangle_view_temp;
+    QVector<QPointF> points_rectangle_view_temp;*/
 };
 struct DataEtalon{
     char magic[4];
@@ -57,6 +82,16 @@ struct DataSeriesEtalon{
     QVector<QPointF> points_rectangle_view_bar;
     QVector<QPointF> points_triangle_view_temp;
     QVector<QPointF> points_rectangle_view_temp;
+};
+struct NameChart{
+    QString name;
+    int index;
+    QString name_type;
+    QString name_unit;
+    QString name_sensor;
+    double unit_min = 0;
+    double unit_max = 0;
+    bool first_unit = true;
 };
 
 #endif // DATA_H
