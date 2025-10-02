@@ -80,11 +80,11 @@ void ChartView::PanelLegendACM(){
         QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
         QLabel *l_name_type = new QLabel(acm[i].name_type);
         QLabel *l_name = new QLabel(data.name_sensor);
-        if(acm[i].name_chart == "PRES ADC_Давление"){
+        if(acm[i].name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: red");
             l_name->setStyleSheet("color: red");
         }
-        if(acm[i].name_chart == "TEMP ADC_Температура"){
+        if(acm[i].name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: blue");
             l_name->setStyleSheet("color: blue");
         }

@@ -152,10 +152,10 @@ void DowlandFile::CreateSeriesACM(){
         acm.axis->setTickCount(21);
         acm.series = new QLineSeries();
         acm.series->setName(data.name_sensor + name_chart.name);
-        if(name_chart.name == "PRES ADC_Давление"){
+        if(name_chart.name.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
             acm.series->setColor("red");
         }
-        if(name_chart.name == "TEMP ADC_Температура"){
+        if(name_chart.name.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
             acm.series->setColor("blue");
         }
         QLabel *label = new QLabel();

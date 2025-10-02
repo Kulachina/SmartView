@@ -27,10 +27,10 @@ void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
     for(ACM& a :acm){
-        if(a.name_chart == "PRES ADC_Давление"){
+        if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
             model_bar = a.model;
         }
-        if(a.name_chart == "TEMP ADC_Температура"){
+        if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
             model_temp = a.model;
         }
     }
