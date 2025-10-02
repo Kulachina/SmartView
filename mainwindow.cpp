@@ -332,10 +332,10 @@ void MainWindow::WindowMasterPoint(){
         QStandardItemModel *model_bar = new QStandardItemModel();
         QStandardItemModel *model_temp = new QStandardItemModel();
         for(ACM& a :acm){
-            if(a.name_chart == "PRES ADC_Давление"){
+            if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
                 a.model = model_bar;
             }
-            if(a.name_chart == "TEMP ADC_Температура"){
+            if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
                 a.model = model_temp;
             }
             connect(a.model, &QStandardItemModel::itemChanged,this,[&](QStandardItem *item){
@@ -489,10 +489,10 @@ void MainWindow::FillAllTables(){
             QStandardItemModel *model_bar = new QStandardItemModel();
             QStandardItemModel *model_temp = new QStandardItemModel();
             for(ACM& a :acm){
-                if(a.name_chart == "PRES ADC_Давление"){
+                if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
                     model_bar = a.model;
                 }
-                if(a.name_chart == "TEMP ADC_Температура"){
+                if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
                     model_temp = a.model;
                 }
             }
@@ -510,8 +510,10 @@ void MainWindow::ChangeAllTables(QStandardItem * item){
         for(DataSeriesACM& data : data_base_.GetDataSerACM()){
             QVector<ACM>& acm = data.vec_acm;
             for(ACM& a :acm){
-                QStandardItem *it = a.model->item(row,col);
-                it->setText(item->text());
+                if(a.model){
+                    QStandardItem *it = a.model->item(row,col);
+                    it->setText(item->text());
+                }
             }
         }
     }
@@ -523,11 +525,11 @@ void MainWindow::AnalisingSeries(DataSeriesACM data){
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
     for(ACM& a :acm){
-        if(a.name_chart == "PRES ADC_Давление"){
+        if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
             model_bar = a.model;
         }
-        if(a.name_chart == "TEMP ADC_Температура"){
+        if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
             series_temp = a.series;
             model_temp = a.model;
         }
