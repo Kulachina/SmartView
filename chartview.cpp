@@ -94,51 +94,7 @@ void ChartView::PanelLegendACM(){
         p_hbox->addWidget(acm[i].label_data);
         vbox_legend_->addLayout(p_hbox);
         data_base_.AddLabelSensor(l_name,l_name_type);
-
     }
-    /*data.hbox_temp = new QHBoxLayout();
-    data.hbox_bar = new QHBoxLayout();
-    data.check_temp = new QCheckBox();
-    data.check_bar = new QCheckBox();
-    data.check_temp->setCheckState(Qt::Checked);
-    data.check_bar->setCheckState(Qt::Checked);
-    connect(data.check_temp, &QCheckBox::toggled, this,[=](){
-        if(data.check_temp->isChecked()){
-            data.series_temp->setVisible(true);
-        } else {
-            data.series_temp->setVisible(false);
-        }
-    });
-    connect(data.check_bar, &QCheckBox::toggled, this,[=](){
-        if(data.check_bar->isChecked()){
-            data.series_bar->setVisible(true);
-        } else {
-            data.series_bar->setVisible(false);
-        }
-    });*/
-    //QPointer<QHBoxLayout> hbox_temp = data.hbox_temp;
-    //QPointer<QHBoxLayout> hbox_bar = data.hbox_bar;
-    /*QLabel *leg_bar = new QLabel("- Давление");
-    QLabel *leg_temp = new QLabel("- Температура");
-    QLabel *l_name_temp = new QLabel(data.name_sensor);
-    l_name_temp->setStyleSheet("color: blue");
-    QLabel *l_name_bar = new QLabel(data.name_sensor);
-    l_name_bar->setStyleSheet("color: red");
-    leg_bar->setStyleSheet("color: red");
-    leg_temp->setStyleSheet("color: blue");
-    hbox_temp->addWidget(data.check_temp);
-    hbox_bar->addWidget(data.check_bar);
-    hbox_temp->addWidget(leg_temp);
-    hbox_bar->addWidget(leg_bar);
-    hbox_temp->addWidget(l_name_temp);
-    hbox_temp->addWidget(data.data_sensor_temp);
-    hbox_bar->addWidget(l_name_bar);
-    hbox_bar->addWidget(data.data_sensor_bar);*/
-
-    //vbox_legend_->addLayout(hbox_temp);
-   // vbox_legend_->addLayout(hbox_bar);
-    //data_base_.AddLabelSensor(l_name_temp,leg_temp);
-   // data_base_.AddLabelSensor(l_name_bar,leg_bar);
     CreateMapLabel();
     CreateMapSeries();
 }

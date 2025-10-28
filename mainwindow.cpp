@@ -782,11 +782,12 @@ void MainWindow::ReplaceTriangle(){
         }
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
-        DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];
+        DataSeriesEtalon& data_temp = data_base_.GetDataSerEtalon()[0];
         data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_triangle_view_temp);
-        DataSeriesEtalon data_bar = data_base_.GetDataSerEtalon()[1];
+        DataSeriesEtalon& data_bar = data_base_.GetDataSerEtalon()[1];
         data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_triangle_view_bar);
     }
+    chart_view_->GetChart()->update();
 }
 void MainWindow::ReplaceRectangle(){
     if(!data_base_.GetDataSerACM().isEmpty()){
@@ -798,11 +799,12 @@ void MainWindow::ReplaceRectangle(){
         }
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
-        DataSeriesEtalon data_temp = data_base_.GetDataSerEtalon()[0];
+        DataSeriesEtalon& data_temp = data_base_.GetDataSerEtalon()[0];
         data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_rectangle_view_temp);
-        DataSeriesEtalon data_bar = data_base_.GetDataSerEtalon()[1];
+        DataSeriesEtalon& data_bar = data_base_.GetDataSerEtalon()[1];
         data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_rectangle_view_bar);
     }
+
 }
 
 
