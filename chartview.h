@@ -1,6 +1,6 @@
 #ifndef CHARTVIEW_H
 #define CHARTVIEW_H
-
+#pragma once
 #include <QChartView>
 #include <QObject>
 #include <QDateTimeAxis>

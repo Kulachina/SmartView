@@ -13,6 +13,7 @@ SOURCES += \
     createraport.cpp \
     data_base.cpp \
     dowland_file.cpp \
+    error_table.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -22,6 +23,7 @@ HEADERS += \
     createraport.h \
     data_base.h \
     dowland_file.h \
+    error_table.h \
     mainwindow.h
 
 # Default rules for deployment.

@@ -1,6 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#pragma once
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QToolBar>
@@ -21,6 +21,7 @@
 #include "dowland_file.h"
 #include "qspinbox.h"
 #include "createraport.h"
+#include "error_table.h"
 
 class MainWindow : public QMainWindow
 {
@@ -47,6 +48,7 @@ public slots:
     void CreateAllDoc();
     void ReplaceTriangle();
     void ReplaceRectangle();
+    void WindowTableError();
 private:
     void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();
@@ -63,6 +65,7 @@ private:
     CreateRaport create_raport;
     ChartView* chart_view_;
     DowlandFile dow_file_;
+    ErrorTable error_table_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;
     QDoubleSpinBox *s_step_bar_;

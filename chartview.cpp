@@ -24,6 +24,8 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     axis_bar_->setTickCount(21);
     axis_temp_->setRange(0, 0);
     axis_temp_->setTickCount(21);
+    data_base_.AddListAxis(axis_temp_);
+    data_base_.AddListAxis(axis_bar_);
     chart_->addAxis(axis_time_,Qt::AlignBottom);
     chart_->addAxis(axis_temp_,Qt::AlignLeft);
     chart_->addAxis(axis_bar_,Qt::AlignLeft);
@@ -80,11 +82,11 @@ void ChartView::PanelLegendACM(){
         QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
         QLabel *l_name_type = new QLabel(acm[i].name_type);
         QLabel *l_name = new QLabel(data.name_sensor);
-        if(acm[i].name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
+        if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: red");
             l_name->setStyleSheet("color: red");
         }
-        if(acm[i].name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
+        if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: blue");
             l_name->setStyleSheet("color: blue");
         }
@@ -463,7 +465,7 @@ void ChartView::ZoomChart(QRect rect){
                         bar_max_etalon_ = qMax(bar_max_etalon_,y);
                         bar_min_etalon_ = qMin(bar_min_etalon_,y);
                     }
-                    if(series->name().endsWith("bar")){
+                    if(series->objectName() == "bar"){
                         if(!first_bar_acm){
                             bar_max_acm_ = y;
                             bar_min_acm_ = y;
@@ -472,7 +474,7 @@ void ChartView::ZoomChart(QRect rect){
                         bar_max_acm_ = qMax(bar_max_acm_,y);
                         bar_min_acm_ = qMin(bar_min_acm_,y);
                     }
-                    if(series->name().endsWith("temp")){
+                    if(series->objectName() == "temp"){
                         if(!first_temp_acm){
                             temp_max_acm_ = y;
                             temp_min_acm_ = y;

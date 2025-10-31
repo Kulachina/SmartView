@@ -1,5 +1,6 @@
 #ifndef DATA_H
 #define DATA_H
+#pragma once
 #include "qboxlayout.h"
 #include <QVector>
 #include <QDateTime>

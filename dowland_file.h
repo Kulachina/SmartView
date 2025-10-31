@@ -1,6 +1,6 @@
 #ifndef DOWLAND_FILE_H
 #define DOWLAND_FILE_H
-
+#pragma once
 #include "data_base.h"
 #include <QProgressBar>
 #include <QApplication>

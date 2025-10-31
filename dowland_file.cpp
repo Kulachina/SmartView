@@ -36,7 +36,7 @@ void DowlandFile::LoadDocACM(QString path){
     int i = line_text.size()-2;
     words = line_text[i].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
-    for(int i = index_data_;i < line_text.size(); ++i){
+    for(int i = index_data_;i < line_text.size()-1; ++i){
         progress_->setValue(i);
         QCoreApplication::processEvents();
         words = line_text[i].split(" ",Qt::SkipEmptyParts);
@@ -47,7 +47,12 @@ void DowlandFile::LoadDocACM(QString path){
     QVector<ACM>& acm = data.vec_acm;
     for(int i =0; i < acm.size();++i){
         acm[i].series->replace(acm[i].points_triangle);
-        acm[i].axis->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
+        if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
+            axis_bar_->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
+        }
+        if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
+           axis_temp_->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
+        }
     }
     chart_name_and_index_.clear();
 }
@@ -145,27 +150,32 @@ void DowlandFile::CreateSeriesACM(){
         acm.name_chart = name_chart.name;
         acm.name_type = name_chart.name_type.mid(1,name_chart.name_type.size()-3);
         acm.name_unit = name_chart.name_unit;
-        acm.axis = new QValueAxis();
+        /*acm.axis = new QValueAxis();
         acm.axis->setTitleText(data.name_sensor +", "+ acm.name_type+ " "  + name_chart.name_unit);
         acm.axis->setVisible(false);
         acm.axis->setRange(0, 0);
-        acm.axis->setTickCount(21);
+        acm.axis->setTickCount(21);*/
         acm.series = new QLineSeries();
         acm.series->setName(data.name_sensor + name_chart.name);
-        if(name_chart.name.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
+        chart_->addSeries(acm.series);
+        if(name_chart.name.contains("Давление",Qt::CaseInsensitive)){
+            acm.series->attachAxis(axis_bar_);
             acm.series->setColor("red");
+            acm.series->setObjectName("bar");
         }
-        if(name_chart.name.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
+        if(name_chart.name.contains("Температура",Qt::CaseInsensitive)){
+            acm.series->attachAxis(axis_temp_);
             acm.series->setColor("blue");
+            acm.series->setObjectName("temp");
         }
         QLabel *label = new QLabel();
         acm.label = label;
-        chart_->addAxis(acm.axis,Qt::AlignLeft);
-        chart_->addSeries(acm.series);
-        acm.series->attachAxis(acm.axis);
+        //chart_->addAxis(acm.axis,Qt::AlignLeft);
+
+        //acm.series->attachAxis(acm.axis);
         acm.series->attachAxis(axis_x_);
         data.vec_acm.push_back(acm);
-        data_base_.AddListAxis(acm.axis);
+        //data_base_.AddListAxis(acm.axis);
     }
     data_acm_.push_back(data);
     data_base_.AddDataSerACM(data_acm_.back());

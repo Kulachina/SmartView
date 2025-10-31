@@ -1,5 +1,6 @@
 #ifndef DATA_BASE_H
 #define DATA_BASE_H
+#pragma once
 #include "Data.h"
 
 #include <QMap>

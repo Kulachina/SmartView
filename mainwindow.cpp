@@ -6,7 +6,8 @@
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
     data_base_(),
-    dow_file_(data_base_)
+    dow_file_(data_base_),
+    error_table_(data_base_,nullptr)
 {
     QMenuBar *menu = menuBar();
     QMenu *menu_file = new QMenu();
@@ -24,14 +25,16 @@ MainWindow::MainWindow(QMainWindow *parent)
     connect(view, &QAction::triggered, this,&MainWindow::WindowView);
     QAction *check_point = new QAction("Контрольные точки");
     connect(check_point, &QAction::triggered, this,&MainWindow::WindowCheckPoints);
+    QAction *error_delta = new QAction("Таблица погрешностей");
+    connect(error_delta, &QAction::triggered, this,&MainWindow::WindowTableError);
     menu->addAction(file);
     menu->addAction(report);
     menu->addAction(view);
     menu->addAction(check_point);
     menu->addAction(master_point);
+    menu->addAction(error_delta);
     chart_view_ = new ChartView(nullptr, data_base_);
     QToolBar *tool_bar = new QToolBar();
-
     load_doc_2_ = new QAction("Добавить прибор",tool_bar);
     load_doc_2_->setEnabled(false);
     connect(load_doc_2_, &QAction::triggered, this,&MainWindow::LoadDocumentACM);
@@ -74,6 +77,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     SetWindow();
     dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
     dow_file_.SetAxisTime(chart_view_->GetAxisX());
+
     window_check_points_ = new QWidget();
 }
 MainWindow::~MainWindow()
@@ -162,6 +166,11 @@ void MainWindow::ShiftCheckPoint(){
 }
 void MainWindow::ShiftLineinMouse(){
     chart_view_->ToogledFlagLineInMouse();
+}
+void MainWindow::WindowTableError(){
+    error_table_.FillTable();
+    error_table_.show();
+
 }
 void MainWindow::WindowAxis(){
     if(!first_open_){
@@ -525,11 +534,11 @@ void MainWindow::AnalisingSeries(DataSeriesACM data){
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
     for(ACM& a :acm){
-        if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
+        if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
             model_bar = a.model;
         }
-        if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
+        if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
             series_temp = a.series;
             model_temp = a.model;
         }

@@ -1,5 +1,6 @@
 #ifndef CREATERAPORT_H
 #define CREATERAPORT_H
+#pragma once
 #include <data_base.h>
 
 class CreateRaport
