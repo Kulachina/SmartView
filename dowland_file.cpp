@@ -138,6 +138,14 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_base_.GetDataSerEtalon()[0].points_triangle_view_temp = p_temp_;
     p_temp_.clear();
     p_bar_.clear();
+    set_axis_x_ = false;
+    error_flag_1_ = true;
+    error_flag_2_ = true;
+    create_file_ = false;
+    create_title_ = false;
+    first_write_rectangle_ =false;
+    gap_ = false;
+    first_min_max_ = false;
     file.close();
 }
 void DowlandFile::CreateSeriesACM(){
@@ -168,10 +176,9 @@ void DowlandFile::CreateSeriesACM(){
             acm.series->setColor("blue");
             acm.series->setObjectName("temp");
         }
-        QLabel *label = new QLabel();
-        acm.label = label;
+        acm.label = new QLabel();
+        acm.label_delta = new QLabel();
         //chart_->addAxis(acm.axis,Qt::AlignLeft);
-
         //acm.series->attachAxis(acm.axis);
         acm.series->attachAxis(axis_x_);
         data.vec_acm.push_back(acm);

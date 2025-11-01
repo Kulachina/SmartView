@@ -50,11 +50,13 @@ public:
     void ClearPanelLegend();
     void ReplaceCheckSeries();
     void ReBuildPointSeries();
+    void FlagCalcDelta();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
 private:
+    void CalcDelta();
     void AddSeparator();
     void SetLineFromMouse(QPointF point);
     void ZoomChart(QRect rect);
@@ -93,6 +95,7 @@ private:
         shift_check_point_ = false,
         change_cursor_ = false,
         data_in_time_ = false,
+        calc_delta_ = false,
         load_etalon_ = false;
     double bar_max_etalon_,
         bar_min_etalon_,

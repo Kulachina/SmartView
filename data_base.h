@@ -2,7 +2,6 @@
 #define DATA_BASE_H
 #pragma once
 #include "Data.h"
-
 #include <QMap>
 #include <QPointer>
 
@@ -14,6 +13,7 @@ public:
     void AddLabelSensor(QLabel* sensor,QLabel* name);
     void AddListAxis(QValueAxis *axis);
     void AddCheckPoint(qint64 q,double temp, double bar);
+    void AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, QVector<double> volume_bar,QVector<double> delta_temp, QVector<double> volume_temp);
     QVector<QDateTime>& GetCheckPoints();
     QVector<double>& GetCheckPointTemp();
     QVector<double>& GetCheckPointBar();

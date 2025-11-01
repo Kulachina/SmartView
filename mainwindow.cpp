@@ -7,7 +7,8 @@ MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
     data_base_(),
     dow_file_(data_base_),
-    error_table_(data_base_,nullptr)
+    create_raport_(data_base_),
+    error_table_(data_base_,create_raport_,nullptr)
 {
     QMenuBar *menu = menuBar();
     QMenu *menu_file = new QMenu();
@@ -77,7 +78,6 @@ MainWindow::MainWindow(QMainWindow *parent)
     SetWindow();
     dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
     dow_file_.SetAxisTime(chart_view_->GetAxisX());
-
     window_check_points_ = new QWidget();
 }
 MainWindow::~MainWindow()
@@ -87,7 +87,7 @@ MainWindow::~MainWindow()
 void MainWindow::SetWindow(){
     QHBoxLayout *hbox = new QHBoxLayout();
     hbox->addWidget(chart_view_,8);
-    hbox->addWidget(chart_view_->GetWidgetLegend(),1);
+    hbox->addWidget(chart_view_->GetWidgetLegend(),2);
     QWidget *w = new QWidget();
     w->setLayout(hbox);
     setCentralWidget(w);
@@ -394,7 +394,7 @@ void MainWindow::WindowMasterPoint(){
         connect(btn_create_doc, &QPushButton::clicked,this,[this,&data](){
             QString path = QApplication::applicationDirPath();
             QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить контрольные точки", path ,"*.txt");
-            create_raport.CreateDoc(data,path_doc);
+            create_raport_.CreateDoc(data,path_doc);
         });
         QPushButton *btn_append_row = new QPushButton("Добавить строку");
         connect(btn_append_row,&QPushButton::clicked, this,[=](){
@@ -498,10 +498,10 @@ void MainWindow::FillAllTables(){
             QStandardItemModel *model_bar = new QStandardItemModel();
             QStandardItemModel *model_temp = new QStandardItemModel();
             for(ACM& a :acm){
-                if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
+                if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
                     model_bar = a.model;
                 }
-                if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
+                if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
                     model_temp = a.model;
                 }
             }
@@ -599,7 +599,7 @@ void MainWindow::AnalisingSeries(DataSeriesACM data){
     }
 }
 void MainWindow::CreateAllDoc(){
-    create_raport.CreateAllDoc(data_base_.GetDataSerACM());
+    create_raport_.CreateAllDoc(data_base_.GetDataSerACM());
 }
 void MainWindow::WindowDeleteSensor(){
     if(!first_open_4_){
@@ -676,7 +676,7 @@ void MainWindow::DeleteAllSens(){
 void MainWindow::DeleteSens(DataSeriesACM& data){
     QVector<ACM>& acm = data.vec_acm;
     for(ACM& a : acm){
-        delete a.axis;
+        //delete a.axis;
         delete a.check_box;
         delete a.hbox->itemAt(2)->widget();
         delete a.hbox->itemAt(1)->widget();

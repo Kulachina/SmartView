@@ -16,8 +16,11 @@ struct ACM{
     QLineSeries* series;
     QLabel* label;
     QLabel* label_data;
+    QLabel* label_delta;
     QVector<QPointF> points_triangle;
     QVector<QPointF> points_rectangle;
+    QVector<double> check_points;
+    QVector<double> delta_points;
     QValueAxis* axis;
     QHBoxLayout* hbox;
     QCheckBox* check_box;

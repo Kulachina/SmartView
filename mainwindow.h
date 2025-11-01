@@ -62,9 +62,9 @@ private:
     void CreateTableCheckPoints();
     void ReplaceCheckSeries();
     DataBase data_base_;
-    CreateRaport create_raport;
     ChartView* chart_view_;
     DowlandFile dow_file_;
+    CreateRaport create_raport_;
     ErrorTable error_table_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;

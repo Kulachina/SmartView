@@ -1,10 +1,9 @@
 #include "error_table.h"
-
 #include <QTableView>
 #include <QPushButton>
 
-ErrorTable::ErrorTable(DataBase& data_base, QWidget *parent)
-    : QWidget(parent), data_base_(data_base)
+ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent)
+    : QWidget(parent), data_base_(data_base),create_raport_(create_raport)
 
 {
     QVBoxLayout *vbox = new QVBoxLayout();
@@ -12,12 +11,15 @@ ErrorTable::ErrorTable(DataBase& data_base, QWidget *parent)
     hbox->setAlignment(Qt::AlignLeft);
     QPushButton *btn = new QPushButton("Обновить");
     connect(btn, &QPushButton::clicked, this, &ErrorTable::FillTable);
+    QPushButton *btn_rap = new QPushButton("Создать отчеты");
+    connect(btn_rap, &QPushButton::clicked, this, &ErrorTable::CreateRapor);
     QTableView *table_view = new QTableView();
     setWindowTitle("Таблица погрешностей");
     model_ = new QStandardItemModel();
     table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_view->setModel(model_);
     hbox->addWidget(btn);
+    hbox->addWidget(btn_rap);
     vbox->addLayout(hbox,1);
     vbox->addWidget(table_view,9);
     setLayout(vbox);
@@ -76,6 +78,10 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
     QPointer<QLineSeries> series_bar;
     QPointer<QLineSeries> series_temp;
     QString name = data.name_sensor;
+    QVector<double> del_temp;
+    QVector<double> vol_temp;
+    QVector<double> del_bar;
+    QVector<double> vol_bar;
     double delta;
     double value;
     for(ACM& a :acm){
@@ -102,6 +108,8 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
                 count++;
                 value = model_->data(model_->index(row,1)).toDouble();
                 delta = static_cast<double>(point.y()) - value;
+                vol_bar.push_back(static_cast<double>(point.y()));
+                del_bar.push_back(delta);
                 QStandardItem *it_del = new QStandardItem(QString::number(delta, 'f',2));
                 QStandardItem *it = new QStandardItem(QString::number(point.y(), 'f',2));
                 if(row % 2 == 1 && column % 2 == 0 ){
@@ -144,6 +152,8 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
                 count++;
                 value = model_->data(model_->index(row,2)).toDouble();
                 delta = static_cast<double>(point.y()) - value;
+                vol_temp.push_back(static_cast<double>(point.y()));
+                del_temp.push_back(delta);
                 QStandardItem *it_del = new QStandardItem(QString::number(delta, 'f',2));
                 QStandardItem *it = new QStandardItem(QString::number(point.y(), 'f',2));
                 if(row % 2 == 1 && column % 2 == 1 ){
@@ -172,4 +182,8 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
         model_->setHeaderData(column, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
         column += 2;
     }
+    data_base_.AddDeltaVolData(name,del_bar,vol_bar,del_temp,vol_temp);
+}
+void ErrorTable::CreateRapor(){
+    create_raport_.CreateAllDeltaDoc();
 }

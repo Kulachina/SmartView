@@ -53,6 +53,25 @@ void DataBase::SetDefaultAxisX(QDateTime max, QDateTime min){
 std::pair<QDateTime,QDateTime> DataBase::GetDefaultAxisX(){
     return {axis_min_,axis_max_};
 }
+void DataBase::AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, QVector<double> volume_bar,QVector<double> delta_temp, QVector<double> volume_temp){
+    if(!data_acm_.isEmpty()){
+        for(DataSeriesACM& data : data_acm_){
+            if(data.name_sensor == name_sensor){
+                if(data.vec_acm[0].name_type == "Давление"){
+                    data.vec_acm[0].check_points = volume_bar;
+                    data.vec_acm[0].delta_points = delta_bar;
+                    data.vec_acm[1].check_points = volume_temp;
+                    data.vec_acm[1].delta_points = delta_temp;
+                } else {
+                    data.vec_acm[1].check_points = volume_bar;
+                    data.vec_acm[1].delta_points = delta_bar;
+                    data.vec_acm[0].check_points = volume_temp;
+                    data.vec_acm[0].delta_points = delta_temp;
+                }
+            }
+        }
+    }
+}
 void DataBase::ClearAll(){
     check_points_.clear();
     check_points_temp.clear();

@@ -70,6 +70,7 @@ void ChartView::PanelLegendACM(){
     vbox_legend_->addWidget(data.line);
     for(int i =0;i < acm.size();++i){
         acm[i].hbox = new QHBoxLayout();
+        acm[i].hbox->setAlignment(Qt::AlignLeft);
         acm[i].check_box = new QCheckBox();
         acm[i].check_box->setCheckState(Qt::Checked);
         connect(acm[i].check_box, &QCheckBox::toggled, this,[=](){
@@ -94,6 +95,7 @@ void ChartView::PanelLegendACM(){
         p_hbox->addWidget(l_name_type);
         p_hbox->addWidget(l_name);
         p_hbox->addWidget(acm[i].label_data);
+        p_hbox->addWidget(acm[i].label_delta);
         vbox_legend_->addLayout(p_hbox);
         data_base_.AddLabelSensor(l_name,l_name_type);
     }
@@ -104,11 +106,13 @@ void ChartView::PanelLegendEtalon(){
     QList<QLineSeries*> list_series;
     QHBoxLayout *hbox_time = new QHBoxLayout();
     QLabel *time = new QLabel();
+    hbox_time->setAlignment(Qt::AlignLeft);
     hbox_time->addWidget(new QLabel("- Время:"));
     hbox_time->addWidget(time);
     vbox_legend_->addLayout(hbox_time);
     for(auto data : data_base_.GetDataSerEtalon()){
         QHBoxLayout *hbox = new QHBoxLayout();
+        hbox->setAlignment(Qt::AlignLeft);
         QLabel *l_name = new QLabel(data.name_series);
         QLabel *leg = new QLabel();
         if(data.name_series == "ЛТ300" || data.name_series == "Имитатор ЛТ300" ){
@@ -135,7 +139,7 @@ void ChartView::PanelLegendEtalon(){
         map_data_label_[data.series->name()] = point;
     }
     QHBoxLayout *hbox_check_all = new QHBoxLayout();
-    QCheckBox *check_all = new QCheckBox();
+    QCheckBox *check_all = new QCheckBox(" - Все графики");
     check_all->setCheckState(Qt::Checked);
     connect(check_all, &QCheckBox::toggled,this,[=](){
         if(check_all->isChecked()){
@@ -154,8 +158,11 @@ void ChartView::PanelLegendEtalon(){
             }
         }
     });
+    QCheckBox *check_delta = new QCheckBox(" - Погрешность");
+    check_delta->setCheckState(Qt::Unchecked);
+    connect(check_delta, &QCheckBox::toggled,this,&ChartView::FlagCalcDelta);
     hbox_check_all->addWidget(check_all);
-    hbox_check_all->addWidget(new QLabel(" - Все графики"));
+    hbox_check_all->addWidget(check_delta);
     hbox_check_all->setAlignment(Qt::AlignLeft);
     vbox_legend_->addLayout(hbox_check_all);
     QPointer<QLabel> point = time;
@@ -357,22 +364,68 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
             if(series != line_from_mouse_ && line_from_mouse_){
                 QLineSeries *series_line = qobject_cast<QLineSeries*>(series);
                 if(series_line){
-                    for(QPointF point :series_line->points()){
-                        QPoint screen_pos = chart_->mapToPosition(point,series).toPoint();
-                        if(event->pos().x() == screen_pos.x()){
-                            QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
-                            QString time_str = time.toString("dd.MM.yyyy hh:mm:ss");
-                            map_data_label_.value("time")->setText(time_str);
-                            if(!map_data_label_.value(series->name()).isNull()){
-                                map_data_label_.value(series->name())->setText(QString::number(point.y()));
+                    const QVector<QPointF>& points = series_line->points();
+                    int left= 0;
+                    int right = points.size()-1;
+                    QPointF found;
+                    while(left <= right){
+                        int mid = left + (right - left)/2;
+                        QPoint screen_pos = chart_->mapToPosition(points[mid],series).toPoint();
+                        if(screen_pos.x() == event->pos().x()){
+                            found = points[mid];
+                            break;
+                        } else if (screen_pos.x() < event->pos().x() ){
+                            left = mid + 1;
+                        } else {
+                            right = mid - 1;
+                        }
+                    }
+                    if (left <= right) {
+                        QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(found.x()));
+                        QString time_str = time.toString("dd.MM.yyyy hh:mm:ss");
+                        map_data_label_.value("time")->setText(time_str);
+                        if(!map_data_label_.value(series->name()).isNull()){
+                            map_data_label_.value(series->name())->setText(QString::number(found.y(),'f',2));
+                            if(calc_delta_){
+                                CalcDelta();
                             }
                         }
+
                     }
                 }
             }
         }
     }
     QChartView::mouseMoveEvent(event);
+}
+void ChartView::FlagCalcDelta(){
+    if(calc_delta_){
+        calc_delta_ = false;
+        QVector<DataSeriesACM>& data_acm = data_base_.GetDataSerACM();
+        for(DataSeriesACM acm : data_acm){
+            for(ACM& a : acm.vec_acm){
+                a.label_delta->setText("");
+            }
+        }
+    } else {
+        calc_delta_ = true;
+    }
+}
+void ChartView::CalcDelta(){
+    QVector<DataSeriesACM>& data_acm = data_base_.GetDataSerACM();
+    QVector<DataSeriesEtalon>& data_etalon = data_base_.GetDataSerEtalon();
+    QPointer<QLabel> label_bar = data_etalon[1].data_sensor;
+    QPointer<QLabel> label_temp = data_etalon[0].data_sensor;
+    for(DataSeriesACM acm : data_acm){
+        for(ACM& a : acm.vec_acm){
+            if(a.name_type == "Давление"){
+                a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_bar->text().toDouble(),'f',2) + ")");
+            } else {
+                a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_temp->text().toDouble(),'f',2) + ")");
+            }
+        }
+    }
+
 }
 void ChartView::mouseReleaseEvent(QMouseEvent *event){
     if(event->button() == Qt::RightButton){
