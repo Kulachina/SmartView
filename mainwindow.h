@@ -49,6 +49,7 @@ public slots:
     void ReplaceTriangle();
     void ReplaceRectangle();
     void WindowTableError();
+    void AutoZoom();
 private:
     void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();

@@ -158,12 +158,10 @@ void DowlandFile::CreateSeriesACM(){
         acm.name_chart = name_chart.name;
         acm.name_type = name_chart.name_type.mid(1,name_chart.name_type.size()-3);
         acm.name_unit = name_chart.name_unit;
-        /*acm.axis = new QValueAxis();
-        acm.axis->setTitleText(data.name_sensor +", "+ acm.name_type+ " "  + name_chart.name_unit);
-        acm.axis->setVisible(false);
-        acm.axis->setRange(0, 0);
-        acm.axis->setTickCount(21);*/
+        QPen pen;
+        pen.setWidth(1);
         acm.series = new QLineSeries();
+        acm.series->setPen(pen);
         acm.series->setName(data.name_sensor + name_chart.name);
         chart_->addSeries(acm.series);
         if(name_chart.name.contains("Давление",Qt::CaseInsensitive)){
@@ -178,11 +176,8 @@ void DowlandFile::CreateSeriesACM(){
         }
         acm.label = new QLabel();
         acm.label_delta = new QLabel();
-        //chart_->addAxis(acm.axis,Qt::AlignLeft);
-        //acm.series->attachAxis(acm.axis);
         acm.series->attachAxis(axis_x_);
         data.vec_acm.push_back(acm);
-        //data_base_.AddListAxis(acm.axis);
     }
     data_acm_.push_back(data);
     data_base_.AddDataSerACM(data_acm_.back());

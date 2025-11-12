@@ -341,10 +341,10 @@ void MainWindow::WindowMasterPoint(){
         QStandardItemModel *model_bar = new QStandardItemModel();
         QStandardItemModel *model_temp = new QStandardItemModel();
         for(ACM& a :acm){
-            if(a.name_chart.contains("PRES ADC_Давление",Qt::CaseInsensitive)){
+            if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
                 a.model = model_bar;
             }
-            if(a.name_chart.contains("TEMP ADC_Температура",Qt::CaseInsensitive)){
+            if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
                 a.model = model_temp;
             }
             connect(a.model, &QStandardItemModel::itemChanged,this,[&](QStandardItem *item){
@@ -676,8 +676,8 @@ void MainWindow::DeleteAllSens(){
 void MainWindow::DeleteSens(DataSeriesACM& data){
     QVector<ACM>& acm = data.vec_acm;
     for(ACM& a : acm){
-        //delete a.axis;
         delete a.check_box;
+        delete a.hbox->itemAt(3)->widget();
         delete a.hbox->itemAt(2)->widget();
         delete a.hbox->itemAt(1)->widget();
         delete a.hbox->itemAt(0)->widget();
@@ -763,6 +763,8 @@ void MainWindow::WindowView(){
         window_view_ = new QWidget();
         window_view_->setWindowTitle("Вид");
         window_view_->setWindowFlags(Qt::WindowCloseButtonHint);
+        QCheckBox *ch_auto = new QCheckBox("Автомаштаб");
+        connect(ch_auto, &QCheckBox::toggled, this, &MainWindow::AutoZoom);
         QGroupBox *gr_box = new QGroupBox("Вид отображения кривых");
         QVBoxLayout *gr_vbox = new QVBoxLayout();
         QVBoxLayout *vbox = new QVBoxLayout();
@@ -775,6 +777,7 @@ void MainWindow::WindowView(){
         gr_vbox->addWidget(rad_1);
         gr_vbox->addWidget(rad_2);
         gr_box->setLayout(gr_vbox);
+        vbox->addWidget(ch_auto);
         vbox->addWidget(gr_box);
         window_view_->setLayout(vbox);
         first_open_win_view_ = true;
@@ -814,6 +817,9 @@ void MainWindow::ReplaceRectangle(){
         data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_rectangle_view_bar);
     }
 
+}
+void MainWindow::AutoZoom(){
+    chart_view_->AutoZoom();
 }
 
 

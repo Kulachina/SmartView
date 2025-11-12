@@ -418,7 +418,7 @@ void ChartView::CalcDelta(){
     QPointer<QLabel> label_temp = data_etalon[0].data_sensor;
     for(DataSeriesACM acm : data_acm){
         for(ACM& a : acm.vec_acm){
-            if(a.name_type == "Давление"){
+            if(a.name_type.contains("Давление",Qt::CaseInsensitive)){
                 a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_bar->text().toDouble(),'f',2) + ")");
             } else {
                 a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_temp->text().toDouble(),'f',2) + ")");
@@ -553,8 +553,14 @@ void ChartView::ZoomChart(QRect rect){
     axis_bar_etalon_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
     axis_temp_etalon_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
     axis_time_->setRange(axis_min_,axis_max_);
-    axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_*0.05);
-    axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.05);
+    if(auto_zoom_){
+        axis_bar_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
+        axis_temp_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
+    } else {
+        axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_*0.05);
+        axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.05);
+    }
+
 }
 void ChartView::SetLineFromMouse(QPointF point){
     double mouse_x = point.x();
@@ -602,5 +608,12 @@ void ChartView::ReBuildPointSeries(){
         data_base_.GetCheckPoints()[i] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
         data_base_.GetCheckPointTemp()[i] = points_temp[i].y();
         data_base_.GetCheckPointBar()[i] = points_bar[i].y();
+    }
+}
+void  ChartView::AutoZoom(){
+    if(auto_zoom_){
+        auto_zoom_ = false;
+    } else {
+        auto_zoom_ = true;
     }
 }

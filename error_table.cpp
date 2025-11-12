@@ -1,5 +1,5 @@
 #include "error_table.h"
-#include <QTableView>
+
 #include <QPushButton>
 
 ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent)
@@ -13,15 +13,15 @@ ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget
     connect(btn, &QPushButton::clicked, this, &ErrorTable::FillTable);
     QPushButton *btn_rap = new QPushButton("Создать отчеты");
     connect(btn_rap, &QPushButton::clicked, this, &ErrorTable::CreateRapor);
-    QTableView *table_view = new QTableView();
+    table_view_ = new QTableView();
     setWindowTitle("Таблица погрешностей");
     model_ = new QStandardItemModel();
-    table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    table_view->setModel(model_);
+    table_view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table_view_->setModel(model_);
     hbox->addWidget(btn);
     hbox->addWidget(btn_rap);
     vbox->addLayout(hbox,1);
-    vbox->addWidget(table_view,9);
+    vbox->addWidget(table_view_,9);
     setLayout(vbox);
     resize(500,600);
 }
@@ -69,6 +69,7 @@ void ErrorTable::FillTable(){
     model_->setHeaderData(1, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
     model_->setHeaderData(2,Qt::Horizontal,"Тэт");
     model_->setHeaderData(2, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
+    table_view_->resizeColumnsToContents();
 
 }
 

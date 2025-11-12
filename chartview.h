@@ -51,6 +51,7 @@ public:
     void ReplaceCheckSeries();
     void ReBuildPointSeries();
     void FlagCalcDelta();
+    void AutoZoom();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -96,6 +97,7 @@ private:
         change_cursor_ = false,
         data_in_time_ = false,
         calc_delta_ = false,
+        auto_zoom_ = false,
         load_etalon_ = false;
     double bar_max_etalon_,
         bar_min_etalon_,

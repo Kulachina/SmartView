@@ -109,11 +109,21 @@ void CreateRaport::CreateDeltaDoc(DataSeriesACM& acm,QString file_name,QString n
     for(int i = 0; i<times.size();++i){
         out << times[i].toString("yyyy.MM.dd\thh-mm-ss") << "\t";
         out << QString::number(temp_data[i],'f',2) << "\t";
-        out << QString::number(acm.vec_acm[1].check_points[i], 'f',2) << "\t";
-        out << QString::number(acm.vec_acm[1].delta_points[i], 'f',2) << "\t";
-        out << QString::number(bar_data[i], 'f',2) << "\t";
-        out << QString::number(acm.vec_acm[0].check_points[i], 'f',2) << "\t";
-        out << QString::number(acm.vec_acm[0].delta_points[i], 'f',2) << "\n";
+        if(acm.vec_acm[1].name_chart.contains("Температура",Qt::CaseInsensitive)){
+            out << QString::number(acm.vec_acm[1].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[1].delta_points[i], 'f',2) << "\t";
+            out << QString::number(bar_data[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[0].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[0].delta_points[i], 'f',2) << "\n";
+        } else {
+            out << QString::number(acm.vec_acm[0].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[0].delta_points[i], 'f',2) << "\t";
+            out << QString::number(bar_data[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[1].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_acm[1].delta_points[i], 'f',2) << "\n";
+        }
+
+
     }
     raport.close();
 }

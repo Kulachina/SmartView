@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QStandardItemModel>
 #include <QStandardItem>
+#include <QTableView>
 #include "createraport.h"
 #include "data_base.h"
 
@@ -18,6 +19,7 @@ public:
 private:
     void AnalisingSeries(DataSeriesACM data);
     QStandardItemModel *model_;
+    QTableView *table_view_;
     DataBase& data_base_;
     CreateRaport& create_raport_;
 

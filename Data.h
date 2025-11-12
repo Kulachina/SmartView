@@ -21,7 +21,6 @@ struct ACM{
     QVector<QPointF> points_rectangle;
     QVector<double> check_points;
     QVector<double> delta_points;
-    QValueAxis* axis;
     QHBoxLayout* hbox;
     QCheckBox* check_box;
     QPointer<QStandardItemModel> model;
