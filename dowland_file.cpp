@@ -107,7 +107,8 @@ void DowlandFile::LoadDocEtalon(QString path) {
         if (strncmp(headerMagic, "HEAD", 4) == 0) {
             in >> header.header_1 >> header.header_2;
             header_words << "Время" << header.header_1 << header.header_2;
-            CreateSeriesEtalon(header_words);
+            for(int i =1 ;i <= header_words.size()-1;++i)
+            CreateSeriesEtalon(header_words[i]);
         }
     }
     int i = 0;
@@ -153,78 +154,79 @@ void DowlandFile::CreateSeriesACM(){
     data.name_sensor = chart_name_and_index_[0].name_sensor;
     data.label_sensor = new QLabel(data.name_sensor);
     for(NameChart name_chart : chart_name_and_index_){
-        ACM acm;
-        acm.label_data = new QLabel();
-        acm.name_chart = name_chart.name;
-        acm.name_type = name_chart.name_type.mid(1,name_chart.name_type.size()-3);
-        acm.name_unit = name_chart.name_unit;
-        QPen pen;
-        pen.setWidth(1);
-        acm.series = new QLineSeries();
-        acm.series->setPen(pen);
-        acm.series->setName(data.name_sensor + name_chart.name);
-        chart_->addSeries(acm.series);
-        if(name_chart.name.contains("Давление",Qt::CaseInsensitive)){
-            acm.series->attachAxis(axis_bar_);
-            acm.series->setColor("red");
-            acm.series->setObjectName("bar");
-        }
-        if(name_chart.name.contains("Температура",Qt::CaseInsensitive)){
-            acm.series->attachAxis(axis_temp_);
-            acm.series->setColor("blue");
-            acm.series->setObjectName("temp");
-        }
-        acm.label = new QLabel();
-        acm.label_delta = new QLabel();
-        acm.series->attachAxis(axis_x_);
-        data.vec_acm.push_back(acm);
+        CreateACM(data, name_chart.name, name_chart.name_type.mid(1,name_chart.name_type.size()-3), name_chart.name_unit);
     }
     data_acm_.push_back(data);
     data_base_.AddDataSerACM(data_acm_.back());
 }
-void DowlandFile::CreateSeriesEtalon(QStringList words){
-    DataSeriesEtalon doc;
-    for(int i =1 ;i <= words.size()-1;++i){
-        doc.name_series = words[i];
-        doc.series = new QLineSeries();
-        doc.data_sensor = new QLabel();
-        doc.axis_y_ = new QValueAxis();
-        doc.axis_y_->setRange(0, 0);
-        doc.axis_y_->setTickCount(21);
-        doc.data_sensor->setFixedWidth(50);
-        doc.point_series = new QScatterSeries();
-        doc.point_series->setName("check_series");
-        doc.point_series->setMarkerShape(QScatterSeries::MarkerShapeCircle);
-        doc.point_series->setPointLabelsVisible(true);
-        doc.point_series->setPointLabelsFormat("@yPoint");
-        doc.point_series->setMarkerSize(5);
-        doc.point_series->setColor("green");
-        doc.label_point = new QLabel();
-        doc.series->setName(words[i]);
-        chart_->addSeries(doc.series);
-        chart_->addSeries(doc.point_series);
-        chart_->addAxis(doc.axis_y_,Qt::AlignLeft);
-        if(words[i] == "ЛТ300" || words[i] == "Имитатор ЛТ300"){
-            doc.axis_y_->setTitleText("Эталон Температура, °C");
-            doc.series->setColor("blue");
-            QLineSeries* first_line = qobject_cast<QLineSeries*>(chart_->series().value(0));
-            first_line->attachAxis(doc.axis_y_);
-            doc.series->attachAxis(doc.axis_y_);
-            doc.point_series->attachAxis(doc.axis_y_);
-        }
-        if(words[i] == "ДМ5002М" || words[i] == "Имитатор ДМ5002М"){
-            doc.axis_y_->setTitleText("Эталон Давление, кг/см2");
-            doc.series->setColor("red");
-            doc.series->attachAxis(doc.axis_y_);
-            doc.point_series->attachAxis(doc.axis_y_);
-        }
-        doc.name_series = words[i];
-        doc.point_series->attachAxis(axis_x_);
-        doc.series->attachAxis(axis_x_);
-        data_etalon_.push_back(doc);
-        data_base_.AddDataSerEtalon(data_etalon_.back());
-        data_base_.AddListAxis(data_etalon_.back().axis_y_);
+void DowlandFile::CreateACM(DataSeriesACM& data, QString name, QString name_type, QString name_unit){
+    ACM acm;
+    acm.label_data = new QLabel();
+    acm.name_chart = name;
+    acm.name_type = name_type;
+    acm.name_unit = name_unit;
+    QPen pen;
+    pen.setWidth(1);
+    acm.series = new QLineSeries();
+    acm.series->setPen(pen);
+    acm.series->setName(data.name_sensor + name);
+    chart_->addSeries(acm.series);
+    if(name.contains("Давление",Qt::CaseInsensitive)){
+        acm.series->attachAxis(axis_bar_);
+        acm.series->setColor("red");
+        acm.series->setObjectName("bar");
     }
+    if(name.contains("Температура",Qt::CaseInsensitive)){
+        acm.series->attachAxis(axis_temp_);
+        acm.series->setColor("blue");
+        acm.series->setObjectName("temp");
+    }
+    acm.label = new QLabel();
+    acm.label_delta = new QLabel();
+    acm.series->attachAxis(axis_x_);
+    data.vec_acm.push_back(acm);
+}
+void DowlandFile::CreateSeriesEtalon(QString word){
+    DataSeriesEtalon doc;
+    doc.name_series = word;
+    doc.series = new QLineSeries();
+    doc.data_sensor = new QLabel();
+    doc.axis_y_ = new QValueAxis();
+    doc.axis_y_->setRange(0, 0);
+    doc.axis_y_->setTickCount(21);
+    doc.data_sensor->setFixedWidth(50);
+    doc.point_series = new QScatterSeries();
+    doc.point_series->setName("check_series");
+    doc.point_series->setMarkerShape(QScatterSeries::MarkerShapeCircle);
+    doc.point_series->setPointLabelsVisible(true);
+    doc.point_series->setPointLabelsFormat("@yPoint");
+    doc.point_series->setMarkerSize(5);
+    doc.point_series->setColor("green");
+    doc.label_point = new QLabel();
+    doc.series->setName(word);
+    chart_->addSeries(doc.series);
+    chart_->addSeries(doc.point_series);
+    chart_->addAxis(doc.axis_y_,Qt::AlignLeft);
+    if(word == "ЛТ300" || word == "Имитатор ЛТ300"){
+        doc.axis_y_->setTitleText("Эталон Температура, °C");
+        doc.series->setColor("blue");
+        QLineSeries* first_line = qobject_cast<QLineSeries*>(chart_->series().value(0));
+        first_line->attachAxis(doc.axis_y_);
+        doc.series->attachAxis(doc.axis_y_);
+        doc.point_series->attachAxis(doc.axis_y_);
+    }
+    if(word == "ДМ5002М" || word == "Имитатор ДМ5002М"){
+        doc.axis_y_->setTitleText("Эталон Давление, кг/см2");
+        doc.series->setColor("red");
+        doc.series->attachAxis(doc.axis_y_);
+        doc.point_series->attachAxis(doc.axis_y_);
+    }
+    doc.name_series = word;
+    doc.point_series->attachAxis(axis_x_);
+    doc.series->attachAxis(axis_x_);
+    data_etalon_.push_back(doc);
+    data_base_.AddDataSerEtalon(data_etalon_.back());
+    data_base_.AddListAxis(data_etalon_.back().axis_y_);
 }
 void DowlandFile::AddDataACM(QStringList words){
     DataSeriesACM& data =  data_base_.GetDataSerACM().back();
@@ -248,33 +250,6 @@ void DowlandFile::AddDataACM(QStringList words){
         vec_acm[i].points_rectangle.append(QPointF(time,num));
         vec_acm[i].points_triangle.append(QPointF(time,num));
     }
-
-
-    /*double temp = words[3].toDouble();
-    double bar =words[2].toDouble();
-    if(!first_min_max_){
-        axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
-        bar_max_ = bar;
-        bar_min_ = bar;
-        temp_max_ = temp;
-        temp_min_ = temp;
-        first_min_max_ = true;
-    }
-    qint64 time = TextToInt(words[0]+ " " + words[1]);
-    QVector<QPointF>& points_bar = data_base_.GetDataSerACM().back().points_rectangle_view_bar;
-    QVector<QPointF>& points_temp = data_base_.GetDataSerACM().back().points_rectangle_view_temp;
-    if(first_write_rectangle_){
-        QPointF point_bar = points_bar.back();
-        QPointF point_temp = points_temp.back();
-        points_bar.push_back(QPointF(time,point_bar.y()));
-        points_temp.push_back(QPointF(time,point_temp.y()));
-    }
-    first_write_rectangle_ = true;
-    points_bar.push_back(QPointF(time,bar));
-    points_temp.push_back(QPointF(time,temp));
-    SetMinMaxY(temp,bar);
-    p_bar_.append(QPointF(time,bar));
-    p_temp_.append(QPointF(time,temp));*/
 }
 
 void DowlandFile::AddDataEtalon(DataEtalon data){
@@ -308,6 +283,8 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
     }
     if(data.check_point){
         data_base_.AddCheckPoint(data.time,data.value_1,data.value_2);
+        check_points_bar_.append(QPointF(data.time,data.value_2));
+        check_points_temp_.append(QPointF(data.time,data.value_1));
         data_etalon_[0].point_series->append(data.time,data.value_1);
         data_etalon_[1].point_series->append(data.time,data.value_2);
     }
@@ -400,3 +377,168 @@ void DowlandFile::ClearAll(){
     gap_ = false;
     first_min_max_ = false;
 }
+void DowlandFile::LoadSVDoc(const QString path){
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        return;
+    }
+    QDataStream in(&file);
+    in.setByteOrder(QDataStream::LittleEndian);
+    LoadDataEt(in);
+    LoadDataACM(in);
+
+    file.close();
+}
+void DowlandFile::LoadDataEt(QDataStream& in){
+    quint32 size;
+    in >> size;
+    DataSeriesEtalon data;
+    for(quint32 i = 0;i < size; ++i){
+        in >> data.name_series;
+        CreateSeriesEtalon(data.name_series);
+        in >> data_base_.GetDataSerEtalon()[i].points_triangle_view_bar
+            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view_bar
+            >> data_base_.GetDataSerEtalon()[i].points_triangle_view_temp
+            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view_temp;
+    }
+    qint64 min ;
+    qint64 max ;
+    double bar_max = 0,
+        bar_min = 0,
+        temp_max = 0,
+        temp_min = 0;
+    in >> bar_min
+        >> bar_max
+        >> temp_min
+        >> temp_max
+        >> min
+        >> max
+        >> check_points_bar_
+        >> check_points_temp_
+        >> data_base_.GetCheckPointTemp()
+        >> data_base_.GetCheckPointBar()
+        >> data_base_.GetCheckPoints64();
+    data_base_.CreatePointsDate();
+    axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(min),
+                      QDateTime::fromMSecsSinceEpoch(max));
+    data_base_.GetDataSerEtalon()[1].axis_y_->setRange(bar_min,bar_max + bar_max * 0.1);
+    data_base_.GetDataSerEtalon()[0].axis_y_->setRange(temp_min,temp_max + temp_max * 0.1);
+    data_base_.GetDataSerEtalon()[0].point_series->replace(check_points_temp_);
+    data_base_.GetDataSerEtalon()[1].point_series->replace(check_points_bar_);
+    data_base_.GetDataSerEtalon()[1].series->replace(data_base_.GetDataSerEtalon()[1].points_rectangle_view_bar);
+    data_base_.GetDataSerEtalon()[0].series->replace(data_base_.GetDataSerEtalon()[0].points_rectangle_view_temp);
+}
+
+void DowlandFile::LoadDataACM(QDataStream& in){
+    quint32 size;
+    in >> size;
+    for(quint32 i = 0;i < size;++i){
+        DataSeriesACM data;
+        in >> data.name_sensor;
+        data.label_sensor = new QLabel(data.name_sensor);
+        quint32 size_acm;
+        in >> size_acm;
+        data.vec_acm.resize(size_acm);
+        for(quint32 j = 0;j < size_acm;++j){
+            ACM& acm = data.vec_acm[j];
+            in >> acm.name_chart
+                >> acm.name_type
+                >> acm.name_unit
+                >> acm.unit_max
+                >> acm.unit_min
+                >> acm.check_points
+                >> acm.delta_points
+                >> acm.points_rectangle
+                >> acm.points_triangle;
+            ;
+            acm.label_data = new QLabel();
+            QPen pen;
+            pen.setWidth(1);
+            acm.series = new QLineSeries();
+            acm.series->setPen(pen);
+            acm.series->setName(data.name_sensor + acm.name_chart);
+            chart_->addSeries(acm.series);
+            acm.series->replace(acm.points_rectangle);
+            if(acm.name_chart.contains("Давление",Qt::CaseInsensitive)){
+                acm.series->attachAxis(axis_bar_);
+                acm.series->setColor("red");
+                acm.series->setObjectName("bar");
+            }
+            if(acm.name_chart.contains("Температура",Qt::CaseInsensitive)){
+                acm.series->attachAxis(axis_temp_);
+                acm.series->setColor("blue");
+                acm.series->setObjectName("temp");
+            }
+            acm.label = new QLabel();
+            acm.label_delta = new QLabel();
+            acm.series->attachAxis(axis_x_);
+            if(acm.name_chart.contains("Давление",Qt::CaseInsensitive)){
+                axis_bar_->setRange(acm.unit_min,acm.unit_max +acm.unit_max * 0.1);
+            }
+            if(acm.name_chart.contains("Температура",Qt::CaseInsensitive)){
+                axis_temp_->setRange(acm.unit_min,acm.unit_max +acm.unit_max * 0.1);
+            }
+        }
+        data_acm_.push_back(data);
+        data_base_.AddDataSerACM(data_acm_.back());
+    }
+}
+
+void DowlandFile::SaveSVDoc(const QString path){
+    if (path.isEmpty()) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::warning(nullptr, "Ошибка", "Не удалось открыть файл для записи");
+        return;
+    }
+    QDataStream out(&file);
+    out.setByteOrder(QDataStream::LittleEndian);
+    SaveDataEt(out);
+    SaveDataACM(out);
+    file.close();
+}
+void DowlandFile::SaveDataEt(QDataStream& out){
+    out << static_cast<quint32>(data_base_.GetDataSerEtalon().size());
+    for(DataSeriesEtalon& data : data_base_.GetDataSerEtalon()){
+        out << data.name_series;
+           out << data.points_triangle_view_bar
+            << data.points_rectangle_view_bar
+            << data.points_triangle_view_temp
+            << data.points_rectangle_view_temp;
+    }
+    qint64 min = axis_x_->min().toMSecsSinceEpoch();
+    qint64 max = axis_x_->max().toMSecsSinceEpoch();
+    out << bar_min_
+        << bar_max_
+        << temp_min_
+        << temp_max_
+        << min
+        << max
+        << check_points_bar_
+        << check_points_temp_
+        << data_base_.GetCheckPointTemp()
+        << data_base_.GetCheckPointBar()
+        << data_base_.GetCheckPoints64();
+}
+void DowlandFile::SaveDataACM(QDataStream& out){
+    out << static_cast<quint32>(data_base_.GetDataSerACM().size());
+    for(DataSeriesACM& data : data_base_.GetDataSerACM()){
+        out << data.name_sensor;
+        out << static_cast<quint32>(data.vec_acm.size());
+        for(ACM& acm : data.vec_acm){
+            out << acm.name_chart
+                << acm.name_type
+                << acm.name_unit
+                << acm.unit_max
+                << acm.unit_min
+                << acm.check_points
+                << acm.delta_points
+                << acm.points_rectangle
+                << acm.points_triangle;
+        }
+    }
+}
+

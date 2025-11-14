@@ -33,9 +33,19 @@ QList<QPointer<QValueAxis>>& DataBase::GetListAxis(){
 }
 void DataBase::AddCheckPoint(qint64 q,double temp, double bar){
     QDateTime time = QDateTime::fromMSecsSinceEpoch(q);
+    check_points64_.push_back(q);
     check_points_.push_back(time);
     check_points_temp.push_back(temp);
     check_point_bar.push_back(bar);
+}
+void DataBase::CreatePointsDate(){
+    for(int i = 0;i < check_points64_.size();++i){
+        QDateTime time = QDateTime::fromMSecsSinceEpoch(check_points64_[i]);
+        check_points_.push_back(time);
+    }
+}
+QVector<qint64>& DataBase::GetCheckPoints64(){
+    return check_points64_;
 }
 QVector<QDateTime>& DataBase::GetCheckPoints(){
     return check_points_;

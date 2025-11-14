@@ -17,6 +17,9 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *open = new QAction("Открыть...");
     connect(open, &QAction::triggered,this, &MainWindow::LoadDocumentEtalon);
     menu_file->addAction(open);
+    QAction *save = new QAction("Сохранить");
+    connect(save, &QAction::triggered,this, &MainWindow::SaveAllSV);
+    menu_file->addAction(save);
     QAction *close = new QAction("Выход");
     menu_file->addAction(close);
     QAction *report = new QAction("Отчеты");
@@ -106,23 +109,29 @@ void MainWindow::LoadDocumentACM(){
     for(QString path : path_doc_){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             dow_file_.LoadDocACM(path);
-            chart_view_->PanelLegendACM();
+            DataSeriesACM& data = data_base_.GetDataSerACM().back();
+            chart_view_->PanelLegendACM(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
     }
-
 }
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
         QString path = QApplication::applicationDirPath();
-        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml);;Формат SmartView (*.smv)");
         if(path_doc.isEmpty()){
             return;
         }
         if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
             dow_file_.LoadDocEtalon(path_doc);
             chart_view_->PanelLegendEtalon();
+        }
+        if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
+            dow_file_.LoadSVDoc(path_doc);
+            chart_view_->PanelLegendEtalon();
+            for(DataSeriesACM& data : data_base_.GetDataSerACM())
+                chart_view_->PanelLegendACM(data);
         }
         chart_view_->ZoomOn();
         load_doc_2_->setEnabled(true);
@@ -146,6 +155,12 @@ void MainWindow::LoadDocumentEtalon(){
             if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
                 dow_file_.LoadDocEtalon(path_doc);
                 chart_view_->PanelLegendEtalon();
+            }
+            if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
+                dow_file_.LoadSVDoc(path_doc);
+                chart_view_->PanelLegendEtalon();
+                for(DataSeriesACM& data : data_base_.GetDataSerACM())
+                    chart_view_->PanelLegendACM(data);
             }
         }
     }
@@ -821,5 +836,15 @@ void MainWindow::AutoZoom(){
 }
 
 
+void MainWindow::SaveAllSV(){
+    QString path = QApplication::applicationDirPath();
+    QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить данных", path ,"Формат SmartView (*.smv);;Текстовый документ (*.txt)");
+    if(path_doc.isEmpty()){
+        return;
+    }
+    if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
+        dow_file_.SaveSVDoc(path_doc);
+    }
 
+}
 

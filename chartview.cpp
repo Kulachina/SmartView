@@ -59,8 +59,7 @@ QValueAxis* ChartView::GetAxisTemp(){
 QWidget* ChartView::GetWidgetLegend(){
     return widget_legend_;
 }
-void ChartView::PanelLegendACM(){
-    DataSeriesACM& data = data_base_.GetDataSerACM().back();
+void ChartView::PanelLegendACM(DataSeriesACM& data){
     QVector<ACM>& acm = data.vec_acm;
     data.line = new QFrame();
     data.line->setFrameShape(QFrame::HLine);
@@ -99,8 +98,8 @@ void ChartView::PanelLegendACM(){
         vbox_legend_->addLayout(p_hbox);
         data_base_.AddLabelSensor(l_name,l_name_type);
     }
-    CreateMapLabel();
-    CreateMapSeries();
+    CreateMapLabel(data);
+    CreateMapSeries(data);
 }
 void ChartView::PanelLegendEtalon(){
     QList<QLineSeries*> list_series;
@@ -184,8 +183,7 @@ void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
         vbox_legend_->addLayout(hbox);
     }
 }
-void ChartView::CreateMapSeries(){
-    DataSeriesACM& data =data_base_.GetDataSerACM().back();
+void ChartView::CreateMapSeries(DataSeriesACM& data){
     QVector<ACM>& acm = data.vec_acm;
     QList<QPointer<QLineSeries>> list_series;
     for(int i =0; i < acm.size();++i){
@@ -195,10 +193,8 @@ void ChartView::CreateMapSeries(){
         map_series_[acm[i].series->name()] = list_series;
     }
 }
-void ChartView::CreateMapLabel(){
-    DataSeriesACM& data =data_base_.GetDataSerACM().back();
+void ChartView::CreateMapLabel(DataSeriesACM& data){
     QVector<ACM>& acm = data.vec_acm;
-
     for(int i =0; i < acm.size();++i){
         QPointer<QLabel> point = acm[i].label_data;
         map_data_label_[acm[i].series->name()] = point;

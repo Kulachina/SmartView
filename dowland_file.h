@@ -26,9 +26,12 @@ class DowlandFile
 {
 public:
     DowlandFile(DataBase& data_base);
+    void CreateACM(DataSeriesACM& data, QString name, QString name_type, QString name_unit);
+    void LoadSVDoc(const QString path);
+    void SaveSVDoc(const QString path);
     void LoadDocACM(QString path);
     void CreateSeriesACM();
-    void CreateSeriesEtalon(QStringList words);
+    void CreateSeriesEtalon(QString word);
     void AddDataEtalon(DataEtalon data);
     void AddDataACM(QStringList words);
     void SetAxisTime(QDateTimeAxis* axis_x);
@@ -43,6 +46,10 @@ public:
     void ClearAll();
     void SelectChart(QStringList& words);
 private:
+    void LoadDataEt(QDataStream& in);
+    void LoadDataACM(QDataStream& in);
+    void SaveDataEt(QDataStream& out);
+    void SaveDataACM(QDataStream& out);
     void SetMinMaxY(double temp, double bar);
     qint64 TextToInt(QString time);
     DataBase& data_base_;
@@ -50,6 +57,8 @@ private:
     QVector<DataSeriesACM> data_acm_;
     QVector<QPointF> p_bar_;
     QVector<QPointF> p_temp_;
+    QVector<QPointF> check_points_bar_;
+    QVector<QPointF> check_points_temp_;
     QPointer<QDateTimeAxis> axis_x_;
     QDateTime now_time_;
     QPointer<QChart> chart_;

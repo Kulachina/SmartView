@@ -15,6 +15,7 @@ public:
     void AddCheckPoint(qint64 q,double temp, double bar);
     void AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, QVector<double> volume_bar,QVector<double> delta_temp, QVector<double> volume_temp);
     QVector<QDateTime>& GetCheckPoints();
+    QVector<qint64>& GetCheckPoints64();
     QVector<double>& GetCheckPointTemp();
     QVector<double>& GetCheckPointBar();
     QVector<DataSeriesACM>& GetDataSerACM();
@@ -23,10 +24,13 @@ public:
     void SetDefaultAxisX(QDateTime max, QDateTime min);
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();
     void ClearAll();
+    void CreatePointsDate();
 private:
+
     QVector<DataSeriesACM> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;
     QVector<QDateTime> check_points_;
+    QVector<qint64> check_points64_;
     QVector<double> check_point_bar;
     QVector<double> check_points_temp;
     QList<QPointer<QLabel>> vector_name_sensor_;
