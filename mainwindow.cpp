@@ -374,8 +374,6 @@ void MainWindow::WindowMasterPoint(){
         });
         QPushButton *btn_delete_col = new QPushButton("Удалить столбец");
         connect(btn_delete_col, &QPushButton::clicked, this,[=](){
-
-
             if(table_bar->selectionModel()->hasSelection()){
                 QModelIndex index_bar = table_bar->currentIndex();
                 if(index_bar.isValid()){

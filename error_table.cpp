@@ -1,5 +1,6 @@
 #include "error_table.h"
-
+#include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QPushButton>
 
 ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent)
@@ -13,68 +14,65 @@ ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget
     connect(btn, &QPushButton::clicked, this, &ErrorTable::FillTable);
     QPushButton *btn_rap = new QPushButton("Создать отчеты");
     connect(btn_rap, &QPushButton::clicked, this, &ErrorTable::CreateRapor);
-    table_view_ = new QTableView();
+    tab_ = new QTabWidget();
     setWindowTitle("Таблица погрешностей");
-    model_ = new QStandardItemModel();
-    table_view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    table_view_->setModel(model_);
     hbox->addWidget(btn);
     hbox->addWidget(btn_rap);
     vbox->addLayout(hbox,1);
-    vbox->addWidget(table_view_,9);
+    vbox->addWidget(tab_,9);
     setLayout(vbox);
     resize(500,600);
 }
 
 void ErrorTable::FillTable(){
-    model_->clear();
+    QVector<DataSeriesACM> data_acm = data_base_.GetDataSerACM();
+    tab_->clear();
+    DeleteTable();
+    for(DataSeriesACM& acm : data_acm){
+        QTableWidget *table = new QTableWidget();
+        ptr_table.push_back(table);
+        table->setColumnCount(7);
+        table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        FillEtalon(table);
+        AnalisingSeries(acm,table);
+        table->resizeColumnsToContents();
+        tab_->addTab(table, acm.name_sensor);
+    }
+}
+
+void ErrorTable::FillEtalon(QTableWidget *table){
     QVector<QDateTime> times = data_base_.GetCheckPoints();
     QVector<double> bar_data = data_base_.GetCheckPointBar();
     QVector<double> temp_data = data_base_.GetCheckPointTemp();
-    QVector<DataSeriesACM> data_acm = data_base_.GetDataSerACM();
+    table->setRowCount(data_base_.GetCheckPoints().size());
     for(int i =0; i <= data_base_.GetCheckPoints().size()-1; ++i){
-        QStandardItem *time = new QStandardItem(times[i].time().toString());
+        QTableWidgetItem *time = new QTableWidgetItem(times[i].time().toString());
         QFont font_t = time->font();
         font_t.setBold(true);
         time->setFont(font_t);
         time->setTextAlignment(Qt::AlignCenter);
-        model_->setItem(i,0,time);
+        table->setItem(i,0,time);
         QString t_bar = QString::number(bar_data[i], 'f',2);
-        QStandardItem *bar = new QStandardItem(t_bar);
+        QTableWidgetItem *bar = new QTableWidgetItem(t_bar);
         QFont font = bar->font();
         font.setBold(true);
         bar->setFont(font);
         bar->setTextAlignment(Qt::AlignCenter);
-        model_->setItem(i,1,bar);
+        table->setItem(i,1,bar);
         QString t_temp = QString::number(temp_data[i], 'f',2);
-        QStandardItem *temp = new QStandardItem(t_temp);
+        QTableWidgetItem *temp = new QTableWidgetItem(t_temp);
         QFont font_temp = time->font();
         font_t.setBold(true);
         temp->setFont(font_temp);
         temp->setTextAlignment(Qt::AlignCenter);
-        model_->setItem(i,2,temp);
-        if(i % 2 == 0){
-            time->setBackground(QColor(230,230,230));
-            bar->setBackground(QColor(230,230,230));
-            temp->setBackground(QColor(230,230,230));
-        }
+        table->setItem(i,2,temp);
     }
-    for(DataSeriesACM acm : data_acm){
-        AnalisingSeries(acm);
-    }
-
-    model_->setHeaderData(0,Qt::Horizontal,"Время");
-    model_->setHeaderData(0, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-    model_->setHeaderData(1,Qt::Horizontal,"Pэт");
-    model_->setHeaderData(1, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-    model_->setHeaderData(2,Qt::Horizontal,"Тэт");
-    model_->setHeaderData(2, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-    table_view_->resizeColumnsToContents();
-
+    table->setHorizontalHeaderItem(0,new QTableWidgetItem("Время"));
+    table->setHorizontalHeaderItem(1,new QTableWidgetItem("Pэт"));
+    table->setHorizontalHeaderItem(2,new QTableWidgetItem("Tэт"));
 }
 
-
-void ErrorTable::AnalisingSeries(DataSeriesACM data){
+void ErrorTable::AnalisingSeries(DataSeriesACM& data,QTableWidget *table){
     QVector<ACM>& acm = data.vec_acm;
     QPointer<QLineSeries> series_bar;
     QPointer<QLineSeries> series_temp;
@@ -96,7 +94,6 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
     const QVector<QDateTime> vec = data_base_.GetCheckPoints();
     int count = 0;
     int row = 0;
-    int column = model_->columnCount();
     if(series_bar){
         for(QPointF& point : series_bar->points()){
             if(count == data_base_.GetCheckPoints().size()){
@@ -107,37 +104,26 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
             if(time == vec[count]){
                 count++;
-                value = model_->data(model_->index(row,1)).toDouble();
+                value = table->item(row,1)->text().toDouble();
                 delta = static_cast<double>(point.y()) - value;
                 vol_bar.push_back(static_cast<double>(point.y()));
                 del_bar.push_back(delta);
-                QStandardItem *it_del = new QStandardItem(QString::number(delta, 'f',2));
-                QStandardItem *it = new QStandardItem(QString::number(point.y(), 'f',2));
-                if(row % 2 == 1 && column % 2 == 0 ){
-                    it->setBackground(QColor(240,240,240));
-                    it_del->setBackground(QColor(240,240,240));
-                };
-                if(row % 2 == 0){
-                    it->setBackground(QColor(220,220,220));
-                    it_del->setBackground(QColor(220,220,220));
-                };
+                QTableWidgetItem *it_del = new QTableWidgetItem(QString::number(delta, 'f',2));
+                QTableWidgetItem *it = new QTableWidgetItem(QString::number(point.y(), 'f',2));
                 if(delta > 1.5 || delta < -1.5){
                     it_del->setBackground(Qt::yellow);
                 }
                 it_del->setTextAlignment(Qt::AlignCenter);
                 it->setTextAlignment(Qt::AlignCenter);
-                if(model_){
-                    model_->setItem(row,column,it);
-                    model_->setItem(row,column+1,it_del);
+                if(table){
+                    table->setItem(row,3,it);
+                    table->setItem(row,4,it_del);
                 }
                 row++;
             }
         }
-        model_->setHeaderData(column+1,Qt::Horizontal,"dP абс.");
-        model_->setHeaderData(column+1, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-        model_->setHeaderData(column,Qt::Horizontal,"Pизм " + name);
-        model_->setHeaderData(column, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-        column += 2;
+        table->setHorizontalHeaderItem(3,new QTableWidgetItem("Pизм"));
+        table->setHorizontalHeaderItem(4,new QTableWidgetItem("dP абс."));
         count = 0;
         row = 0;
     }
@@ -151,40 +137,35 @@ void ErrorTable::AnalisingSeries(DataSeriesACM data){
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
             if(time == vec[count]){
                 count++;
-                value = model_->data(model_->index(row,2)).toDouble();
+                value = table->item(row,2)->text().toDouble();
                 delta = static_cast<double>(point.y()) - value;
-                vol_temp.push_back(static_cast<double>(point.y()));
-                del_temp.push_back(delta);
-                QStandardItem *it_del = new QStandardItem(QString::number(delta, 'f',2));
-                QStandardItem *it = new QStandardItem(QString::number(point.y(), 'f',2));
-                if(row % 2 == 1 && column % 2 == 1 ){
-                    it->setBackground(QColor(240,240,240));
-                    it_del->setBackground(QColor(240,240,240));
-                };
-                if(row % 2 == 0){
-                    it->setBackground(QColor(220,220,220));
-                    it_del->setBackground(QColor(220,220,220));
-                };
+                vol_bar.push_back(static_cast<double>(point.y()));
+                del_bar.push_back(delta);
+                QTableWidgetItem *it_del = new QTableWidgetItem(QString::number(delta, 'f',2));
+                QTableWidgetItem *it = new QTableWidgetItem(QString::number(point.y(), 'f',2));
                 if(delta > 1.5 || delta < -1.5){
                     it_del->setBackground(Qt::yellow);
                 }
                 it_del->setTextAlignment(Qt::AlignCenter);
                 it->setTextAlignment(Qt::AlignCenter);
-                if(model_){
-                    model_->setItem(row,column,it);
-                    model_->setItem(row,column+1,it_del);
+                if(table){
+                    table->setItem(row,5,it);
+                    table->setItem(row,6,it_del);
                 }
                 row++;
             }
         }
-        model_->setHeaderData(column+1,Qt::Horizontal,"dT абс.");
-        model_->setHeaderData(column+1, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-        model_->setHeaderData(column,Qt::Horizontal,"Tизм " + name);
-        model_->setHeaderData(column, Qt::Horizontal, QFont("Arial", 10, QFont::Bold), Qt::FontRole);
-        column += 2;
+        table->setHorizontalHeaderItem(5,new QTableWidgetItem("Tизм"));
+        table->setHorizontalHeaderItem(6,new QTableWidgetItem("dT абс."));
     }
     data_base_.AddDeltaVolData(name,del_bar,vol_bar,del_temp,vol_temp);
 }
 void ErrorTable::CreateRapor(){
     create_raport_.CreateAllDeltaDoc();
+}
+void ErrorTable::DeleteTable(){
+    if(!ptr_table.isEmpty()){
+        for(QTableWidget* ptr :ptr_table)
+            delete ptr;
+    }
 }

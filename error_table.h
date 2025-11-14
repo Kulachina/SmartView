@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QStandardItemModel>
 #include <QStandardItem>
-#include <QTableView>
+#include <QTableWidget>
 #include "createraport.h"
 #include "data_base.h"
 
@@ -16,12 +16,15 @@ public:
     void FillTable();
     void CreateRapor();
 
+
 private:
-    void AnalisingSeries(DataSeriesACM data);
-    QStandardItemModel *model_;
-    QTableView *table_view_;
+    void FillEtalon(QTableWidget *table);
+    void AnalisingSeries(DataSeriesACM& data,QTableWidget *table);
+    void DeleteTable();
     DataBase& data_base_;
     CreateRaport& create_raport_;
+    QTabWidget *tab_;
+    QVector<QTableWidget*> ptr_table;
 
 
 
