@@ -91,7 +91,7 @@ void ErrorTable::AnalisingSeries(DataSeriesACM& data,QTableWidget *table){
             series_temp = a.series;
         }
     }
-    const QVector<QDateTime> vec = data_base_.GetCheckPoints();
+    const QVector<QDateTime>& vec = data_base_.GetCheckPoints();
     int count = 0;
     int row = 0;
     if(series_bar){
@@ -165,7 +165,10 @@ void ErrorTable::CreateRapor(){
 }
 void ErrorTable::DeleteTable(){
     if(!ptr_table.isEmpty()){
-        for(QTableWidget* ptr :ptr_table)
+        for(QTableWidget* ptr :ptr_table){
             delete ptr;
+        }
+        ptr_table.clear();
     }
+
 }

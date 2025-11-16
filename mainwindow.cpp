@@ -148,7 +148,7 @@ void MainWindow::LoadDocumentEtalon(){
         if(reply == QMessageBox::Yes){
             DeleteAllSens();
             QString path = QApplication::applicationDirPath();
-            QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml)");
+            QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml);;Формат SmartView (*.smv)");
             if(path_doc.isEmpty()){
                 return;
             }
