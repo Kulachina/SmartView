@@ -6,7 +6,7 @@ DataBase::DataBase()
     data_acm_.reserve(50);
 }
 
-QVector<DataSeriesACM>& DataBase::GetDataSerACM(){
+QVector<DataSeriesSensor>& DataBase::GetDataSerACM(){
     return data_acm_;
 }
 QVector<DataSeriesEtalon>& DataBase::GetDataSerEtalon(){
@@ -15,7 +15,7 @@ QVector<DataSeriesEtalon>& DataBase::GetDataSerEtalon(){
 void DataBase::AddDataSerEtalon(DataSeriesEtalon data){
     data_etalon_.push_back(data);
 }
-void DataBase::AddDataSerACM(DataSeriesACM& data){
+void DataBase::AddDataSerACM(DataSeriesSensor data){
     data_acm_.push_back(data);
 }
 void DataBase::AddLabelSensor(QLabel* sensor,QLabel* name){
@@ -65,18 +65,18 @@ std::pair<QDateTime,QDateTime> DataBase::GetDefaultAxisX(){
 }
 void DataBase::AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, QVector<double> volume_bar,QVector<double> delta_temp, QVector<double> volume_temp){
     if(!data_acm_.isEmpty()){
-        for(DataSeriesACM& data : data_acm_){
+        for(DataSeriesSensor& data : data_acm_){
             if(data.name_sensor == name_sensor){
-                if(data.vec_acm[0].name_type == "Давление"){
-                    data.vec_acm[0].check_points = volume_bar;
-                    data.vec_acm[0].delta_points = delta_bar;
-                    data.vec_acm[1].check_points = volume_temp;
-                    data.vec_acm[1].delta_points = delta_temp;
+                if(data.vec_canal[0].name_type == "Давление"){
+                    data.vec_canal[0].check_points = volume_bar;
+                    data.vec_canal[0].delta_points = delta_bar;
+                    data.vec_canal[1].check_points = volume_temp;
+                    data.vec_canal[1].delta_points = delta_temp;
                 } else {
-                    data.vec_acm[1].check_points = volume_bar;
-                    data.vec_acm[1].delta_points = delta_bar;
-                    data.vec_acm[0].check_points = volume_temp;
-                    data.vec_acm[0].delta_points = delta_temp;
+                    data.vec_canal[1].check_points = volume_bar;
+                    data.vec_canal[1].delta_points = delta_bar;
+                    data.vec_canal[0].check_points = volume_temp;
+                    data.vec_canal[0].delta_points = delta_temp;
                 }
             }
         }

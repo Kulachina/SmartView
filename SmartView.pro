@@ -1,4 +1,4 @@
-QT       += core gui charts
+QT       += core gui charts core5compat
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,6 +14,7 @@ SOURCES += \
     data_base.cpp \
     dowland_file.cpp \
     error_table.cpp \
+    las.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -24,6 +25,7 @@ HEADERS += \
     data_base.h \
     dowland_file.h \
     error_table.h \
+    las.h \
     mainwindow.h
 
 # Default rules for deployment.

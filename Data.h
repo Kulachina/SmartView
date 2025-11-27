@@ -12,8 +12,9 @@
 #include <QPointer>
 #include <QCheckBox>
 
-struct ACM{
+struct Canal{
     QLineSeries* series;
+    QValueAxis *axis_y_;
     QLabel* label;
     QLabel* label_data;
     QLabel* label_delta;
@@ -32,9 +33,9 @@ struct ACM{
     bool first_unit = true;
     bool first_write_rectangle = false;
 };
-struct DataSeriesACM{
+struct DataSeriesSensor{
     QString name_sensor;
-    QVector<ACM> vec_acm;
+    QVector<Canal> vec_canal;
     QFrame *line;
     QLabel *label_sensor;
 };

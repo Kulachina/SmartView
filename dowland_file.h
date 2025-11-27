@@ -26,7 +26,7 @@ class DowlandFile
 {
 public:
     DowlandFile(DataBase& data_base);
-    void CreateACM(DataSeriesACM& data, QString name, QString name_type, QString name_unit);
+    void CreateACM(DataSeriesSensor& data, QString name, QString name_type, QString name_unit);
     void LoadSVDoc(const QString path);
     void SaveSVDoc(const QString path);
     void LoadDocACM(QString path);
@@ -54,7 +54,7 @@ private:
     qint64 TextToInt(QString time);
     DataBase& data_base_;
     QVector<DataSeriesEtalon> data_etalon_;
-    QVector<DataSeriesACM> data_acm_;
+    QVector<DataSeriesSensor> data_acm_;
     QVector<QPointF> p_bar_;
     QVector<QPointF> p_temp_;
     QVector<QPointF> check_points_bar_;

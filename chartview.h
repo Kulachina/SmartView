@@ -37,7 +37,7 @@ public:
     QWidget* GetWidgetLegend();
     void CreateSeries();
     void CreateLegend(QString name, QList<QLineSeries*> series);
-    void PanelLegendACM(DataSeriesACM& data);
+    void PanelLegendACM(DataSeriesSensor& data);
     void PanelLegendEtalon();
     QChart* GetChart();
     QDateTimeAxis* GetAxisX();
@@ -52,6 +52,7 @@ public:
     void ReBuildPointSeries();
     void FlagCalcDelta();
     void AutoZoom();
+    void ZeroZoom();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -65,8 +66,8 @@ private:
     void ResetZoom();
     void MoveSeries(QLineSeries* series, qreal dx);
     void MoveCheckPoint(qreal point, qreal dx);
-    void CreateMapSeries(DataSeriesACM& data);
-    void CreateMapLabel(DataSeriesACM& data);
+    void CreateMapSeries(DataSeriesSensor& data);
+    void CreateMapLabel(DataSeriesSensor& data);
     QChartView *chart_view_;
     QChart *chart_;
     QValueAxis *axis_bar_,

@@ -43,8 +43,8 @@ void DowlandFile::LoadDocACM(QString path){
         AddDataACM(words);
     }
     w_progress_->hide();
-    DataSeriesACM& data = data_base_.GetDataSerACM().back();
-    QVector<ACM>& acm = data.vec_acm;
+    DataSeriesSensor& data = data_base_.GetDataSerACM().back();
+    QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
         acm[i].series->replace(acm[i].points_triangle);
         if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
@@ -150,7 +150,7 @@ void DowlandFile::LoadDocEtalon(QString path) {
     file.close();
 }
 void DowlandFile::CreateSeriesACM(){
-    DataSeriesACM data;
+    DataSeriesSensor data;
     data.name_sensor = chart_name_and_index_[0].name_sensor;
     data.label_sensor = new QLabel(data.name_sensor);
     for(NameChart name_chart : chart_name_and_index_){
@@ -159,8 +159,8 @@ void DowlandFile::CreateSeriesACM(){
     data_acm_.push_back(data);
     data_base_.AddDataSerACM(data_acm_.back());
 }
-void DowlandFile::CreateACM(DataSeriesACM& data, QString name, QString name_type, QString name_unit){
-    ACM acm;
+void DowlandFile::CreateACM(DataSeriesSensor& data, QString name, QString name_type, QString name_unit){
+    Canal acm;
     acm.label_data = new QLabel();
     acm.name_chart = name;
     acm.name_type = name_type;
@@ -184,7 +184,7 @@ void DowlandFile::CreateACM(DataSeriesACM& data, QString name, QString name_type
     acm.label = new QLabel();
     acm.label_delta = new QLabel();
     acm.series->attachAxis(axis_x_);
-    data.vec_acm.push_back(acm);
+    data.vec_canal.push_back(acm);
 }
 void DowlandFile::CreateSeriesEtalon(QString word){
     DataSeriesEtalon doc;
@@ -229,26 +229,26 @@ void DowlandFile::CreateSeriesEtalon(QString word){
     data_base_.AddListAxis(data_etalon_.back().axis_y_);
 }
 void DowlandFile::AddDataACM(QStringList words){
-    DataSeriesACM& data =  data_base_.GetDataSerACM().back();
-    QVector<ACM>& vec_acm = data.vec_acm;
+    DataSeriesSensor& data =  data_base_.GetDataSerACM().back();
+    QVector<Canal>& vec_canal = data.vec_canal;
     qint64 time = TextToInt(words[0]+ " " + words[1]);
-    for(int i =0; i < vec_acm.size();++i){
+    for(int i =0; i < vec_canal.size();++i){
         words[i+2].replace(',','.');
         double num = words[i+2].toDouble();
-        if(vec_acm[i].first_unit){
-            vec_acm[i].unit_max = num;
-            vec_acm[i].unit_min = num;
-            vec_acm[i].first_unit = false;
+        if(vec_canal[i].first_unit){
+            vec_canal[i].unit_max = num;
+            vec_canal[i].unit_min = num;
+            vec_canal[i].first_unit = false;
         }
-        vec_acm[i].unit_max = qMax(vec_acm[i].unit_max, num);
-        vec_acm[i].unit_min = qMin(vec_acm[i].unit_min, num);
-        if(vec_acm[i].first_write_rectangle){
-            QPointF point = vec_acm[i].points_rectangle.back();
-            vec_acm[i].points_rectangle.push_back(QPointF(time,point.y()));
+        vec_canal[i].unit_max = qMax(vec_canal[i].unit_max, num);
+        vec_canal[i].unit_min = qMin(vec_canal[i].unit_min, num);
+        if(vec_canal[i].first_write_rectangle){
+            QPointF point = vec_canal[i].points_rectangle.back();
+            vec_canal[i].points_rectangle.push_back(QPointF(time,point.y()));
         }
-        vec_acm[i].first_write_rectangle = true;
-        vec_acm[i].points_rectangle.append(QPointF(time,num));
-        vec_acm[i].points_triangle.append(QPointF(time,num));
+        vec_canal[i].first_write_rectangle = true;
+        vec_canal[i].points_rectangle.append(QPointF(time,num));
+        vec_canal[i].points_triangle.append(QPointF(time,num));
     }
 }
 
@@ -434,14 +434,14 @@ void DowlandFile::LoadDataACM(QDataStream& in){
     quint32 size;
     in >> size;
     for(quint32 i = 0;i < size;++i){
-        DataSeriesACM data;
+        DataSeriesSensor data;
         in >> data.name_sensor;
         data.label_sensor = new QLabel(data.name_sensor);
         quint32 size_acm;
         in >> size_acm;
-        data.vec_acm.resize(size_acm);
+        data.vec_canal.resize(size_acm);
         for(quint32 j = 0;j < size_acm;++j){
-            ACM& acm = data.vec_acm[j];
+            Canal& acm = data.vec_canal[j];
             in >> acm.name_chart
                 >> acm.name_type
                 >> acm.name_unit
@@ -451,7 +451,6 @@ void DowlandFile::LoadDataACM(QDataStream& in){
                 >> acm.delta_points
                 >> acm.points_rectangle
                 >> acm.points_triangle;
-            ;
             acm.label_data = new QLabel();
             QPen pen;
             pen.setWidth(1);
@@ -525,10 +524,10 @@ void DowlandFile::SaveDataEt(QDataStream& out){
 }
 void DowlandFile::SaveDataACM(QDataStream& out){
     out << static_cast<quint32>(data_base_.GetDataSerACM().size());
-    for(DataSeriesACM& data : data_base_.GetDataSerACM()){
+    for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
         out << data.name_sensor;
-        out << static_cast<quint32>(data.vec_acm.size());
-        for(ACM& acm : data.vec_acm){
+        out << static_cast<quint32>(data.vec_canal.size());
+        for(Canal& acm : data.vec_canal){
             out << acm.name_chart
                 << acm.name_type
                 << acm.name_unit

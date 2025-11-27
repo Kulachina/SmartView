@@ -59,8 +59,8 @@ QValueAxis* ChartView::GetAxisTemp(){
 QWidget* ChartView::GetWidgetLegend(){
     return widget_legend_;
 }
-void ChartView::PanelLegendACM(DataSeriesACM& data){
-    QVector<ACM>& acm = data.vec_acm;
+void ChartView::PanelLegendACM(DataSeriesSensor& data){
+    QVector<Canal>& acm = data.vec_canal;
     data.line = new QFrame();
     data.line->setFrameShape(QFrame::HLine);
     data.line->setStyleSheet("background-color: grey");
@@ -68,6 +68,14 @@ void ChartView::PanelLegendACM(DataSeriesACM& data){
     data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
     vbox_legend_->addWidget(data.line);
     for(int i =0;i < acm.size();++i){
+        chart_->addAxis(acm[i].axis_y_,Qt::AlignLeft);
+        chart_->addSeries(acm[i].series);
+        acm[i].series->attachAxis(axis_time_);
+        acm[i].series->attachAxis(acm[i].axis_y_);
+        acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
+        acm[i].axis_y_->setVisible(false);
+        data_base_.AddListAxis(acm[i].axis_y_);
+
         acm[i].hbox = new QHBoxLayout();
         acm[i].hbox->setAlignment(Qt::AlignLeft);
         acm[i].check_box = new QCheckBox();
@@ -143,15 +151,15 @@ void ChartView::PanelLegendEtalon(){
     connect(check_all, &QCheckBox::toggled,this,[=](){
         if(check_all->isChecked()){
             for(auto& data : data_base_.GetDataSerACM()){
-                QVector<ACM>& acm = data.vec_acm;
-                for(ACM& check : acm){
+                QVector<Canal>& acm = data.vec_canal;
+                for(Canal& check : acm){
                     check.check_box->setCheckState(Qt::Checked);
                 }
             }
         } else {
             for(auto& data : data_base_.GetDataSerACM()){
-                QVector<ACM>& acm = data.vec_acm;
-                for(ACM& check : acm){
+                QVector<Canal>& acm = data.vec_canal;
+                for(Canal& check : acm){
                     check.check_box->setCheckState(Qt::Unchecked);
                 }
             }
@@ -183,8 +191,8 @@ void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
         vbox_legend_->addLayout(hbox);
     }
 }
-void ChartView::CreateMapSeries(DataSeriesACM& data){
-    QVector<ACM>& acm = data.vec_acm;
+void ChartView::CreateMapSeries(DataSeriesSensor& data){
+    QVector<Canal>& acm = data.vec_canal;
     QList<QPointer<QLineSeries>> list_series;
     for(int i =0; i < acm.size();++i){
         list_series << acm[i].series;
@@ -193,8 +201,8 @@ void ChartView::CreateMapSeries(DataSeriesACM& data){
         map_series_[acm[i].series->name()] = list_series;
     }
 }
-void ChartView::CreateMapLabel(DataSeriesACM& data){
-    QVector<ACM>& acm = data.vec_acm;
+void ChartView::CreateMapLabel(DataSeriesSensor& data){
+    QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
         QPointer<QLabel> point = acm[i].label_data;
         map_data_label_[acm[i].series->name()] = point;
@@ -397,9 +405,9 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
 void ChartView::FlagCalcDelta(){
     if(calc_delta_){
         calc_delta_ = false;
-        QVector<DataSeriesACM>& data_acm = data_base_.GetDataSerACM();
-        for(DataSeriesACM acm : data_acm){
-            for(ACM& a : acm.vec_acm){
+        QVector<DataSeriesSensor>& data_acm = data_base_.GetDataSerACM();
+        for(DataSeriesSensor acm : data_acm){
+            for(Canal& a : acm.vec_canal){
                 a.label_delta->setText("");
             }
         }
@@ -408,12 +416,12 @@ void ChartView::FlagCalcDelta(){
     }
 }
 void ChartView::CalcDelta(){
-    QVector<DataSeriesACM>& data_acm = data_base_.GetDataSerACM();
+    QVector<DataSeriesSensor>& data_acm = data_base_.GetDataSerACM();
     QVector<DataSeriesEtalon>& data_etalon = data_base_.GetDataSerEtalon();
     QPointer<QLabel> label_bar = data_etalon[1].data_sensor;
     QPointer<QLabel> label_temp = data_etalon[0].data_sensor;
-    for(DataSeriesACM acm : data_acm){
-        for(ACM& a : acm.vec_acm){
+    for(DataSeriesSensor acm : data_acm){
+        for(Canal& a : acm.vec_canal){
             if(a.name_type.contains("Давление",Qt::CaseInsensitive)){
                 a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_bar->text().toDouble(),'f',2) + ")");
             } else {
@@ -481,6 +489,20 @@ void ChartView::ResetZoom(){
     axis_temp_etalon_->setRange(box.temp_min_etalon_,box.temp_max_etalon_);
     box_zoom_.pop_back();
 
+}
+void ChartView::ZeroZoom(){
+    if(box_zoom_.empty()){
+        std::pair<QDateTime,QDateTime> time = data_base_.GetDefaultAxisX();
+        axis_time_->setRange(time.first,time.second);
+        return;
+    }
+    BoxZoom box = box_zoom_[0];
+    axis_bar_->setRange(box.bar_min_acm_,box.bar_max_acm_);
+    axis_temp_->setRange(box.temp_min_acm_, box.temp_max_acm_);
+    axis_time_->setRange(box.axis_min,box.axis_max);
+    axis_bar_etalon_->setRange(box.bar_min_etalon_,box.bar_max_etalon_);
+    axis_temp_etalon_->setRange(box.temp_min_etalon_,box.temp_max_etalon_);
+    box_zoom_.clear();
 }
 void ChartView::ZoomChart(QRect rect){
     SaveZoom();

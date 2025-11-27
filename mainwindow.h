@@ -22,6 +22,7 @@
 #include "qspinbox.h"
 #include "createraport.h"
 #include "error_table.h"
+#include "las.h"
 
 class MainWindow : public QMainWindow
 {
@@ -56,9 +57,9 @@ private:
     void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
-    void AnalisingSeries(DataSeriesACM data);
+    void AnalisingSeries(DataSeriesSensor data);
     void DeleteOneSens();
-    void DeleteSens(DataSeriesACM& data);
+    void DeleteSens(DataSeriesSensor& data);
     void DeleteAllSens();
     void UpdateComboBox();
     void CreateTableCheckPoints();
@@ -68,6 +69,7 @@ private:
     DowlandFile dow_file_;
     CreateRaport create_raport_;
     ErrorTable error_table_;
+    Las las_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;
     QDoubleSpinBox *s_step_bar_;

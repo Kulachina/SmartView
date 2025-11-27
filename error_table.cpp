@@ -25,10 +25,10 @@ ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget
 }
 
 void ErrorTable::FillTable(){
-    QVector<DataSeriesACM> data_acm = data_base_.GetDataSerACM();
+    QVector<DataSeriesSensor> data_acm = data_base_.GetDataSerACM();
     tab_->clear();
     DeleteTable();
-    for(DataSeriesACM& acm : data_acm){
+    for(DataSeriesSensor& acm : data_acm){
         QTableWidget *table = new QTableWidget();
         ptr_table.push_back(table);
         table->setColumnCount(7);
@@ -72,8 +72,8 @@ void ErrorTable::FillEtalon(QTableWidget *table){
     table->setHorizontalHeaderItem(2,new QTableWidgetItem("Tэт"));
 }
 
-void ErrorTable::AnalisingSeries(DataSeriesACM& data,QTableWidget *table){
-    QVector<ACM>& acm = data.vec_acm;
+void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
+    QVector<Canal>& acm = data.vec_canal;
     QPointer<QLineSeries> series_bar;
     QPointer<QLineSeries> series_temp;
     QString name = data.name_sensor;
@@ -83,7 +83,7 @@ void ErrorTable::AnalisingSeries(DataSeriesACM& data,QTableWidget *table){
     QVector<double> vol_bar;
     double delta;
     double value;
-    for(ACM& a :acm){
+    for(Canal& a :acm){
         if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
         }

@@ -1,0 +1,128 @@
+#include "las.h"
+#include <QFile>
+#include <QFileDialog>
+#include <QTextStream>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QTextCodec>
+
+
+Las::Las()
+{
+    prog_ = new QProgressBar();
+}
+
+DataSeriesSensor& Las::DowlandLas(const QString path){
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly)){
+        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        return data_;
+    }
+    QTextStream in(&file);
+    QTextCodec *codec = QTextCodec::codecForName("IBM 866");
+    QByteArray ba = file.readAll();
+    QString all_string =  codec->toUnicode(ba);
+    QStringList all = all_string.split("\n",Qt::SkipEmptyParts);
+    file.close();
+    QStringList words;
+    int size = all.size();
+    prog_->setRange(0,size);
+    prog_->setValue(0);
+    prog_->show();
+    for(int i = 0; i < size;++i){
+
+        prog_->setValue(i);
+        QCoreApplication::processEvents();
+        words = all[i].split(" ",Qt::SkipEmptyParts);
+        if(words[0] == "DATE."){
+            SetStartDate(words);
+        }
+        if(words[0] == "TIME."){
+            SetStartTime(words);
+        }
+        if(select_curve_){
+            SelectCurve(words);
+        }
+        if(words[0] == "~CURVE"){
+            select_curve_ = true;
+        }
+        if(words[0] == "IPRB."){
+            SetNameSensor(words);
+        }
+        if(log_data_){
+            LogData(words);
+        }
+        if(!select_curve_ && words[0] == "~ASCII"){
+            log_data_ = true;
+        }
+    }
+    prog_->hide();
+    return data_;
+}
+void Las::SetStartDate(const QStringList& words){
+    QString word = words[1].mid(0,10);
+    date_ = word;
+}
+void Las::SetStartTime(const QStringList& words){
+
+}
+void Las::SelectCurve(QStringList& words){
+    if(words[0].contains("~",Qt::CaseInsensitive)){
+        select_curve_ = false;
+        CreateSensor();
+        return;
+    }
+    name_curve_.push_back(words[0]);
+}
+
+void Las::LogData(const QStringList& words){
+    QVector<Canal>& vec_canal = data_.vec_canal;
+    qint64 time = QDateTime::fromString(date_ +" "+ words[1], "dd/MM/yyyy hhmmss.zzz").toMSecsSinceEpoch();
+    for(int i =1; i < vec_canal.size();++i){
+        double num = words[i].toDouble();
+        if(vec_canal[i].first_unit){
+            vec_canal[i].unit_max = num;
+            vec_canal[i].unit_min = num;
+            vec_canal[i].first_unit = false;
+        }
+        vec_canal[i].unit_max = qMax(vec_canal[i].unit_max, num);
+        vec_canal[i].unit_min = qMin(vec_canal[i].unit_min, num);
+        if(vec_canal[i].first_write_rectangle){
+            QPointF point = vec_canal[i].points_rectangle.back();
+            vec_canal[i].points_rectangle.push_back(QPointF(time,point.y()));
+        }
+        vec_canal[i].first_write_rectangle = true;
+        vec_canal[i].points_rectangle.append(QPointF(time,num));
+        vec_canal[i].points_triangle.append(QPointF(time,num));
+    }
+}
+void Las::CreateSensor(){
+    for (QString name : name_curve_){
+        CreateCanal(name);
+    }
+}
+void Las::CreateCanal(QString name){
+    Canal acm;
+    int index = name.indexOf('.');
+    acm.axis_y_ = new QValueAxis();
+    acm.axis_y_->setTitleText(name);
+    acm.axis_y_->setTickCount(21);
+    acm.label_data = new QLabel();
+    acm.name_chart = name;
+    acm.name_type = name.left(index);
+    acm.name_unit = name.right(index);
+    QPen pen;
+    pen.setWidth(1);
+    acm.series = new QLineSeries();
+    acm.series->setPen(pen);
+    acm.series->setName(name);
+    acm.label = new QLabel();
+    acm.label_delta = new QLabel();
+    data_.vec_canal.push_back(acm);
+}
+void Las::SetNameSensor(const QStringList& words){
+    int index = words[1].indexOf(':');
+    data_.name_sensor = words[1].left(index);
+}

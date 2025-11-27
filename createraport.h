@@ -7,10 +7,10 @@ class CreateRaport
 {
 public:
     CreateRaport(DataBase& data_base);
-    void CreateAllDoc(QVector<DataSeriesACM>& vec_data);
-    void CreateDoc(DataSeriesACM& data,QString name);
+    void CreateAllDoc(QVector<DataSeriesSensor>& vec_data);
+    void CreateDoc(DataSeriesSensor& data,QString name);
     void CreateAllDeltaDoc();
-    void CreateDeltaDoc(DataSeriesACM& acm,QString file_name,QString name_sensor);
+    void CreateDeltaDoc(DataSeriesSensor& acm,QString file_name,QString name_sensor);
 private:
     DataBase& data_base_;
 };

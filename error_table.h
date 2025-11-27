@@ -19,7 +19,7 @@ public:
 
 private:
     void FillEtalon(QTableWidget *table);
-    void AnalisingSeries(DataSeriesACM& data,QTableWidget *table);
+    void AnalisingSeries(DataSeriesSensor& data,QTableWidget *table);
     void DeleteTable();
     DataBase& data_base_;
     CreateRaport& create_raport_;

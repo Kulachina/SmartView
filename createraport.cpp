@@ -12,10 +12,10 @@ CreateRaport::CreateRaport(DataBase& data_base)
 }
 
 
-void CreateRaport::CreateAllDoc(QVector<DataSeriesACM>& vec_data){
+void CreateRaport::CreateAllDoc(QVector<DataSeriesSensor>& vec_data){
     QString path = QApplication::applicationDirPath();
     QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
-    for (DataSeriesACM& data : vec_data){
+    for (DataSeriesSensor& data : vec_data){
         QString file_data ="/" + data.name_sensor.trimmed() + "_Давление.txt";
         QString file_name = dir_name +  file_data  ;
         if(file_name.isEmpty()){
@@ -26,11 +26,11 @@ void CreateRaport::CreateAllDoc(QVector<DataSeriesACM>& vec_data){
     QMessageBox::information(nullptr, "Информация","Все отчеты успешно сохранены!");
 }
 
-void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
-    QVector<ACM>& acm = data.vec_acm;
+void CreateRaport::CreateDoc(DataSeriesSensor& data, QString name){
+    QVector<Canal>& acm = data.vec_canal;
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
-    for(ACM& a :acm){
+    for(Canal& a :acm){
         if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
             model_bar = a.model;
         }
@@ -83,8 +83,8 @@ void CreateRaport::CreateDoc(DataSeriesACM& data, QString name){
 void CreateRaport::CreateAllDeltaDoc(){
     QString path = QApplication::applicationDirPath();
     QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
-    QVector<DataSeriesACM>& data = data_base_.GetDataSerACM();
-    for(DataSeriesACM& acm : data){
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& acm : data){
             QString file_data ="/" + acm.name_sensor.trimmed() + "_Погрешность.txt";
             QString file_name = dir_name +  file_data  ;
             if(file_name.isEmpty()){
@@ -94,7 +94,7 @@ void CreateRaport::CreateAllDeltaDoc(){
     }
 }
 
-void CreateRaport::CreateDeltaDoc(DataSeriesACM& acm,QString file_name,QString name_sensor){
+void CreateRaport::CreateDeltaDoc(DataSeriesSensor& acm,QString file_name,QString name_sensor){
     QVector<QDateTime> times = data_base_.GetCheckPoints();
     QVector<double> bar_data = data_base_.GetCheckPointBar();
     QVector<double> temp_data = data_base_.GetCheckPointTemp();
@@ -109,18 +109,18 @@ void CreateRaport::CreateDeltaDoc(DataSeriesACM& acm,QString file_name,QString n
     for(int i = 0; i<times.size();++i){
         out << times[i].toString("yyyy.MM.dd\thh-mm-ss") << "\t";
         out << QString::number(temp_data[i],'f',2) << "\t";
-        if(acm.vec_acm[1].name_chart.contains("Температура",Qt::CaseInsensitive)){
-            out << QString::number(acm.vec_acm[1].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[1].delta_points[i], 'f',2) << "\t";
+        if(acm.vec_canal[1].name_chart.contains("Температура",Qt::CaseInsensitive)){
+            out << QString::number(acm.vec_canal[1].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_canal[1].delta_points[i], 'f',2) << "\t";
             out << QString::number(bar_data[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[0].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[0].delta_points[i], 'f',2) << "\n";
+            out << QString::number(acm.vec_canal[0].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_canal[0].delta_points[i], 'f',2) << "\n";
         } else {
-            out << QString::number(acm.vec_acm[0].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[0].delta_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_canal[0].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_canal[0].delta_points[i], 'f',2) << "\t";
             out << QString::number(bar_data[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[1].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_acm[1].delta_points[i], 'f',2) << "\n";
+            out << QString::number(acm.vec_canal[1].check_points[i], 'f',2) << "\t";
+            out << QString::number(acm.vec_canal[1].delta_points[i], 'f',2) << "\n";
         }
 
 

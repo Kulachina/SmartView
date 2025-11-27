@@ -98,10 +98,10 @@ void MainWindow::SetWindow(){
 void MainWindow::LoadDocumentACM(){
     if(!first_open_doc_){
         QString path = QApplication::applicationDirPath();
-        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt);;Las (*.las)");
         first_open_doc_ = true;
     } else {
-        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt);;Las (*.las)");
     }
     if(path_doc_.isEmpty()){
         return;
@@ -109,17 +109,25 @@ void MainWindow::LoadDocumentACM(){
     for(QString path : path_doc_){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             dow_file_.LoadDocACM(path);
-            DataSeriesACM& data = data_base_.GetDataSerACM().back();
+            DataSeriesSensor& data = data_base_.GetDataSerACM().back();
             chart_view_->PanelLegendACM(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
+        if(path.endsWith(".las", Qt::CaseInsensitive)){
+            DataSeriesSensor& data = las_.DowlandLas(path);
+            data_base_.AddDataSerACM(data);
+            chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
+            QFileInfo file_info(path);
+            save_path_ = file_info.absolutePath();
+        }
     }
+
 }
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
         QString path = QApplication::applicationDirPath();
-        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml);;Формат SmartView (*.smv)");
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"SmartLog (*.sml);;SmartView (*.smv)");
         if(path_doc.isEmpty()){
             return;
         }
@@ -130,7 +138,7 @@ void MainWindow::LoadDocumentEtalon(){
         if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
             dow_file_.LoadSVDoc(path_doc);
             chart_view_->PanelLegendEtalon();
-            for(DataSeriesACM& data : data_base_.GetDataSerACM())
+            for(DataSeriesSensor& data : data_base_.GetDataSerACM())
                 chart_view_->PanelLegendACM(data);
         }
         chart_view_->ZoomOn();
@@ -159,7 +167,7 @@ void MainWindow::LoadDocumentEtalon(){
             if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
                 dow_file_.LoadSVDoc(path_doc);
                 chart_view_->PanelLegendEtalon();
-                for(DataSeriesACM& data : data_base_.GetDataSerACM())
+                for(DataSeriesSensor& data : data_base_.GetDataSerACM())
                     chart_view_->PanelLegendACM(data);
             }
         }
@@ -242,11 +250,11 @@ void MainWindow::WindowSeries(){
             return;
         }
         for(auto& data : data_base_.GetDataSerACM()){
-            QVector<ACM>& acm = data.vec_acm;
+            QVector<Canal>& acm = data.vec_canal;
             if(acm.isEmpty()){
                 return;
             }
-            for(ACM& acm_unit : acm){
+            for(Canal& acm_unit : acm){
                 QHBoxLayout *hbox = new QHBoxLayout();
                 QPointer<QCheckBox> check = acm_unit.check_box;
                 QLabel *label = new QLabel(acm_unit.name_type +" "+ data.label_sensor->text());
@@ -343,7 +351,7 @@ void MainWindow::WindowMasterPoint(){
     }
     tab_->clear();
     for(auto& data : data_base_.GetDataSerACM()){
-        QVector<ACM>& acm = data.vec_acm;
+        QVector<Canal>& acm = data.vec_canal;
         QWidget *tab_sensor = new QWidget();
         QVBoxLayout *vbox = new QVBoxLayout();
         QGroupBox *group_temp = new QGroupBox("Температура");
@@ -355,7 +363,7 @@ void MainWindow::WindowMasterPoint(){
         QTableView *table_temp = new QTableView();
         QStandardItemModel *model_bar = new QStandardItemModel();
         QStandardItemModel *model_temp = new QStandardItemModel();
-        for(ACM& a :acm){
+        for(Canal& a :acm){
             if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
                 a.model = model_bar;
             }
@@ -506,11 +514,11 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
 }
 void MainWindow::FillAllTables(){
     if(!data_base_.GetDataSerACM().isEmpty()){
-        for(DataSeriesACM& data : data_base_.GetDataSerACM()){
-            QVector<ACM>& acm = data.vec_acm;
+        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
             QStandardItemModel *model_bar = new QStandardItemModel();
             QStandardItemModel *model_temp = new QStandardItemModel();
-            for(ACM& a :acm){
+            for(Canal& a :acm){
                 if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
                     model_bar = a.model;
                 }
@@ -520,7 +528,7 @@ void MainWindow::FillAllTables(){
             }
             FilingTable(model_temp,model_bar);
         }
-        for(DataSeriesACM& data : data_base_.GetDataSerACM()){
+        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
             AnalisingSeries(data);
         }
     }
@@ -529,9 +537,9 @@ void MainWindow::ChangeAllTables(QStandardItem * item){
     int row = item->row();
     int col = item->column();
     if(!data_base_.GetDataSerACM().isEmpty()){
-        for(DataSeriesACM& data : data_base_.GetDataSerACM()){
-            QVector<ACM>& acm = data.vec_acm;
-            for(ACM& a :acm){
+        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
+            for(Canal& a :acm){
                 if(a.model){
                     QStandardItem *it = a.model->item(row,col);
                     it->setText(item->text());
@@ -540,13 +548,13 @@ void MainWindow::ChangeAllTables(QStandardItem * item){
         }
     }
 }
-void MainWindow::AnalisingSeries(DataSeriesACM data){
-    QVector<ACM>& acm = data.vec_acm;
+void MainWindow::AnalisingSeries(DataSeriesSensor data){
+    QVector<Canal>& acm = data.vec_canal;
     QPointer<QLineSeries> series_bar;
     QPointer<QLineSeries> series_temp;
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
-    for(ACM& a :acm){
+    for(Canal& a :acm){
         if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
             model_bar = a.model;
@@ -640,7 +648,7 @@ void MainWindow::WindowDeleteSensor(){
 }
 void MainWindow::UpdateComboBox(){
     QStringList sensors;
-    for(DataSeriesACM data : data_base_.GetDataSerACM()){
+    for(DataSeriesSensor data : data_base_.GetDataSerACM()){
         sensors << data.name_sensor;
     }
     combo_del_sens_->clear();
@@ -648,7 +656,7 @@ void MainWindow::UpdateComboBox(){
 }
 void MainWindow::DeleteOneSens(){
     QString sens = combo_del_sens_->currentText();
-    QVector<DataSeriesACM>& data = data_base_.GetDataSerACM();
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
     for(auto it = data.begin();it != data.end();){
         if(sens == it->name_sensor){
             DeleteSens(*it);
@@ -661,7 +669,7 @@ void MainWindow::DeleteOneSens(){
     }
 }
 void MainWindow::DeleteAllSens(){
-    QVector<DataSeriesACM>& data = data_base_.GetDataSerACM();
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
     for(auto it = data.begin();it != data.end();++it){
             DeleteSens(*it);
     }
@@ -686,9 +694,9 @@ void MainWindow::DeleteAllSens(){
     data_base_.ClearAll();
     dow_file_.ClearAll();
 }
-void MainWindow::DeleteSens(DataSeriesACM& data){
-    QVector<ACM>& acm = data.vec_acm;
-    for(ACM& a : acm){
+void MainWindow::DeleteSens(DataSeriesSensor& data){
+    QVector<Canal>& acm = data.vec_canal;
+    for(Canal& a : acm){
         delete a.check_box;
         delete a.hbox->itemAt(3)->widget();
         delete a.hbox->itemAt(2)->widget();
@@ -799,9 +807,9 @@ void MainWindow::WindowView(){
 }
 void MainWindow::ReplaceTriangle(){
     if(!data_base_.GetDataSerACM().isEmpty()){
-        for(DataSeriesACM data : data_base_.GetDataSerACM()){
-            QVector<ACM>& acm = data.vec_acm;
-            for(ACM& a : acm){
+        for(DataSeriesSensor data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
+            for(Canal& a : acm){
                 a.series->replace(a.points_triangle);
             }
         }
@@ -816,9 +824,9 @@ void MainWindow::ReplaceTriangle(){
 }
 void MainWindow::ReplaceRectangle(){
     if(!data_base_.GetDataSerACM().isEmpty()){
-        for(DataSeriesACM data : data_base_.GetDataSerACM()){
-            QVector<ACM>& acm = data.vec_acm;
-            for(ACM& a : acm){
+        for(DataSeriesSensor data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
+            for(Canal& a : acm){
                 a.series->replace(a.points_rectangle);
             }
         }
@@ -834,9 +842,8 @@ void MainWindow::ReplaceRectangle(){
 void MainWindow::AutoZoom(){
     chart_view_->AutoZoom();
 }
-
-
 void MainWindow::SaveAllSV(){
+    chart_view_->ZeroZoom();
     QString path = QApplication::applicationDirPath();
     QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить данных", path ,"Формат SmartView (*.smv);;Текстовый документ (*.txt)");
     if(path_doc.isEmpty()){
