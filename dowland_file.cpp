@@ -16,11 +16,11 @@ DowlandFile::DowlandFile(DataBase& data_base)
     w_progress_->setLayout(vb);
 
 }
-void DowlandFile::LoadDocACM(QString path){
+DataSeriesSensor DowlandFile::LoadDocACM(QString path){
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly)){
         qWarning() << "Не удалось открыть файл для чтения:" << path;
-        return;
+        return DataSeriesSensor{};
     }
     QTextStream in(&file);
     QString all_text = in.readAll();
@@ -32,7 +32,8 @@ void DowlandFile::LoadDocACM(QString path){
     progress_->setRange(0,size);
     progress_->setValue(0);
     w_progress_->show();
-    CreateSeriesACM();
+    DataSeriesSensor data;
+    CreateSeriesACM(data);
     int i = line_text.size()-2;
     words = line_text[i].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0]+ " " +words[1])));
@@ -40,10 +41,10 @@ void DowlandFile::LoadDocACM(QString path){
         progress_->setValue(i);
         QCoreApplication::processEvents();
         words = line_text[i].split(" ",Qt::SkipEmptyParts);
-        AddDataACM(words);
+        AddDataACM(words, data);
     }
     w_progress_->hide();
-    DataSeriesSensor& data = data_base_.GetDataSerACM().back();
+    //DataSeriesSensor& data = data_base_.GetDataSerACM().back();
     QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
         acm[i].series->replace(acm[i].points_triangle);
@@ -55,6 +56,7 @@ void DowlandFile::LoadDocACM(QString path){
         }
     }
     chart_name_and_index_.clear();
+    return data;
 }
 void DowlandFile::SelectChart(QStringList& words){
     QDialog dil;
@@ -149,15 +151,14 @@ void DowlandFile::LoadDocEtalon(QString path) {
     first_min_max_ = false;
     file.close();
 }
-void DowlandFile::CreateSeriesACM(){
-    DataSeriesSensor data;
+void DowlandFile::CreateSeriesACM(DataSeriesSensor& data){
     data.name_sensor = chart_name_and_index_[0].name_sensor;
     data.label_sensor = new QLabel(data.name_sensor);
     for(NameChart name_chart : chart_name_and_index_){
         CreateACM(data, name_chart.name, name_chart.name_type.mid(1,name_chart.name_type.size()-3), name_chart.name_unit);
     }
-    data_acm_.push_back(data);
-    data_base_.AddDataSerACM(data_acm_.back());
+    /*data_acm_.push_back(data);
+    data_base_.AddDataSerACM(data_acm_.back());*/
 }
 void DowlandFile::CreateACM(DataSeriesSensor& data, QString name, QString name_type, QString name_unit){
     Canal acm;
@@ -165,25 +166,25 @@ void DowlandFile::CreateACM(DataSeriesSensor& data, QString name, QString name_t
     acm.name_chart = name;
     acm.name_type = name_type;
     acm.name_unit = name_unit;
+    acm.select_box = new QCheckBox(name_type);
     QPen pen;
     pen.setWidth(1);
+    acm.axis_y_ = new QValueAxis();
+    acm.axis_y_->setTitleText(data.name_sensor + " " + name_type);
+    acm.axis_y_->setTickCount(21);
     acm.series = new QLineSeries();
     acm.series->setPen(pen);
     acm.series->setName(data.name_sensor + name);
-    chart_->addSeries(acm.series);
-    if(name.contains("Давление",Qt::CaseInsensitive)){
-        acm.series->attachAxis(axis_bar_);
+    /*if(name.contains("Давление",Qt::CaseInsensitive)){
         acm.series->setColor("red");
         acm.series->setObjectName("bar");
     }
     if(name.contains("Температура",Qt::CaseInsensitive)){
-        acm.series->attachAxis(axis_temp_);
         acm.series->setColor("blue");
         acm.series->setObjectName("temp");
-    }
+    }*/
     acm.label = new QLabel();
     acm.label_delta = new QLabel();
-    acm.series->attachAxis(axis_x_);
     data.vec_canal.push_back(acm);
 }
 void DowlandFile::CreateSeriesEtalon(QString word){
@@ -228,8 +229,8 @@ void DowlandFile::CreateSeriesEtalon(QString word){
     data_base_.AddDataSerEtalon(data_etalon_.back());
     data_base_.AddListAxis(data_etalon_.back().axis_y_);
 }
-void DowlandFile::AddDataACM(QStringList words){
-    DataSeriesSensor& data =  data_base_.GetDataSerACM().back();
+void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
+    //DataSeriesSensor& data =  data_base_.GetDataSerACM().back();
     QVector<Canal>& vec_canal = data.vec_canal;
     qint64 time = TextToInt(words[0]+ " " + words[1]);
     for(int i =0; i < vec_canal.size();++i){
@@ -262,7 +263,6 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
         points_temp.push_back(QPointF(data.time,point_temp.y()));
     }
     first_write_rectangle_ = true;
-
     if(!set_axis_x_){
         axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(data.time));
         bar_max_ = data.value_2;

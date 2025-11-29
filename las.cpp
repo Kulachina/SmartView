@@ -62,8 +62,9 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
     return data_;
 }
 void Las::SetStartDate(const QStringList& words){
-    QString word = words[1].mid(0,10);
-    date_ = word;
+    int index = words[1].indexOf(':');
+    QString word = words[1].left(index);
+    date_ = word.replace('.','/');
 }
 void Las::SetStartTime(const QStringList& words){
 
@@ -79,9 +80,14 @@ void Las::SelectCurve(QStringList& words){
 
 void Las::LogData(const QStringList& words){
     QVector<Canal>& vec_canal = data_.vec_canal;
-    qint64 time = QDateTime::fromString(date_ +" "+ words[1], "dd/MM/yyyy hhmmss.zzz").toMSecsSinceEpoch();
+    int index = words[index_time_].indexOf('.');
+    QString word = words[index_time_].left(index);
+    qint64 time = QDateTime::fromString(date_ +" "+ word, "dd/MM/yyyy hhmmss").toMSecsSinceEpoch();
     for(int i =1; i < vec_canal.size();++i){
         double num = words[i].toDouble();
+        if(num == -999.25){
+            continue;
+        }
         if(vec_canal[i].first_unit){
             vec_canal[i].unit_max = num;
             vec_canal[i].unit_min = num;
@@ -99,14 +105,18 @@ void Las::LogData(const QStringList& words){
     }
 }
 void Las::CreateSensor(){
-    for (QString name : name_curve_){
-        CreateCanal(name);
+    for (int i = 0 ;i < name_curve_.size();++i){
+        if(name_curve_[i] == "TIME."){
+            index_time_ = i;
+        }
+        CreateCanal(name_curve_[i]);
     }
 }
 void Las::CreateCanal(QString name){
     Canal acm;
     int index = name.indexOf('.');
     acm.axis_y_ = new QValueAxis();
+    acm.select_box = new QCheckBox(name);
     acm.axis_y_->setTitleText(name);
     acm.axis_y_->setTickCount(21);
     acm.label_data = new QLabel();

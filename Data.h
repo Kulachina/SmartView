@@ -28,10 +28,12 @@ struct Canal{
     QString name_type;
     QString name_chart;
     QString name_unit;
+    QString color_series;
     double unit_min = 0;
     double unit_max = 0;
     bool first_unit = true;
     bool first_write_rectangle = false;
+    bool select_box;
 };
 struct DataSeriesSensor{
     QString name_sensor;

@@ -29,6 +29,7 @@ private:
     QVector<QString> name_curve_;
     DataSeriesSensor data_;
     QProgressBar *prog_;
+    int index_time_;
 };
 
 #endif // LAS_H

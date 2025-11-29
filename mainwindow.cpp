@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QRadioButton>
 
+
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
     data_base_(),
@@ -14,9 +15,26 @@ MainWindow::MainWindow(QMainWindow *parent)
     QMenu *menu_file = new QMenu();
     QAction *file = new QAction("Файл");
     file->setMenu(menu_file);
-    QAction *open = new QAction("Открыть...");
-    connect(open, &QAction::triggered,this, &MainWindow::LoadDocumentEtalon);
-    menu_file->addAction(open);
+    QAction *import = new QAction("Импорт");
+    menu_file->addAction(import);
+    QMenu *menu_import = new QMenu();
+    import->setMenu(menu_import);
+    QMenu *menu_sensor = new QMenu();
+    QAction *import_etalon = new QAction("Эталон");
+    menu_import->addAction(import_etalon);
+    connect(import_etalon, &QAction::triggered,this, &MainWindow::LoadDocumentEtalon);
+    QAction *sensor = new QAction("Прибор");
+    sensor->setMenu(menu_sensor);
+    menu_import->addAction(sensor);
+    QAction *import_ACM = new QAction("АЦМ");
+    connect(import_ACM, &QAction::triggered,this, &MainWindow::LoadDocumentACM);
+    QAction *import_AMT = new QAction("АМT");
+    //connect(import_ACM_txt, &QAction::triggered,this, &MainWindow::LoadDocumentAMT);
+    QAction *import_LAS = new QAction("LAS");
+    connect(import_LAS, &QAction::triggered,this, &MainWindow::LoadDocumentACM);
+    menu_sensor->addAction(import_LAS);
+    menu_sensor->addAction(import_AMT);
+    menu_sensor->addAction(import_ACM);
     QAction *save = new QAction("Сохранить");
     connect(save, &QAction::triggered,this, &MainWindow::SaveAllSV);
     menu_file->addAction(save);
@@ -82,6 +100,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
     dow_file_.SetAxisTime(chart_view_->GetAxisX());
     window_check_points_ = new QWidget();
+    win_sens_can_ = new QWidget();
 }
 MainWindow::~MainWindow()
 {
@@ -108,20 +127,24 @@ void MainWindow::LoadDocumentACM(){
     }
     for(QString path : path_doc_){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
-            dow_file_.LoadDocACM(path);
-            DataSeriesSensor& data = data_base_.GetDataSerACM().back();
-            chart_view_->PanelLegendACM(data);
+            DataSeriesSensor data = dow_file_.LoadDocACM(path);
+            data_sensor_.push_back(data);
+            //DataSeriesSensor& data = data_base_.GetDataSerACM().back();
+            //chart_view_->PanelLegendACM(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
         if(path.endsWith(".las", Qt::CaseInsensitive)){
-            DataSeriesSensor& data = las_.DowlandLas(path);
-            data_base_.AddDataSerACM(data);
-            chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
+            DataSeriesSensor data = las_.DowlandLas(path);
+            data_sensor_.push_back(data);
+            //data_base_.AddDataSerACM(data);
+            //chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
     }
+    WindowSensorAndCanal();
+
 
 }
 void MainWindow::LoadDocumentEtalon(){
@@ -854,4 +877,100 @@ void MainWindow::SaveAllSV(){
     }
 
 }
+void MainWindow::WindowSensorAndCanal(){
+    if (first_open_win_sens_can_){
+        win_sens_can_->setWindowTitle("Приборы и каналы");
+        win_sens_can_->resize(600, 350);
+        sensor_list_ = new QListWidget();
+        sensor_list_->setFixedWidth(150);
+        canal_list_ = new QListWidget();
+        QHBoxLayout *layout = new QHBoxLayout();
+        QVBoxLayout *vlayout = new QVBoxLayout();
+        QPushButton *btn = new QPushButton("OK");
+        connect(btn, &QPushButton::clicked, this, &MainWindow::PanelLegendACM);
+        layout->addWidget(sensor_list_);
+        layout->addWidget(canal_list_);
+        vlayout->addLayout(layout);
+        vlayout->addWidget(btn);
+        win_sens_can_->setLayout(vlayout);
+        first_open_win_sens_can_ = false;
+    }
+    QMap<QString, QString> color_map;
+    color_map["Красный"] = "255, 0, 0";
+    color_map["Синий"] = "0, 0, 255";
+    color_map["Чёрный"] = "0, 0, 0";
+    color_map["Светло-синий"] = "173, 216, 230";
+    color_map["Фиолетовый"] = "128, 0, 128";
+    color_map["Зелёный"] = "0, 128, 0";
 
+    sensor_list_->clear();
+    //QVector<DataSeriesSensor>& data_sensor = data_base_.GetDataSerACM();
+    for(DataSeriesSensor&  data : data_sensor_){
+        sensor_list_->addItem(data.name_sensor);
+    }
+    QObject::connect(sensor_list_, &QListWidget::itemSelectionChanged, [this, color_map]() {
+        canal_list_->clear();
+        if (sensor_list_->selectedItems().isEmpty()){
+            return;
+        }
+        QString sensor_name = sensor_list_->selectedItems().first()->text();
+        for (auto& data : data_sensor_) {
+            if (data.name_sensor != sensor_name){
+                continue;
+            }
+            for (Canal& can_ref : data.vec_canal) {
+                QListWidgetItem *item = new QListWidgetItem(canal_list_);
+                item->setSizeHint(QSize(400, 40));
+                QWidget *w = new QWidget;
+                QHBoxLayout *hbox = new QHBoxLayout(w);
+                hbox->setContentsMargins(0,0,0,0);
+                QCheckBox* check = new QCheckBox(can_ref.name_type);
+                check->setCheckState(Qt::Checked);
+                connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check](){
+                    if(check->isChecked()){
+                        can_ptr->select_box = true;
+                    } else {
+                        can_ptr->select_box = false;
+                    }
+                });
+                QComboBox* combo_color = new QComboBox;
+                combo_color->addItems({"Красный","Синий","Чёрный","Светло-синий","Фиолетовый","Зелёный"});
+                QComboBox* combo_name = new QComboBox;
+                combo_name->addItems({"ГК","Расход","Температура","Давление","Влагомер","Резистивиметр"});
+                combo_color->setCurrentText("Черный");
+                if(can_ref.name_type.contains("Давление",Qt::CaseInsensitive)){
+                    can_ref.name_type = "Давление";
+                    can_ref.color_series = "255, 0, 0";
+                    combo_color->setCurrentText("Красный");
+                    combo_name->setCurrentText("Давление");
+                }
+                if(can_ref.name_type.contains("Температура",Qt::CaseInsensitive)){
+                    can_ref.name_type = "Температура";
+                    can_ref.color_series = "0, 0, 255";
+                    combo_color->setCurrentText("Синий");
+                    combo_name->setCurrentText("Температура");
+                }
+                connect(combo_color, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, color_map](const QString &text){
+                    can_ptr->color_series = color_map.value(text);
+                });
+                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
+                    can_ptr->name_type = text;
+                });
+                hbox->addWidget(check);
+                hbox->addWidget(combo_name);
+                hbox->addWidget(combo_color);
+                w->setLayout(hbox);
+                canal_list_->setItemWidget(item, w);
+            }
+        }
+    });
+    win_sens_can_->show();
+}
+void MainWindow::PanelLegendACM(){
+    for(auto data : data_sensor_){
+        chart_view_->PanelLegendACM(data);
+        data_base_.AddDataSerACM(data);
+    }
+    data_sensor_.clear();
+    win_sens_can_->hide();
+}

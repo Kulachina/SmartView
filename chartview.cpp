@@ -24,8 +24,8 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     axis_bar_->setTickCount(21);
     axis_temp_->setRange(0, 0);
     axis_temp_->setTickCount(21);
-    data_base_.AddListAxis(axis_temp_);
-    data_base_.AddListAxis(axis_bar_);
+    //data_base_.AddListAxis(axis_temp_);
+    //data_base_.AddListAxis(axis_bar_);
     chart_->addAxis(axis_time_,Qt::AlignBottom);
     chart_->addAxis(axis_temp_,Qt::AlignLeft);
     chart_->addAxis(axis_bar_,Qt::AlignLeft);
@@ -68,14 +68,17 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
     data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
     vbox_legend_->addWidget(data.line);
     for(int i =0;i < acm.size();++i){
+        if(!acm[i].select_box){
+            continue;
+        }
         chart_->addAxis(acm[i].axis_y_,Qt::AlignLeft);
         chart_->addSeries(acm[i].series);
         acm[i].series->attachAxis(axis_time_);
         acm[i].series->attachAxis(acm[i].axis_y_);
+        acm[i].series->replace(acm[i].points_triangle);
         acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
         acm[i].axis_y_->setVisible(false);
         data_base_.AddListAxis(acm[i].axis_y_);
-
         acm[i].hbox = new QHBoxLayout();
         acm[i].hbox->setAlignment(Qt::AlignLeft);
         acm[i].check_box = new QCheckBox();
@@ -90,14 +93,32 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
         QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
         QLabel *l_name_type = new QLabel(acm[i].name_type);
         QLabel *l_name = new QLabel(data.name_sensor);
+        l_name_type->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
+        l_name->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
+        if(acm[i].color_series.isEmpty()){
+            acm[i].color_series = "0,0,0";
+        }
+        QStringList p = acm[i].color_series.split(',');
+        QColor col(
+            p[0].toInt(),
+            p[1].toInt(),
+            p[2].toInt()
+            );
+        acm[i].series->setColor(QColor(col));
         if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
+            acm[i].series->setObjectName("bar");
+        }
+        if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
+            acm[i].series->setObjectName("temp");
+        }
+        /*if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: red");
             l_name->setStyleSheet("color: red");
         }
         if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
             l_name_type->setStyleSheet("color: blue");
             l_name->setStyleSheet("color: blue");
-        }
+        }*/
         p_hbox->addWidget(acm[i].check_box);
         p_hbox->addWidget(l_name_type);
         p_hbox->addWidget(l_name);

@@ -29,11 +29,11 @@ public:
     void CreateACM(DataSeriesSensor& data, QString name, QString name_type, QString name_unit);
     void LoadSVDoc(const QString path);
     void SaveSVDoc(const QString path);
-    void LoadDocACM(QString path);
-    void CreateSeriesACM();
+    DataSeriesSensor LoadDocACM(QString path);
+    void CreateSeriesACM(DataSeriesSensor& data);
     void CreateSeriesEtalon(QString word);
     void AddDataEtalon(DataEtalon data);
-    void AddDataACM(QStringList words);
+    void AddDataACM(QStringList words,DataSeriesSensor& data);
     void SetAxisTime(QDateTimeAxis* axis_x);
     void SetChartDoc(QChart* chart,QValueAxis* axis_temp,QValueAxis* axis_bar);
     void GapSeries(DataSeriesEtalon& doc);
