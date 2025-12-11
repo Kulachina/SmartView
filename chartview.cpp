@@ -91,9 +91,9 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
             }
         });
         QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
-        QLabel *l_name_type = new QLabel(acm[i].name_type);
+        QLabel *l_name_canal = new QLabel(acm[i].name_canal);
         QLabel *l_name = new QLabel(data.name_sensor);
-        l_name_type->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
+        l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
         l_name->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
         if(acm[i].color_series.isEmpty()){
             acm[i].color_series = "0,0,0";
@@ -105,27 +105,19 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
             p[2].toInt()
             );
         acm[i].series->setColor(QColor(col));
-        if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
+        if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
             acm[i].series->setObjectName("bar");
         }
-        if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
+        if(acm[i].name_canal.contains("Температура",Qt::CaseInsensitive)){
             acm[i].series->setObjectName("temp");
         }
-        /*if(acm[i].name_chart.contains("Давление",Qt::CaseInsensitive)){
-            l_name_type->setStyleSheet("color: red");
-            l_name->setStyleSheet("color: red");
-        }
-        if(acm[i].name_chart.contains("Температура",Qt::CaseInsensitive)){
-            l_name_type->setStyleSheet("color: blue");
-            l_name->setStyleSheet("color: blue");
-        }*/
         p_hbox->addWidget(acm[i].check_box);
-        p_hbox->addWidget(l_name_type);
+        p_hbox->addWidget(l_name_canal);
         p_hbox->addWidget(l_name);
         p_hbox->addWidget(acm[i].label_data);
         p_hbox->addWidget(acm[i].label_delta);
         vbox_legend_->addLayout(p_hbox);
-        data_base_.AddLabelSensor(l_name,l_name_type);
+        data_base_.AddLabelSensor(l_name,l_name_canal);
     }
     CreateMapLabel(data);
     CreateMapSeries(data);
@@ -443,7 +435,7 @@ void ChartView::CalcDelta(){
     QPointer<QLabel> label_temp = data_etalon[0].data_sensor;
     for(DataSeriesSensor acm : data_acm){
         for(Canal& a : acm.vec_canal){
-            if(a.name_type.contains("Давление",Qt::CaseInsensitive)){
+            if(a.name_canal.contains("Давление",Qt::CaseInsensitive)){
                 a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_bar->text().toDouble(),'f',2) + ")");
             } else {
                 a.label_delta->setText(" (" + QString::number(a.label_data->text().toDouble() - label_temp->text().toDouble(),'f',2) + ")");

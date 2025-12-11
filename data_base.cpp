@@ -16,6 +16,12 @@ void DataBase::AddDataSerEtalon(DataSeriesEtalon data){
     data_etalon_.push_back(data);
 }
 void DataBase::AddDataSerACM(DataSeriesSensor data){
+    for(int i = 0; i < data.vec_canal.size();++i){
+        if(!data.vec_canal[i].select_box){
+            data.vec_canal.removeAt(i);
+            i--;
+        }
+    }
     data_acm_.push_back(data);
 }
 void DataBase::AddLabelSensor(QLabel* sensor,QLabel* name){
@@ -67,7 +73,7 @@ void DataBase::AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, Q
     if(!data_acm_.isEmpty()){
         for(DataSeriesSensor& data : data_acm_){
             if(data.name_sensor == name_sensor){
-                if(data.vec_canal[0].name_type == "Давление"){
+                if(data.vec_canal[0].name_canal == "Давление"){
                     data.vec_canal[0].check_points = volume_bar;
                     data.vec_canal[0].delta_points = delta_bar;
                     data.vec_canal[1].check_points = volume_temp;

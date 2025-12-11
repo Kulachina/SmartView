@@ -8,9 +8,11 @@ class CreateRaport
 public:
     CreateRaport(DataBase& data_base);
     void CreateAllDoc(QVector<DataSeriesSensor>& vec_data);
+    void CreateAllShortDoc(QVector<DataSeriesSensor>& vec_data,QString name_canal);
     void CreateDoc(DataSeriesSensor& data,QString name);
     void CreateAllDeltaDoc();
     void CreateDeltaDoc(DataSeriesSensor& acm,QString file_name,QString name_sensor);
+    void CreateShortDoc(DataSeriesSensor& data, QString name, QString name_canal);
 private:
     DataBase& data_base_;
 };

@@ -26,10 +26,11 @@ class DowlandFile
 {
 public:
     DowlandFile(DataBase& data_base);
-    void CreateACM(DataSeriesSensor& data, QString name, QString name_type, QString name_unit);
+    void CreateACM(DataSeriesSensor& data, QString name, QString name_canal, QString name_unit);
     void LoadSVDoc(const QString path);
     void SaveSVDoc(const QString path);
     DataSeriesSensor LoadDocACM(QString path);
+    DataSeriesSensor LoadDocAMT(QString path, QString name);
     void CreateSeriesACM(DataSeriesSensor& data);
     void CreateSeriesEtalon(QString word);
     void AddDataEtalon(DataEtalon data);

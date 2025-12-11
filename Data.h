@@ -25,8 +25,8 @@ struct Canal{
     QHBoxLayout* hbox;
     QCheckBox* check_box;
     QPointer<QStandardItemModel> model;
-    QString name_type;
-    QString name_chart;
+    QString name_canal;
+    QString name_sensor;
     QString name_unit;
     QString color_series;
     double unit_min = 0;
@@ -70,14 +70,9 @@ struct DataSeriesEtalon{
     QVector<QPointF> points_rectangle_view_temp;
 };
 struct NameChart{
-    QString name;
-    int index;
-    QString name_type;
-    QString name_unit;
-    QString name_sensor;
-    double unit_min = 0;
-    double unit_max = 0;
-    bool first_unit = true;
+    QString name_canal;//1
+    QString name_unit;//2
+    QString name_sensor;//4+5
 };
 
 #endif // DATA_H

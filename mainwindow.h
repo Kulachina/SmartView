@@ -36,6 +36,7 @@ public:
 public slots:
     void LoadDocumentEtalon();
     void LoadDocumentACM();
+    void LoadDocumentAMT();
     void ToggledLegendPanel();
     void ShiftSeries();
     void ShiftCheckPoint();
@@ -46,6 +47,7 @@ public slots:
     void WindowCheckPoints();
     void WindowDeleteSensor();
     void WindowView();
+    void FillFromOneTable();
     void FillAllTables();
     void CreateAllDoc();
     void ReplaceTriangle();
@@ -95,14 +97,18 @@ private:
             *action_series_,
             *delete_sensor_;
     QTabWidget *tab_;
-    QCheckBox *check_step_bar_;
+    QCheckBox *check_step_bar_,
+              *ch_sel_1_table_;
     QComboBox *combo_del_sens_;
     QStringList path_doc_;
-    QString  save_path_;
+    QString  save_path_,
+             name_canal_1_,
+             name_canal_2_;
     QStandardItemModel *fix_model_;
     QTableView *fix_table_;
     QListWidget *sensor_list_;
     QListWidget *canal_list_;
+    QStringList chanels_ = {"ГК","Расход","Температура","Давление","Влагомер","Резистивиметр"};
     bool first_open_ = false,
          first_open_2_ = false,
          first_open_3_ = false,

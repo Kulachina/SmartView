@@ -84,10 +84,10 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
     double delta;
     double value;
     for(Canal& a :acm){
-        if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
+        if(a.name_canal.contains("Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
         }
-        if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
+        if(a.name_canal.contains("Температура",Qt::CaseInsensitive)){
             series_temp = a.series;
         }
     }

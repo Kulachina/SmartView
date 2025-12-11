@@ -29,7 +29,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *import_ACM = new QAction("АЦМ");
     connect(import_ACM, &QAction::triggered,this, &MainWindow::LoadDocumentACM);
     QAction *import_AMT = new QAction("АМT");
-    //connect(import_ACM_txt, &QAction::triggered,this, &MainWindow::LoadDocumentAMT);
+    connect(import_AMT, &QAction::triggered,this, &MainWindow::LoadDocumentAMT);
     QAction *import_LAS = new QAction("LAS");
     connect(import_LAS, &QAction::triggered,this, &MainWindow::LoadDocumentACM);
     menu_sensor->addAction(import_LAS);
@@ -129,23 +129,39 @@ void MainWindow::LoadDocumentACM(){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             DataSeriesSensor data = dow_file_.LoadDocACM(path);
             data_sensor_.push_back(data);
-            //DataSeriesSensor& data = data_base_.GetDataSerACM().back();
-            //chart_view_->PanelLegendACM(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
         if(path.endsWith(".las", Qt::CaseInsensitive)){
             DataSeriesSensor data = las_.DowlandLas(path);
             data_sensor_.push_back(data);
-            //data_base_.AddDataSerACM(data);
-            //chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
     }
     WindowSensorAndCanal();
-
-
+}
+void MainWindow::LoadDocumentAMT(){
+    if(!first_open_doc_){
+        QString path = QApplication::applicationDirPath();
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt);");
+        first_open_doc_ = true;
+    } else {
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt);");
+    }
+    if(path_doc_.isEmpty()){
+        return;
+    }
+    for(QString path : path_doc_){
+        if(path.endsWith(".txt", Qt::CaseInsensitive)){
+            QFileInfo file_info(path);
+            QString name = file_info.baseName();
+            DataSeriesSensor data = dow_file_.LoadDocAMT(path, name);
+            data_sensor_.push_back(data);
+            save_path_ = file_info.absolutePath();
+        }
+    }
+    WindowSensorAndCanal();
 }
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
@@ -280,7 +296,7 @@ void MainWindow::WindowSeries(){
             for(Canal& acm_unit : acm){
                 QHBoxLayout *hbox = new QHBoxLayout();
                 QPointer<QCheckBox> check = acm_unit.check_box;
-                QLabel *label = new QLabel(acm_unit.name_type +" "+ data.label_sensor->text());
+                QLabel *label = new QLabel(acm_unit.name_canal +" "+ data.label_sensor->text());
                 hbox->addWidget(check);
                 hbox->addWidget(label);
                 vbox->addLayout(hbox);
@@ -310,7 +326,13 @@ void MainWindow::WindowMasterPoint(){
         QPushButton *btn_saveas = new QPushButton("Сохранить все");
         connect(btn_saveas,&QPushButton::clicked, this,&MainWindow::CreateAllDoc);
         QPushButton *btn_table = new QPushButton("Заполнить таблицы");
-        connect(btn_table, &QPushButton::clicked,this, &MainWindow::FillAllTables);
+        connect(btn_table, &QPushButton::clicked,this, [&](){
+            if(ch_sel_1_table_->isChecked()){
+                FillFromOneTable();
+            } else {
+                FillAllTables();
+            }
+        });
         QCheckBox *change_box = new QCheckBox("Редактирование таблицы");
         change_box->setCheckState(Qt::Unchecked);
         botton_hbox->addWidget(btn_saveas);
@@ -327,9 +349,50 @@ void MainWindow::WindowMasterPoint(){
         s_step_bar_->setSingleStep(1);
         s_step_bar_->setValue(0);
         s_step_bar_->setEnabled(false);
-        QVBoxLayout *vbox_group = new QVBoxLayout();
-        QHBoxLayout *hbox_1 = new QHBoxLayout();
-        QHBoxLayout *hbox_2 = new QHBoxLayout();
+        QVBoxLayout* vbox_group = new QVBoxLayout();
+        QHBoxLayout* hbox_1 = new QHBoxLayout();
+        QHBoxLayout* hbox_2 = new QHBoxLayout();
+        QGroupBox* group_select_canal = new QGroupBox("Выбор каналов для таблиц");
+        ch_sel_1_table_ = new QCheckBox("Работа с одной таблицей");
+        ch_sel_1_table_->setCheckState(Qt::Unchecked);
+        QVBoxLayout* vbox_sel_canal = new QVBoxLayout();
+        QHBoxLayout* hbox_sel_canal_1 = new QHBoxLayout();
+        QHBoxLayout* hbox_sel_canal_2 = new QHBoxLayout();
+        QComboBox* combo_name_1 = new QComboBox;
+        combo_name_1->addItems(chanels_);
+        connect(combo_name_1, &QComboBox::currentTextChanged, this, [&](const QString &text){
+            name_canal_1_ = text;
+        });
+        QComboBox* combo_name_2 = new QComboBox;
+        combo_name_2->addItems(chanels_);
+        connect(combo_name_2, &QComboBox::currentTextChanged, this, [&](const QString &text){
+            name_canal_2_ = text;
+        });
+        connect(ch_sel_1_table_, &QCheckBox::toggled, this,[this,combo_name_2](){
+            if(ch_sel_1_table_->isChecked()){
+                s_step_bar_->setEnabled(false);
+                s_et_bar_->setEnabled(false);
+                combo_name_2->setEnabled(false);
+                check_step_bar_->setEnabled(false);
+            }else {
+                s_step_bar_->setEnabled(true);
+                s_et_bar_->setEnabled(true);
+                combo_name_2->setEnabled(true);
+                check_step_bar_->setEnabled(true);
+            }
+        });
+        QLabel* l_table_1 = new QLabel("Таблица 1");
+        QLabel* l_table_2 = new QLabel("Таблица 2");
+        hbox_sel_canal_1->setAlignment(Qt::AlignLeft);
+        hbox_sel_canal_2->setAlignment(Qt::AlignLeft);
+        hbox_sel_canal_1->addWidget(l_table_1);
+        hbox_sel_canal_1->addWidget(combo_name_1);
+        hbox_sel_canal_2->addWidget(l_table_2);
+        hbox_sel_canal_2->addWidget(combo_name_2);
+        vbox_sel_canal->addWidget(ch_sel_1_table_);
+        vbox_sel_canal->addLayout(hbox_sel_canal_1);
+        vbox_sel_canal->addLayout(hbox_sel_canal_2);
+        group_select_canal->setLayout(vbox_sel_canal);
         QGroupBox *group_etalon_temp = new QGroupBox("Эталонные значения");
         QLabel *l_et_bar = new QLabel("Кол.точек температур");
         QLabel *l_et_temp = new QLabel("Кол.точек давлений");
@@ -366,6 +429,7 @@ void MainWindow::WindowMasterPoint(){
         vbox_group->addWidget(btn_table,0,Qt::AlignLeft);
         vbox_group->addWidget(change_box,0,Qt::AlignLeft);
         group_etalon_temp->setLayout(vbox_group);
+        main_vbox->addWidget(group_select_canal);
         main_vbox->addWidget(group_etalon_temp);
         main_vbox->addWidget(tab_);
         main_vbox->addLayout(botton_hbox);
@@ -377,9 +441,9 @@ void MainWindow::WindowMasterPoint(){
         QVector<Canal>& acm = data.vec_canal;
         QWidget *tab_sensor = new QWidget();
         QVBoxLayout *vbox = new QVBoxLayout();
-        QGroupBox *group_temp = new QGroupBox("Температура");
+        QGroupBox *group_temp = new QGroupBox("Таблица 2");
         QVBoxLayout *vbox_temp = new QVBoxLayout();
-        QGroupBox *group_bar = new QGroupBox("Давление");
+        QGroupBox *group_bar = new QGroupBox("Таблица 1");
         QVBoxLayout *vbox_bar = new QVBoxLayout();
         QHBoxLayout *table_hbox = new QHBoxLayout();
         QTableView *table_bar = new QTableView();
@@ -387,10 +451,10 @@ void MainWindow::WindowMasterPoint(){
         QStandardItemModel *model_bar = new QStandardItemModel();
         QStandardItemModel *model_temp = new QStandardItemModel();
         for(Canal& a :acm){
-            if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
+            if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
                 a.model = model_bar;
             }
-            if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
+            if(a.name_canal.contains(name_canal_2_,Qt::CaseInsensitive)){
                 a.model = model_temp;
             }
             connect(a.model, &QStandardItemModel::itemChanged,this,[&](QStandardItem *item){
@@ -438,7 +502,11 @@ void MainWindow::WindowMasterPoint(){
         connect(btn_create_doc, &QPushButton::clicked,this,[this,&data](){
             QString path = QApplication::applicationDirPath();
             QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить контрольные точки", path ,"*.txt");
-            create_raport_.CreateDoc(data,path_doc);
+            if(ch_sel_1_table_->isChecked()){
+                create_raport_.CreateShortDoc(data,path_doc,name_canal_1_);
+            } else {
+                create_raport_.CreateDoc(data,path_doc);
+            }
         });
         QPushButton *btn_append_row = new QPushButton("Добавить строку");
         connect(btn_append_row,&QPushButton::clicked, this,[=](){
@@ -481,6 +549,7 @@ void MainWindow::WindowMasterPoint(){
         group_bar->setLayout(vbox_bar);
         table_hbox->addWidget(group_bar);
         table_hbox->addWidget(group_temp);
+
         vbox->addLayout(table_hbox);
         vbox->addLayout(btn_hbox);
         tab_sensor->setLayout(vbox);
@@ -535,17 +604,85 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
         index_temp += s_et_bar_->value();
     }
 }
+void MainWindow::FillFromOneTable(){
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
+            QPointer<QStandardItemModel> model;
+            for(Canal& a :acm){
+                if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
+                    model = a.model;
+                }
+            }
+            QVector<double> vec_temp = data_base_.GetCheckPointTemp();
+            QVector<double> vec_bar = data_base_.GetCheckPointBar();
+            if(model){
+                model->setColumnCount(4);
+                model->setRowCount(s_et_temp_->value());
+                model->setItem(0,0,new QStandardItem("№ Точки"));
+                model->setItem(0,1,new QStandardItem("Время"));
+                model->setItem(0,2,new QStandardItem("Значение"));
+                model->setItem(0,3,new QStandardItem("Эталон"));
+            }
+        }
+        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
+            QVector<Canal>& acm = data.vec_canal;
+            QPointer<QLineSeries> series;
+            QPointer<QStandardItemModel> model;
+            for(Canal& a :acm){
+                if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
+                    series = a.series;
+                    model = a.model;
+                }
+            }
+            const QVector<QDateTime> vec = data_base_.GetCheckPoints();
+            const QVector<double> temp = data_base_.GetCheckPointTemp();
+            int count = 0;
+            int num_point = 0;
+            int row = 1;
+            if(series){
+                for(QPointF& point : series->points()){
+                    if(count >= data_base_.GetCheckPoints().size() ){
+                        break;
+                    }
+                    qint64 t = static_cast<qint64>(point.x());
+                    qint64 res = ((t + 500) / 1000) * 1000;
+                    QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
+                    if(time == vec[count]){
+                        QStandardItem *it3 = new QStandardItem(QString::number(point.y()));
+                        QStandardItem *it2 = new QStandardItem(time.toString("hh:mm:ss"));
+                        QStandardItem *it4 = new QStandardItem(QString::number(temp[count]));
+                        QStandardItem *it = new QStandardItem(QString::number(num_point));
+                        it->setTextAlignment(Qt::AlignCenter);
+                        count += s_et_temp_->value();
+                        if(model){
+                            model->setItem(row,0,it);
+                            model->setItem(row,1,it2);
+                            model->setItem(row,2,it3);
+                            model->setItem(row,3,it4);
+                        }
+                        row++;
+                    }
+                    if(row == s_et_temp_->value()){
+                        return;
+                    }
+                    num_point++;
+                }
+            }
+        }
+    }
+}
 void MainWindow::FillAllTables(){
     if(!data_base_.GetDataSerACM().isEmpty()){
         for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
             QVector<Canal>& acm = data.vec_canal;
-            QStandardItemModel *model_bar = new QStandardItemModel();
-            QStandardItemModel *model_temp = new QStandardItemModel();
+            QPointer<QStandardItemModel> model_bar;
+            QPointer<QStandardItemModel> model_temp;
             for(Canal& a :acm){
-                if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
+                if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
                     model_bar = a.model;
                 }
-                if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
+                if(a.name_canal.contains(name_canal_2_,Qt::CaseInsensitive)){
                     model_temp = a.model;
                 }
             }
@@ -578,11 +715,11 @@ void MainWindow::AnalisingSeries(DataSeriesSensor data){
     QPointer<QStandardItemModel> model_bar ;
     QPointer<QStandardItemModel> model_temp ;
     for(Canal& a :acm){
-        if(a.name_chart.contains("Давление",Qt::CaseInsensitive)){
+        if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
             series_bar = a.series;
             model_bar = a.model;
         }
-        if(a.name_chart.contains("Температура",Qt::CaseInsensitive)){
+        if(a.name_canal.contains(name_canal_2_,Qt::CaseInsensitive)){
             series_temp = a.series;
             model_temp = a.model;
         }
@@ -643,7 +780,11 @@ void MainWindow::AnalisingSeries(DataSeriesSensor data){
     }
 }
 void MainWindow::CreateAllDoc(){
-    create_raport_.CreateAllDoc(data_base_.GetDataSerACM());
+    if(ch_sel_1_table_->isChecked()){
+        create_raport_.CreateAllShortDoc(data_base_.GetDataSerACM(),name_canal_1_);
+    } else {
+        create_raport_.CreateAllDoc(data_base_.GetDataSerACM());
+    }
 }
 void MainWindow::WindowDeleteSensor(){
     if(!first_open_4_){
@@ -896,15 +1037,14 @@ void MainWindow::WindowSensorAndCanal(){
         first_open_win_sens_can_ = false;
     }
     QMap<QString, QString> color_map;
+    color_map["Чёрный"] = "0, 0, 0";
     color_map["Красный"] = "255, 0, 0";
     color_map["Синий"] = "0, 0, 255";
-    color_map["Чёрный"] = "0, 0, 0";
     color_map["Светло-синий"] = "173, 216, 230";
     color_map["Фиолетовый"] = "128, 0, 128";
     color_map["Зелёный"] = "0, 128, 0";
 
     sensor_list_->clear();
-    //QVector<DataSeriesSensor>& data_sensor = data_base_.GetDataSerACM();
     for(DataSeriesSensor&  data : data_sensor_){
         sensor_list_->addItem(data.name_sensor);
     }
@@ -924,7 +1064,7 @@ void MainWindow::WindowSensorAndCanal(){
                 QWidget *w = new QWidget;
                 QHBoxLayout *hbox = new QHBoxLayout(w);
                 hbox->setContentsMargins(0,0,0,0);
-                QCheckBox* check = new QCheckBox(can_ref.name_type);
+                QCheckBox* check = new QCheckBox(can_ref.name_canal);
                 check->setCheckState(Qt::Checked);
                 connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check](){
                     if(check->isChecked()){
@@ -934,18 +1074,18 @@ void MainWindow::WindowSensorAndCanal(){
                     }
                 });
                 QComboBox* combo_color = new QComboBox;
-                combo_color->addItems({"Красный","Синий","Чёрный","Светло-синий","Фиолетовый","Зелёный"});
+                combo_color->addItems({"Чёрный","Красный","Синий","Светло-синий","Фиолетовый","Зелёный"});
                 QComboBox* combo_name = new QComboBox;
-                combo_name->addItems({"ГК","Расход","Температура","Давление","Влагомер","Резистивиметр"});
+                combo_name->addItems(chanels_);
                 combo_color->setCurrentText("Черный");
-                if(can_ref.name_type.contains("Давление",Qt::CaseInsensitive)){
-                    can_ref.name_type = "Давление";
+                if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
+                    can_ref.name_canal = "Давление";
                     can_ref.color_series = "255, 0, 0";
                     combo_color->setCurrentText("Красный");
                     combo_name->setCurrentText("Давление");
                 }
-                if(can_ref.name_type.contains("Температура",Qt::CaseInsensitive)){
-                    can_ref.name_type = "Температура";
+                if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
+                    can_ref.name_canal = "Температура";
                     can_ref.color_series = "0, 0, 255";
                     combo_color->setCurrentText("Синий");
                     combo_name->setCurrentText("Температура");
@@ -954,7 +1094,7 @@ void MainWindow::WindowSensorAndCanal(){
                     can_ptr->color_series = color_map.value(text);
                 });
                 connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
-                    can_ptr->name_type = text;
+                    can_ptr->name_canal = text;
                 });
                 hbox->addWidget(check);
                 hbox->addWidget(combo_name);
@@ -968,8 +1108,8 @@ void MainWindow::WindowSensorAndCanal(){
 }
 void MainWindow::PanelLegendACM(){
     for(auto data : data_sensor_){
-        chart_view_->PanelLegendACM(data);
         data_base_.AddDataSerACM(data);
+        chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
     }
     data_sensor_.clear();
     win_sens_can_->hide();
