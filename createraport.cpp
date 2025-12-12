@@ -29,7 +29,7 @@ void CreateRaport::CreateAllShortDoc(QVector<DataSeriesSensor>& vec_data,QString
     QString path = QApplication::applicationDirPath();
     QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
     for (DataSeriesSensor& data : vec_data){
-        QString file_data ="/" + data.name_sensor.trimmed() + "_Давление.txt";
+        QString file_data ="/" + data.name_sensor.trimmed() + "_" + name_canal + ".txt";
         QString file_name = dir_name +  file_data  ;
         if(file_name.isEmpty()){
             return;
@@ -103,20 +103,6 @@ void CreateRaport::CreateDoc(DataSeriesSensor& data, QString name){
     }
     out << "------------------------------------------------\n";
 }
-void CreateRaport::CreateAllDeltaDoc(){
-    QString path = QApplication::applicationDirPath();
-    QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
-    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
-    for(DataSeriesSensor& acm : data){
-            QString file_data ="/" + acm.name_sensor.trimmed() + "_Погрешность.txt";
-            QString file_name = dir_name +  file_data  ;
-            if(file_name.isEmpty()){
-                return;
-            }
-            CreateDeltaDoc(acm, file_name, acm.name_sensor.trimmed());
-    }
-}
-
 void CreateRaport::CreateShortDoc(DataSeriesSensor& data, QString name,QString name_canal){
     QVector<Canal>& acm = data.vec_canal;
     QPointer<QStandardItemModel> model ;
@@ -164,38 +150,4 @@ void CreateRaport::CreateShortDoc(DataSeriesSensor& data, QString name,QString n
         }
     }
     out << QString(66,'-') <<"\n";
-}
-
-void CreateRaport::CreateDeltaDoc(DataSeriesSensor& acm,QString file_name,QString name_sensor){
-    QVector<QDateTime> times = data_base_.GetCheckPoints();
-    QVector<double> bar_data = data_base_.GetCheckPointBar();
-    QVector<double> temp_data = data_base_.GetCheckPointTemp();
-    QFile raport(file_name);
-    if(!raport.open(QIODevice::WriteOnly | QIODevice::Text)){
-        QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
-        return;
-    }
-    QTextStream out(&raport);
-    out << name_sensor + "\n";
-    out << "Дата\tВремя\tTэт\tTизм\tTпогр\tPэт\tPизм\tPпогр\n";
-    for(int i = 0; i<times.size();++i){
-        out << times[i].toString("yyyy.MM.dd\thh-mm-ss") << "\t";
-        out << QString::number(temp_data[i],'f',2) << "\t";
-        if(acm.vec_canal[1].name_canal.contains("Температура",Qt::CaseInsensitive)){
-            out << QString::number(acm.vec_canal[1].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[1].delta_points[i], 'f',2) << "\t";
-            out << QString::number(bar_data[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[0].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[0].delta_points[i], 'f',2) << "\n";
-        } else {
-            out << QString::number(acm.vec_canal[0].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[0].delta_points[i], 'f',2) << "\t";
-            out << QString::number(bar_data[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[1].check_points[i], 'f',2) << "\t";
-            out << QString::number(acm.vec_canal[1].delta_points[i], 'f',2) << "\n";
-        }
-
-
-    }
-    raport.close();
 }

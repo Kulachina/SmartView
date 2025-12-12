@@ -26,7 +26,6 @@ public:
     void ClearAll();
     void CreatePointsDate();
 private:
-
     QVector<DataSeriesSensor> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;
     QVector<QDateTime> check_points_;

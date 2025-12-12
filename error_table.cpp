@@ -2,6 +2,11 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QPushButton>
+#include <QTextStream>
+#include <QApplication>
+#include <QStandardPaths>
+#include <QMessageBox>
+#include <QFileDialog>
 
 ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent)
     : QWidget(parent), data_base_(data_base),create_raport_(create_raport)
@@ -13,7 +18,7 @@ ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget
     QPushButton *btn = new QPushButton("Обновить");
     connect(btn, &QPushButton::clicked, this, &ErrorTable::FillTable);
     QPushButton *btn_rap = new QPushButton("Создать отчеты");
-    connect(btn_rap, &QPushButton::clicked, this, &ErrorTable::CreateRapor);
+    connect(btn_rap, &QPushButton::clicked, this, &ErrorTable::CreateAllDeltaDoc);
     tab_ = new QTabWidget();
     setWindowTitle("Таблица погрешностей");
     hbox->addWidget(btn);
@@ -30,6 +35,7 @@ void ErrorTable::FillTable(){
     DeleteTable();
     for(DataSeriesSensor& acm : data_acm){
         QTableWidget *table = new QTableWidget();
+        table->setObjectName(acm.name_sensor);
         ptr_table.push_back(table);
         table->setColumnCount(7);
         table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -160,8 +166,52 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
     }
     data_base_.AddDeltaVolData(name,del_bar,vol_bar,del_temp,vol_temp);
 }
-void ErrorTable::CreateRapor(){
-    create_raport_.CreateAllDeltaDoc();
+void ErrorTable::CreateAllDeltaDoc(){
+    QString path = QApplication::applicationDirPath();
+    QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& acm : data){
+        QString file_data ="/" + acm.name_sensor.trimmed() + "_Погрешность.txt";
+        QString file_name = dir_name +  file_data  ;
+        if(file_name.isEmpty()){
+            return;
+        }
+        QTableWidget* table = tab_->findChild<QTableWidget*>(acm.name_sensor);
+        if(table){
+            CreateDeltaDoc(table, file_name, acm.name_sensor.trimmed());
+        };
+    }
+}
+void ErrorTable::CreateDeltaDoc(QTableWidget* table, QString file_name,QString name_sensor){
+    QFile raport(file_name);
+    if(!raport.open(QIODevice::WriteOnly | QIODevice::Text)){
+        QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
+        return;
+    }
+    QTextStream out(&raport);
+    out << name_sensor + "\n";
+    if(table){
+        for (int col = 0; col < table->columnCount(); ++col) {
+            QString text = table->model()->headerData(col, Qt::Horizontal).toString();
+            out << QString("%1").arg(text,10);
+            if(col == table->columnCount()-1){
+                out <<"\n";
+            }
+        }
+        for(int row = 0; row < table->rowCount() ; ++row){
+            for(int column = 0;column < table->columnCount();column++){
+                QString word = table->item(row,column)->text();
+                if(column >= 1){
+                    word.replace('.',',');
+                }
+                out << QString("%1").arg(word,10);
+                if(column == table->columnCount()-1){
+                    out <<"\n";
+                }
+            }
+        }
+    }
+    raport.close();
 }
 void ErrorTable::DeleteTable(){
     if(!ptr_table.isEmpty()){

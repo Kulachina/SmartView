@@ -28,6 +28,8 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
     file.close();
     QStringList words;
     int size = all.size();
+    prog_->setWindowFlags(Qt::Window | Qt::WindowTitleHint);
+    prog_->setWindowTitle("Загрузка");
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();

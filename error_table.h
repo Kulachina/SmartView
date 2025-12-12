@@ -14,10 +14,9 @@ class ErrorTable : public QWidget
 public:
     ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent);
     void FillTable();
-    void CreateRapor();
-
-
 private:
+    void CreateAllDeltaDoc();
+    void CreateDeltaDoc(QTableWidget* table, QString file_name,QString name_sensor);
     void FillEtalon(QTableWidget *table);
     void AnalisingSeries(DataSeriesSensor& data,QTableWidget *table);
     void DeleteTable();
@@ -25,8 +24,6 @@ private:
     CreateRaport& create_raport_;
     QTabWidget *tab_;
     QVector<QTableWidget*> ptr_table;
-
-
 
 };
 #endif // ERROR_TABLE_H

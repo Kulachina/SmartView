@@ -31,7 +31,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *import_AMT = new QAction("АМT");
     connect(import_AMT, &QAction::triggered,this, &MainWindow::LoadDocumentAMT);
     QAction *import_LAS = new QAction("LAS");
-    connect(import_LAS, &QAction::triggered,this, &MainWindow::LoadDocumentACM);
+    connect(import_LAS, &QAction::triggered,this, &MainWindow::LoadDocumentLAS);
     menu_sensor->addAction(import_LAS);
     menu_sensor->addAction(import_AMT);
     menu_sensor->addAction(import_ACM);
@@ -57,9 +57,15 @@ MainWindow::MainWindow(QMainWindow *parent)
     menu->addAction(error_delta);
     chart_view_ = new ChartView(nullptr, data_base_);
     QToolBar *tool_bar = new QToolBar();
-    load_doc_2_ = new QAction("Добавить прибор",tool_bar);
+    load_doc_2_ = new QAction("+LAS",tool_bar);
     load_doc_2_->setEnabled(false);
-    connect(load_doc_2_, &QAction::triggered, this,&MainWindow::LoadDocumentACM);
+    connect(load_doc_2_, &QAction::triggered, this,&MainWindow::LoadDocumentLAS);
+    load_doc_3_ = new QAction("+АЦМ",tool_bar);
+    load_doc_3_->setEnabled(false);
+    connect(load_doc_3_, &QAction::triggered, this,&MainWindow::LoadDocumentACM);
+    load_doc_4_ = new QAction("+АМТ",tool_bar);
+    load_doc_4_->setEnabled(false);
+    connect(load_doc_4_, &QAction::triggered, this,&MainWindow::LoadDocumentAMT);
     toogled_legend_ = new QAction("скрыть/показать панель легенд",tool_bar);
     toogled_legend_->setEnabled(false);
     connect(toogled_legend_, &QAction::triggered, this,&MainWindow::ToggledLegendPanel);
@@ -88,6 +94,8 @@ MainWindow::MainWindow(QMainWindow *parent)
     connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocumentEtalon);
     tool_bar->addAction(load_doc);
     tool_bar->addAction(load_doc_2_);
+    tool_bar->addAction(load_doc_3_);
+    tool_bar->addAction(load_doc_4_);
     tool_bar->addAction(window_axis_);
     //tool_bar->addAction(action_series_);
     tool_bar->addAction(toogled_legend_);
@@ -117,10 +125,10 @@ void MainWindow::SetWindow(){
 void MainWindow::LoadDocumentACM(){
     if(!first_open_doc_){
         QString path = QApplication::applicationDirPath();
-        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt);;Las (*.las)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Текстовый документ (*.txt)");
         first_open_doc_ = true;
     } else {
-        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt);;Las (*.las)");
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Текстовый документ (*.txt)");
     }
     if(path_doc_.isEmpty()){
         return;
@@ -132,6 +140,21 @@ void MainWindow::LoadDocumentACM(){
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
         }
+    }
+    WindowSensorAndCanal();
+}
+void MainWindow::LoadDocumentLAS(){
+    if(!first_open_doc_){
+        QString path = QApplication::applicationDirPath();
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", path ,"Las (*.las)");
+        first_open_doc_ = true;
+    } else {
+        path_doc_ = QFileDialog::getOpenFileNames(this, "Открытие файла", save_path_ ,"Las (*.las)");
+    }
+    if(path_doc_.isEmpty()){
+        return;
+    }
+    for(QString path : path_doc_){
         if(path.endsWith(".las", Qt::CaseInsensitive)){
             DataSeriesSensor data = las_.DowlandLas(path);
             data_sensor_.push_back(data);
@@ -182,6 +205,8 @@ void MainWindow::LoadDocumentEtalon(){
         }
         chart_view_->ZoomOn();
         load_doc_2_->setEnabled(true);
+        load_doc_3_->setEnabled(true);
+        load_doc_4_->setEnabled(true);
         toogled_legend_->setEnabled(true);
         shift_series_->setEnabled(true);
         data_in_time_->setEnabled(true);
@@ -362,11 +387,13 @@ void MainWindow::WindowMasterPoint(){
         combo_name_1->addItems(chanels_);
         connect(combo_name_1, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_1_ = text;
+            CreateInContent();
         });
         QComboBox* combo_name_2 = new QComboBox;
         combo_name_2->addItems(chanels_);
         connect(combo_name_2, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_2_ = text;
+            CreateInContent();
         });
         connect(ch_sel_1_table_, &QCheckBox::toggled, this,[this,combo_name_2](){
             if(ch_sel_1_table_->isChecked()){
@@ -436,6 +463,10 @@ void MainWindow::WindowMasterPoint(){
         window_c_p_->setLayout(main_vbox);
         first_open_3_ = true;
     }
+    CreateInContent();
+    window_c_p_->show();
+}
+void MainWindow::CreateInContent(){
     tab_->clear();
     for(auto& data : data_base_.GetDataSerACM()){
         QVector<Canal>& acm = data.vec_canal;
@@ -555,7 +586,6 @@ void MainWindow::WindowMasterPoint(){
         tab_sensor->setLayout(vbox);
         tab_->addTab(tab_sensor,data.name_sensor);
     }
-    window_c_p_->show();
 }
 void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
     QVector<double> vec_temp = data_base_.GetCheckPointTemp();
@@ -608,25 +638,6 @@ void MainWindow::FillFromOneTable(){
     if(!data_base_.GetDataSerACM().isEmpty()){
         for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
             QVector<Canal>& acm = data.vec_canal;
-            QPointer<QStandardItemModel> model;
-            for(Canal& a :acm){
-                if(a.name_canal.contains(name_canal_1_,Qt::CaseInsensitive)){
-                    model = a.model;
-                }
-            }
-            QVector<double> vec_temp = data_base_.GetCheckPointTemp();
-            QVector<double> vec_bar = data_base_.GetCheckPointBar();
-            if(model){
-                model->setColumnCount(4);
-                model->setRowCount(s_et_temp_->value());
-                model->setItem(0,0,new QStandardItem("№ Точки"));
-                model->setItem(0,1,new QStandardItem("Время"));
-                model->setItem(0,2,new QStandardItem("Значение"));
-                model->setItem(0,3,new QStandardItem("Эталон"));
-            }
-        }
-        for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
-            QVector<Canal>& acm = data.vec_canal;
             QPointer<QLineSeries> series;
             QPointer<QStandardItemModel> model;
             for(Canal& a :acm){
@@ -634,6 +645,14 @@ void MainWindow::FillFromOneTable(){
                     series = a.series;
                     model = a.model;
                 }
+            }
+            if(model){
+                model->setColumnCount(4);
+                model->setRowCount(s_et_temp_->value());
+                model->setItem(0,0,new QStandardItem("№ Точки"));
+                model->setItem(0,1,new QStandardItem("Время"));
+                model->setItem(0,2,new QStandardItem("Значение"));
+                model->setItem(0,3,new QStandardItem("Эталон"));
             }
             const QVector<QDateTime> vec = data_base_.GetCheckPoints();
             const QVector<double> temp = data_base_.GetCheckPointTemp();
@@ -870,6 +889,7 @@ void MainWindow::DeleteSens(DataSeriesSensor& data){
         delete a.label;
         delete a.model;
         delete a.series;
+        delete a.axis_y_;
     }
     delete data.label_sensor;
     delete data.line;

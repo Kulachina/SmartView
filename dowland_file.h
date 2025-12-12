@@ -68,9 +68,8 @@ private:
     QList<QCheckBox*> check_list_;
     QVector<NameChart> chart_name_and_index_;
     QFile file_;
-    QProgressBar *progress_;
-    QWidget *w_progress_,
-            *w_select_chart_;
+    QProgressBar *prog_;
+    QWidget *w_select_chart_;
     int count = 0,
         index_data_;
     double bar_max_ = 0,

@@ -37,6 +37,7 @@ public slots:
     void LoadDocumentEtalon();
     void LoadDocumentACM();
     void LoadDocumentAMT();
+    void LoadDocumentLAS();
     void ToggledLegendPanel();
     void ShiftSeries();
     void ShiftCheckPoint();
@@ -57,6 +58,7 @@ public slots:
     void SaveAllSV();
     void PanelLegendACM();
 private:
+    void CreateInContent();
     void WindowSensorAndCanal();
     void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();
@@ -89,6 +91,8 @@ private:
             *win_sens_can_,
             *window_view_;
     QAction *load_doc_2_,
+            *load_doc_3_,
+            *load_doc_4_,
             *toogled_legend_,
             *shift_series_,
             *shift_check_point_,
