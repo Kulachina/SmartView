@@ -11,6 +11,7 @@
 #include <QStandardItemModel>
 #include <QPointer>
 #include <QCheckBox>
+#include <QPair>
 
 struct Canal{
     QLineSeries* series;
@@ -29,6 +30,7 @@ struct Canal{
     QString name_sensor;
     QString name_unit;
     QString color_series;
+    QVector<QPair<double,double>> vec_max_min_unit;
     double unit_min = 0;
     double unit_max = 0;
     bool first_unit = true;

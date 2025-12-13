@@ -77,6 +77,7 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
         acm[i].series->attachAxis(acm[i].axis_y_);
         acm[i].series->replace(acm[i].points_triangle);
         acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
+        acm[i].axis_y_->setTitleText(data.name_sensor + " " + acm[i].name_canal +" "+acm[i].name_unit);
         acm[i].axis_y_->setVisible(false);
         data_base_.AddListAxis(acm[i].axis_y_);
         acm[i].hbox = new QHBoxLayout();
@@ -475,11 +476,13 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     chart()->update();
 }
 void ChartView::SaveZoom(){
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& d : data){
+        for(Canal& can : d.vec_canal){
+            can.vec_max_min_unit.push_back({can.axis_y_->max(),can.axis_y_->min()});
+        }
+    }
     BoxZoom box;
-    box.bar_max_acm_ = axis_bar_->max();
-    box.bar_min_acm_ = axis_bar_->min();
-    box.temp_max_acm_ = axis_temp_->max();
-    box.temp_min_acm_ = axis_temp_->min();
     box.temp_min_etalon_ = axis_temp_etalon_->min();
     box.temp_max_etalon_ = axis_temp_etalon_->max();
     box.bar_min_etalon_ = axis_bar_etalon_->min();
@@ -494,9 +497,16 @@ void ChartView::ResetZoom(){
         axis_time_->setRange(time.first,time.second);
         return;
     }
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& d : data){
+        for(Canal& can : d.vec_canal){
+            if(!can.vec_max_min_unit.empty()){
+                can.axis_y_->setRange(can.vec_max_min_unit.back().second,can.vec_max_min_unit.back().first);
+                can.vec_max_min_unit.pop_back();
+            }
+        }
+    }
     BoxZoom box = box_zoom_.back();
-    axis_bar_->setRange(box.bar_min_acm_,box.bar_max_acm_);
-    axis_temp_->setRange(box.temp_min_acm_, box.temp_max_acm_);
     axis_time_->setRange(box.axis_min,box.axis_max);
     axis_bar_etalon_->setRange(box.bar_min_etalon_,box.bar_max_etalon_);
     axis_temp_etalon_->setRange(box.temp_min_etalon_,box.temp_max_etalon_);
@@ -509,9 +519,16 @@ void ChartView::ZeroZoom(){
         axis_time_->setRange(time.first,time.second);
         return;
     }
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& d : data){
+        for(Canal& can : d.vec_canal){
+            if(!can.vec_max_min_unit.empty()){
+                can.axis_y_->setRange(can.vec_max_min_unit[0].second,can.vec_max_min_unit[0].first);
+                can.vec_max_min_unit.clear();
+            }
+        }
+    }
     BoxZoom box = box_zoom_[0];
-    axis_bar_->setRange(box.bar_min_acm_,box.bar_max_acm_);
-    axis_temp_->setRange(box.temp_min_acm_, box.temp_max_acm_);
     axis_time_->setRange(box.axis_min,box.axis_max);
     axis_bar_etalon_->setRange(box.bar_min_etalon_,box.bar_max_etalon_);
     axis_temp_etalon_->setRange(box.temp_min_etalon_,box.temp_max_etalon_);
@@ -523,8 +540,6 @@ void ChartView::ZoomChart(QRect rect){
     bool axis_max = false;
     bool first_bar_etalon = false;
     bool first_temp_etalon = false;
-    bool first_bar_acm = false;
-    bool first_temp_acm = false;
     for(QAbstractSeries *series : chart_->series()){
         if(QLineSeries *series_line = qobject_cast<QLineSeries*>(series)){
             for(QPointF point :series_line->points()){
@@ -549,24 +564,6 @@ void ChartView::ZoomChart(QRect rect){
                         bar_max_etalon_ = qMax(bar_max_etalon_,y);
                         bar_min_etalon_ = qMin(bar_min_etalon_,y);
                     }
-                    if(series->objectName() == "bar"){
-                        if(!first_bar_acm){
-                            bar_max_acm_ = y;
-                            bar_min_acm_ = y;
-                            first_bar_acm= true;
-                        }
-                        bar_max_acm_ = qMax(bar_max_acm_,y);
-                        bar_min_acm_ = qMin(bar_min_acm_,y);
-                    }
-                    if(series->objectName() == "temp"){
-                        if(!first_temp_acm){
-                            temp_max_acm_ = y;
-                            temp_min_acm_ = y;
-                            first_temp_acm= true;
-                        }
-                        temp_max_acm_ = qMax(temp_max_acm_,y);
-                        temp_min_acm_ = qMin(temp_min_acm_,y);
-                    }
                 }
                 if(rect.left() == screen_pos.x() && !axis_min){
                     QDateTime time = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(point.x()));
@@ -581,17 +578,37 @@ void ChartView::ZoomChart(QRect rect){
             }
         }
     }
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(DataSeriesSensor& d : data){
+        for(Canal& can : d.vec_canal){
+            can.first_unit = true;
+            for(QPointF point :can.series->points()){
+                QPoint screen_pos = chart_->mapToPosition(point,can.series).toPoint();
+                if(rect.left() < screen_pos.x() && rect.right() > screen_pos.x()){
+                    double y = point.y();
+                    if(can.first_unit){
+                        can.unit_max= y;
+                        can.unit_min = y;
+                        can.first_unit = false;
+                    }
+                    can.unit_max = qMax(can.unit_max,y);
+                    can.unit_min = qMin(can.unit_min,y);
+                }
+            }
+            if(auto_zoom_ && can.name_canal == "Т-Температура"){
+                can.axis_y_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
+            }
+            if(auto_zoom_ && can.name_canal == "Р-Давление") {
+                can.axis_y_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
+            }
+            if(!auto_zoom_){
+                can.axis_y_->setRange(can.unit_min,can.unit_max);
+            }
+        }
+    }
     axis_bar_etalon_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
     axis_temp_etalon_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
     axis_time_->setRange(axis_min_,axis_max_);
-    if(auto_zoom_){
-        axis_bar_->setRange(bar_min_etalon_,bar_max_etalon_ + bar_max_etalon_*0.1);
-        axis_temp_->setRange(temp_min_etalon_,temp_max_etalon_ + temp_max_etalon_*0.1);
-    } else {
-        axis_bar_->setRange(bar_min_acm_,bar_max_acm_ + bar_max_acm_*0.05);
-        axis_temp_->setRange(temp_min_acm_,temp_max_acm_ + temp_max_acm_*0.05);
-    }
-
 }
 void ChartView::SetLineFromMouse(QPointF point){
     double mouse_x = point.x();

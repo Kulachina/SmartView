@@ -967,6 +967,7 @@ void MainWindow::WindowView(){
     if(!first_open_win_view_){
         window_view_ = new QWidget();
         window_view_->setWindowTitle("Вид");
+        window_view_->setWindowModality(Qt::ApplicationModal);
         window_view_->setWindowFlags(Qt::WindowCloseButtonHint);
         QCheckBox *ch_auto = new QCheckBox("Автомаштаб");
         connect(ch_auto, &QCheckBox::toggled, this, &MainWindow::AutoZoom);
@@ -1042,6 +1043,7 @@ void MainWindow::WindowSensorAndCanal(){
     if (first_open_win_sens_can_){
         win_sens_can_->setWindowTitle("Приборы и каналы");
         win_sens_can_->resize(600, 350);
+        win_sens_can_->setWindowModality(Qt::ApplicationModal);
         sensor_list_ = new QListWidget();
         sensor_list_->setFixedWidth(150);
         canal_list_ = new QListWidget();
@@ -1059,10 +1061,12 @@ void MainWindow::WindowSensorAndCanal(){
     QMap<QString, QString> color_map;
     color_map["Чёрный"] = "0, 0, 0";
     color_map["Красный"] = "255, 0, 0";
-    color_map["Синий"] = "0, 0, 255";
-    color_map["Светло-синий"] = "173, 216, 230";
-    color_map["Фиолетовый"] = "128, 0, 128";
-    color_map["Зелёный"] = "0, 128, 0";
+    color_map["Темно-синий"] = "0, 0, 255";
+    color_map["Синий"] = "68, 114, 196";
+    color_map["Голубой"] = "155, 194, 230";
+    color_map["Фиолетовый"] = "112, 48, 160";
+    color_map["Зелёный"] = "0, 126, 57";
+    color_map["Коричневый"] = "191, 143, 0";
 
     sensor_list_->clear();
     for(DataSeriesSensor&  data : data_sensor_){
@@ -1086,6 +1090,14 @@ void MainWindow::WindowSensorAndCanal(){
                 hbox->setContentsMargins(0,0,0,0);
                 QCheckBox* check = new QCheckBox(can_ref.name_canal);
                 check->setCheckState(Qt::Checked);
+                QComboBox* combo_color = new QComboBox;
+                combo_color->addItems({"Чёрный","Красный","Синий","Голубой","Фиолетовый","Зелёный","Темно-синий","Коричневый"});
+                QComboBox* combo_name = new QComboBox;
+                QComboBox* combo_unit = new QComboBox;
+                combo_unit->addItems({"кгс/см2","МПа","°C","К","мкР/ч","м3/ч",
+                                       "См/м","мСм/см","%","-","г/см3","кг/м3"});
+                QCheckBox* check_ACP = new QCheckBox("AЦП");
+                check_ACP->setCheckState(Qt::Unchecked);
                 connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check](){
                     if(check->isChecked()){
                         can_ptr->select_box = true;
@@ -1093,31 +1105,52 @@ void MainWindow::WindowSensorAndCanal(){
                         can_ptr->select_box = false;
                     }
                 });
-                QComboBox* combo_color = new QComboBox;
-                combo_color->addItems({"Чёрный","Красный","Синий","Светло-синий","Фиолетовый","Зелёный"});
-                QComboBox* combo_name = new QComboBox;
+                connect(check_ACP, &QCheckBox::toggled, w,[can_ptr = &can_ref,check_ACP,combo_unit](){
+                    if(check_ACP->isChecked()){
+                        can_ptr->name_canal = "АЦП_" + can_ptr->name_canal;
+                        combo_unit->setCurrentText("-");
+                        can_ptr->name_unit = "-";
+                        combo_unit->setEnabled(false);
+                        qDebug() << can_ptr->name_canal;
+                    } else {
+                        can_ptr->name_canal = can_ptr->name_canal.mid(4);
+                        qDebug() << can_ptr->name_canal;
+                        combo_unit->setEnabled(true);
+                    }
+                });
                 combo_name->addItems(chanels_);
                 combo_color->setCurrentText("Черный");
                 if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
-                    can_ref.name_canal = "Давление";
+                    can_ref.name_canal = "Р-Давление";
                     can_ref.color_series = "255, 0, 0";
                     combo_color->setCurrentText("Красный");
-                    combo_name->setCurrentText("Давление");
+                    combo_name->setCurrentText("Р-Давление");
+                    combo_unit->setCurrentText("кгс/см2");
                 }
                 if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
-                    can_ref.name_canal = "Температура";
+                    can_ref.name_canal = "Т-Температура";
                     can_ref.color_series = "0, 0, 255";
-                    combo_color->setCurrentText("Синий");
-                    combo_name->setCurrentText("Температура");
+                    combo_color->setCurrentText("Темно-синий");
+                    combo_name->setCurrentText("Т-Температура");
+                    combo_unit->setCurrentText("°C");
                 }
                 connect(combo_color, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, color_map](const QString &text){
                     can_ptr->color_series = color_map.value(text);
+
                 });
-                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
+                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_unit](const QString &text){
                     can_ptr->name_canal = text;
+                    if(text == "Т-Температура"){
+                        combo_unit->setCurrentText("°C");
+                    }
+                });
+                connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
+                    can_ptr->name_unit = text;
                 });
                 hbox->addWidget(check);
                 hbox->addWidget(combo_name);
+                hbox->addWidget(check_ACP);
+                hbox->addWidget(combo_unit);
                 hbox->addWidget(combo_color);
                 w->setLayout(hbox);
                 canal_list_->setItemWidget(item, w);

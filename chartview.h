@@ -19,12 +19,8 @@
 struct BoxZoom{
     double bar_max_etalon_,
         bar_min_etalon_,
-        bar_max_acm_,
-        bar_min_acm_,
         temp_max_etalon_,
-        temp_min_etalon_,
-        temp_max_acm_,
-        temp_min_acm_;
+        temp_min_etalon_;
     QDateTime axis_min,
               axis_max;
 };

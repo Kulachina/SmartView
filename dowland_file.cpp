@@ -182,7 +182,7 @@ void DowlandFile::CreateACM(DataSeriesSensor& data, QString name_canal, QString 
     QPen pen;
     pen.setWidth(1);
     acm.axis_y_ = new QValueAxis();
-    acm.axis_y_->setTitleText(data.name_sensor + " " + name_canal);
+    //acm.axis_y_->setTitleText(data.name_sensor + " " + name_canal);
     acm.axis_y_->setTickCount(21);
     acm.series = new QLineSeries();
     acm.series->setPen(pen);

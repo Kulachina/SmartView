@@ -112,7 +112,7 @@ private:
     QTableView *fix_table_;
     QListWidget *sensor_list_;
     QListWidget *canal_list_;
-    QStringList chanels_ = {"ГК","Расход","Температура","Давление","Влагомер","Резистивиметр"};
+    QStringList chanels_ = {"GK-ГК","Q-Расход","Т-Температура","Р-Давление","VLG-Влагомер","REZ-Резистивиметр","PL-Плотность флюида"};
     bool first_open_ = false,
          first_open_2_ = false,
          first_open_3_ = false,
