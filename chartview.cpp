@@ -258,7 +258,7 @@ void ChartView::MoveCheckPoint(qreal point, qreal dx){
     qint64 res = ((t + 500) / 1000) * 1000;
     QList<QPointF> points_temp = data_base_.GetDataSerEtalon()[0].series->points();
     QList<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].series->points();
-    for(int i =0 ; i<= points_temp.size()-1;++i){
+    for(int i =0 ; i < points_temp.size();++i){
         if(static_cast<qint64>(points_temp[i].x()) == res){
             data_base_.GetCheckPointTemp()[active_check_point_] = points_temp[i].y();
             data_base_.GetCheckPointBar()[active_check_point_] = points_bar[i].y();

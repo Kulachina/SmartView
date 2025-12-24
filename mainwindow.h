@@ -58,6 +58,7 @@ public slots:
     void SaveAllSV();
     void PanelLegendACM();
 private:
+    void CreateCheckPoint(QTime hour);
     void CreateInContent();
     void WindowSensorAndCanal();
     void ChangeAllTables(QStandardItem * item);
