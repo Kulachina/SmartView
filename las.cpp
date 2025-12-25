@@ -20,6 +20,7 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
         qWarning() << "Не удалось открыть файл для чтения:" << path;
         return data_;
     }
+    data_.vec_canal.clear();
     QTextStream in(&file);
     QTextCodec *codec = QTextCodec::codecForName("IBM 866");
     QByteArray ba = file.readAll();
@@ -34,7 +35,6 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
     prog_->setValue(0);
     prog_->show();
     for(int i = 0; i < size;++i){
-
         prog_->setValue(i);
         QCoreApplication::processEvents();
         words = all[i].split(" ",Qt::SkipEmptyParts);
@@ -53,6 +53,9 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
         if(words[0] == "IPRB."){
             SetNameSensor(words);
         }
+        if(words[0] == "NPRB."){
+            SetNumSensor(words);
+        }
         if(log_data_){
             LogData(words);
         }
@@ -60,6 +63,7 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
             log_data_ = true;
         }
     }
+    log_data_= false;
     prog_->hide();
     return data_;
 }
@@ -75,6 +79,7 @@ void Las::SelectCurve(QStringList& words){
     if(words[0].contains("~",Qt::CaseInsensitive)){
         select_curve_ = false;
         CreateSensor();
+        name_curve_.clear();
         return;
     }
     name_curve_.push_back(words[0]);
@@ -137,4 +142,8 @@ void Las::CreateCanal(QString name){
 void Las::SetNameSensor(const QStringList& words){
     int index = words[1].indexOf(':');
     data_.name_sensor = words[1].left(index);
+}
+void Las::SetNumSensor(const QStringList& words){
+    int index = words[1].indexOf(':');
+    data_.number_sensor = words[1].left(index);
 }

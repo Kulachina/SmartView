@@ -17,6 +17,7 @@ public:
     DataSeriesSensor& DowlandLas(const QString path);
 private:
     void SetNameSensor(const QStringList& words);
+    void SetNumSensor(const QStringList& words);
     void SetStartDate(const QStringList& words);
     void SetStartTime(const QStringList& words);
     void SelectCurve(QStringList& words);

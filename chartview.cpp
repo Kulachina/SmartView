@@ -260,9 +260,13 @@ void ChartView::MoveCheckPoint(qreal point, qreal dx){
     QList<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].series->points();
     for(int i =0 ; i < points_temp.size();++i){
         if(static_cast<qint64>(points_temp[i].x()) == res){
-            data_base_.GetCheckPointTemp()[active_check_point_] = points_temp[i].y();
-            data_base_.GetCheckPointBar()[active_check_point_] = points_bar[i].y();
-            data_base_.GetCheckPoints()[active_check_point_] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
+            if(i < points_temp.size()){
+                data_base_.GetCheckPointTemp()[active_check_point_] = points_temp[i].y();
+                data_base_.GetCheckPoints()[active_check_point_] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
+            }
+            if(i < points_bar.size()){
+                data_base_.GetCheckPointBar()[active_check_point_] = points_bar[i].y();
+            }
             break;
         }
     }
@@ -451,6 +455,7 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     if(event->button() == Qt::LeftButton){
         is_dragging_check_point_ = false;
+        ReBuildPointSeries();
 
     }
     if(event->button() == Qt::LeftButton){

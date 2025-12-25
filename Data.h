@@ -35,10 +35,11 @@ struct Canal{
     double unit_max = 0;
     bool first_unit = true;
     bool first_write_rectangle = false;
-    bool select_box;
+    bool select_box =false;
 };
 struct DataSeriesSensor{
     QString name_sensor;
+    QString number_sensor;
     QVector<Canal> vec_canal;
     QFrame *line;
     QLabel *label_sensor;

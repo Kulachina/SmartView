@@ -145,8 +145,6 @@ void DowlandFile::LoadDocEtalon(QString path) {
     }
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(data.time));
     prog_->hide();
-    data_etalon_[0].series->replace(p_temp_);
-    data_etalon_[1].series->replace(p_bar_);
     data_etalon_[1].axis_y_->setRange(bar_min_,bar_max_ + bar_max_ * 0.1);
     data_etalon_[0].axis_y_->setRange(temp_min_,temp_max_ + temp_max_ * 0.1);
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
@@ -154,6 +152,8 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_base_.GetDataSerEtalon()[1] = data_etalon_[1];
     data_base_.GetDataSerEtalon()[1].points_triangle_view_bar = p_bar_;
     data_base_.GetDataSerEtalon()[0].points_triangle_view_temp = p_temp_;
+    data_base_.GetDataSerEtalon()[0].series->replace(p_temp_);
+    data_base_.GetDataSerEtalon()[1].series->replace(p_bar_);
     p_temp_.clear();
     p_bar_.clear();
     set_axis_x_ = false;
@@ -178,7 +178,8 @@ void DowlandFile::CreateACM(DataSeriesSensor& data, QString name_canal, QString 
     acm.label_data = new QLabel();
     acm.name_canal = name_canal;
     acm.name_unit = name_unit;
-    acm.select_box = new QCheckBox(name_canal);
+    acm.name_sensor = name_sensor;
+    acm.select_box = false;
     QPen pen;
     pen.setWidth(1);
     acm.axis_y_ = new QValueAxis();

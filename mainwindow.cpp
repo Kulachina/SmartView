@@ -916,6 +916,7 @@ void MainWindow::WindowCheckPoints(){
             create_new_point->setLayout(vbox_new_point);
             connect(btn_create, &QPushButton::clicked,this, [=](){
                 CreateCheckPoint(s_hour->time());
+                chart_view_->ReBuildPointSeries();
                 CreateTableCheckPoints();
             });
             QPushButton *btn_delete = new QPushButton("Удалить КТ");
@@ -1133,7 +1134,7 @@ void MainWindow::WindowSensorAndCanal(){
 
     sensor_list_->clear();
     for(DataSeriesSensor&  data : data_sensor_){
-        sensor_list_->addItem(data.name_sensor);
+        sensor_list_->addItem(data.name_sensor +" "+ data.number_sensor);
     }
     QObject::connect(sensor_list_, &QListWidget::itemSelectionChanged, [this, color_map]() {
         canal_list_->clear();
@@ -1142,10 +1143,11 @@ void MainWindow::WindowSensorAndCanal(){
         }
         QString sensor_name = sensor_list_->selectedItems().first()->text();
         for (auto& data : data_sensor_) {
-            if (data.name_sensor != sensor_name){
+            if (data.name_sensor +" "+ data.number_sensor != sensor_name){
                 continue;
             }
             for (Canal& can_ref : data.vec_canal) {
+                can_ref.select_box = false;
                 QListWidgetItem *item = new QListWidgetItem(canal_list_);
                 item->setSizeHint(QSize(400, 40));
                 QWidget *w = new QWidget;
