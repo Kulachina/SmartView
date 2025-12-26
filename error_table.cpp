@@ -83,18 +83,58 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
     QPointer<QLineSeries> series_bar;
     QPointer<QLineSeries> series_temp;
     QString name = data.name_sensor;
+    QString type_error_temp;
+    QString type_error_bar;
     QVector<double> del_temp;
     QVector<double> vol_temp;
     QVector<double> del_bar;
     QVector<double> vol_bar;
+    int type_er_bar;
+    int type_er_temp;
+    double accept_min_bar;
+    double accept_max_bar;
+    double accept_min_temp;
+    double accept_max_temp;
+    int duration_temp;
+    int duration_bar;
     double delta;
     double value;
     for(Canal& a :acm){
         if(a.name_canal.contains("Давление",Qt::CaseInsensitive)){
             series_bar = a.series;
+            if(a.type_error == 1){
+                type_error_bar = "dP абс.";
+                type_er_bar =1;
+            }
+            if(a.type_error == 2){
+                type_error_bar = "dP отн.";
+                type_er_bar = 2;
+            }
+            if(a.type_error == 3){
+                type_error_bar = "dP прв.";
+                type_er_bar = 3;
+                duration_bar = a.duration_error_max - a.duration_error_min;
+            }
+            accept_max_bar = a.accept_max;
+            accept_min_bar = a.accept_min;
         }
         if(a.name_canal.contains("Температура",Qt::CaseInsensitive)){
             series_temp = a.series;
+            if(a.type_error == 1){
+                type_error_temp = "dT абс.";
+                type_er_temp = 1;
+            }
+            if(a.type_error == 2){
+                type_error_temp = "dT отн.";
+                type_er_temp = 2;
+            }
+            if(a.type_error == 3){
+                type_error_temp = "dT прв.";
+                type_er_temp = 3;
+                duration_temp = a.duration_error_max - a.duration_error_min;
+            }
+            accept_max_temp = a.accept_max;
+            accept_min_temp = a.accept_min;
         }
     }
     const QVector<QDateTime>& vec = data_base_.GetCheckPoints();
@@ -111,12 +151,14 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             if(time == vec[count]){
                 count++;
                 value = table->item(row,1)->text().toDouble();
-                delta = static_cast<double>(point.y()) - value;
+
+                delta = CalcError(type_er_bar,value,point.y(),duration_bar);
+                //delta = static_cast<double>(point.y()) - value;
                 vol_bar.push_back(static_cast<double>(point.y()));
                 del_bar.push_back(delta);
                 QTableWidgetItem *it_del = new QTableWidgetItem(QString::number(delta, 'f',2));
                 QTableWidgetItem *it = new QTableWidgetItem(QString::number(point.y(), 'f',2));
-                if(delta > 1.5 || delta < -1.5){
+                if(delta > accept_max_bar || delta < accept_min_bar){
                     it_del->setBackground(Qt::yellow);
                 }
                 it_del->setTextAlignment(Qt::AlignCenter);
@@ -129,7 +171,7 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             }
         }
         table->setHorizontalHeaderItem(3,new QTableWidgetItem("Pизм"));
-        table->setHorizontalHeaderItem(4,new QTableWidgetItem("dP абс."));
+        table->setHorizontalHeaderItem(4,new QTableWidgetItem(type_error_bar));
         count = 0;
         row = 0;
     }
@@ -144,12 +186,13 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             if(time == vec[count]){
                 count++;
                 value = table->item(row,2)->text().toDouble();
-                delta = static_cast<double>(point.y()) - value;
+                delta = CalcError(type_er_temp,value,point.y(),duration_temp);
+                //delta = static_cast<double>(point.y()) - value;
                 vol_bar.push_back(static_cast<double>(point.y()));
                 del_bar.push_back(delta);
                 QTableWidgetItem *it_del = new QTableWidgetItem(QString::number(delta, 'f',2));
                 QTableWidgetItem *it = new QTableWidgetItem(QString::number(point.y(), 'f',2));
-                if(delta > 1.5 || delta < -1.5){
+                if(delta > accept_max_temp || delta < accept_min_temp){
                     it_del->setBackground(Qt::yellow);
                 }
                 it_del->setTextAlignment(Qt::AlignCenter);
@@ -162,7 +205,7 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             }
         }
         table->setHorizontalHeaderItem(5,new QTableWidgetItem("Tизм"));
-        table->setHorizontalHeaderItem(6,new QTableWidgetItem("dT абс."));
+        table->setHorizontalHeaderItem(6,new QTableWidgetItem(type_error_temp));
     }
     data_base_.AddDeltaVolData(name,del_bar,vol_bar,del_temp,vol_temp);
 }
@@ -213,6 +256,29 @@ void ErrorTable::CreateDeltaDoc(QTableWidget* table, QString file_name,QString n
     }
     raport.close();
 }
+double ErrorTable::CalcError(int type, double etalon, double data, int duration){
+    if(type == 1){
+        return data - etalon;
+    }
+    if(type == 2){
+        double abs = data - etalon;
+        double otn = (abs/etalon) * 100;
+        if(otn < 0){
+            otn = otn * -1;
+        }
+        return otn;
+    }
+    if(type == 3){
+        double abs = data - etalon;
+        double prv = (abs/duration) * 100;
+        if(prv < 0){
+            prv = prv * -1;
+        }
+        return prv;
+    }
+    return 999.25;
+}
+
 void ErrorTable::DeleteTable(){
     if(!ptr_table.isEmpty()){
         for(QTableWidget* ptr :ptr_table){

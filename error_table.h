@@ -15,6 +15,7 @@ public:
     ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent);
     void FillTable();
 private:
+    double CalcError(int type, double etalon, double data, int duration);
     void CreateAllDeltaDoc();
     void CreateDeltaDoc(QTableWidget* table, QString file_name,QString name_sensor);
     void FillEtalon(QTableWidget *table);

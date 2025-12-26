@@ -23,6 +23,7 @@ struct Canal{
     QVector<QPointF> points_rectangle;
     QVector<double> check_points;
     QVector<double> delta_points;
+    QVector<QPair<double,double>> vec_max_min_unit;
     QHBoxLayout* hbox;
     QCheckBox* check_box;
     QPointer<QStandardItemModel> model;
@@ -30,7 +31,11 @@ struct Canal{
     QString name_sensor;
     QString name_unit;
     QString color_series;
-    QVector<QPair<double,double>> vec_max_min_unit;
+    int type_error;
+    int duration_error_min;
+    int duration_error_max;
+    double accept_min;
+    double accept_max;
     double unit_min = 0;
     double unit_max = 0;
     bool first_unit = true;
