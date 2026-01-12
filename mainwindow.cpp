@@ -897,7 +897,6 @@ void MainWindow::DeleteSens(DataSeriesSensor& data){
 
 }
 void MainWindow::WindowCheckPoints(){
-    if(!data_base_.GetCheckPoints().isEmpty()){
         if(!first_open_win_check_points_){
             window_check_points_->setWindowTitle("Контролтные точки");
             fix_table_ = new QTableView();
@@ -945,22 +944,20 @@ void MainWindow::WindowCheckPoints(){
         CreateTableCheckPoints();
         window_check_points_->show();
     }
-}
-void MainWindow::CreateCheckPoint(QTime time){
-    QVector<QDateTime>& dat = data_base_.GetCheckPoints();
-    QVector<double>& v_bar = data_base_.GetCheckPointBar();
-    QVector<double>& v_temp = data_base_.GetCheckPointTemp();
-    QDateTime check(dat[0].date(),time);
+
+void MainWindow::CreateCheckPoint(QTime time_read){
     double temp = 0.0;
     double bar = 0.0;
+    QDateTime date_study;
     QVector<DataSeriesEtalon>& vec = data_base_.GetDataSerEtalon();
     for(DataSeriesEtalon& v : vec){
         if(v.series){
             for(QPointF point : v.series->points()){
                 qint64 t = static_cast<qint64>(point.x());
                 qint64 res = ((t + 500) / 1000) * 1000;
-                QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-                if(check == time){
+                QDateTime date = QDateTime::fromMSecsSinceEpoch(res);
+                QTime time = date.time();
+                if(time_read == time){
                     v.point_series->append(point);
                     if(v.name_series == "ЛТ300"){
                         temp = point.y();
@@ -968,24 +965,37 @@ void MainWindow::CreateCheckPoint(QTime time){
                     if(v.name_series == "ДМ5002М"){
                         bar = point.y();
                     }
+                    date_study = date;
                     break;
                 }
             }
         }
     }
-    for(int i = 0;i< dat.size();++i){
-        if(check < dat[i]){
-            dat.insert(dat.begin() + i,check);
-            v_bar.insert(v_bar.begin() + i, bar);
-            v_temp.insert(v_temp.begin() + i, temp);
-            break;
+    QVector<QDateTime>& dat = data_base_.GetCheckPoints();
+    QVector<double>& v_bar = data_base_.GetCheckPointBar();
+    QVector<double>& v_temp = data_base_.GetCheckPointTemp();
+    if(!data_base_.GetCheckPoints().isEmpty()){
+        for(int i = 0;i< dat.size();++i){
+            if(time_read < dat[i].time()){
+                QDateTime check(dat[0].date(),time_read);
+                dat.insert(dat.begin() + i,check);
+                v_bar.insert(v_bar.begin() + i, bar);
+                v_temp.insert(v_temp.begin() + i, temp);
+                break;
+            }
+            if(i+1 == dat.size()){
+                QDateTime check(dat[0].date(),time_read);
+                dat.insert(dat.end(),check);
+                v_bar.insert(v_bar.end(), bar);
+                v_temp.insert(v_temp.end(), temp);
+                break;
+            }
         }
-        if(i+1 == dat.size()){
-            dat.insert(dat.end(),check);
-            v_bar.insert(v_bar.end(), bar);
-            v_temp.insert(v_temp.end(), temp);
-            break;
-        }
+    } else {
+        QDateTime check(date_study.date(),time_read);
+        dat.push_back(check);
+        v_bar.push_back(bar);
+        v_temp.push_back(temp);
     }
 }
 
@@ -1006,18 +1016,20 @@ void MainWindow::DeleteCheckPoint(){
 }
 void MainWindow::CreateTableCheckPoints(){
     fix_model_->clear();
-    for(int i =0; i <= data_base_.GetCheckPoints().size()-1; ++i){
-        QStandardItem *time = new QStandardItem(data_base_.GetCheckPoints()[i].time().toString());
-        time->setTextAlignment(Qt::AlignCenter);
-        fix_model_->setItem(i,0,time);
-        QString t_bar = QString::number(data_base_.GetCheckPointBar()[i]);
-        QStandardItem *bar = new QStandardItem(t_bar);
-        bar->setTextAlignment(Qt::AlignCenter);
-        fix_model_->setItem(i,1,bar);
-        QString t_temp = QString::number(data_base_.GetCheckPointTemp()[i]);
-        QStandardItem *temp = new QStandardItem(t_temp);
-        temp->setTextAlignment(Qt::AlignCenter);
-        fix_model_->setItem(i,2,temp);
+    if(!data_base_.GetCheckPoints().isEmpty()){
+        for(int i =0; i <= data_base_.GetCheckPoints().size()-1; ++i){
+            QStandardItem *time = new QStandardItem(data_base_.GetCheckPoints()[i].time().toString());
+            time->setTextAlignment(Qt::AlignCenter);
+            fix_model_->setItem(i,0,time);
+            QString t_bar = QString::number(data_base_.GetCheckPointBar()[i]);
+            QStandardItem *bar = new QStandardItem(t_bar);
+            bar->setTextAlignment(Qt::AlignCenter);
+            fix_model_->setItem(i,1,bar);
+            QString t_temp = QString::number(data_base_.GetCheckPointTemp()[i]);
+            QStandardItem *temp = new QStandardItem(t_temp);
+            temp->setTextAlignment(Qt::AlignCenter);
+            fix_model_->setItem(i,2,temp);
+        }
     }
     fix_model_->setHeaderData(0,Qt::Horizontal,"Время");
     fix_model_->setHeaderData(1,Qt::Horizontal,"Давление");

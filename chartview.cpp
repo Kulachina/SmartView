@@ -657,7 +657,7 @@ void ChartView::ReBuildPointSeries(){
     std::sort(points_temp.begin(),points_temp.end(), [](const QPointF& a, const QPointF& b){
         return a.x() < b.x();
     });
-    for(int i =0; i <= data_base_.GetCheckPointTemp().size()-1; ++i){
+    for(int i =0; i < data_base_.GetCheckPointTemp().size(); ++i){
         data_base_.GetCheckPoints()[i] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
         data_base_.GetCheckPointTemp()[i] = points_temp[i].y();
         data_base_.GetCheckPointBar()[i] = points_bar[i].y();
