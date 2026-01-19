@@ -109,6 +109,57 @@ void DowlandFile::SelectChart(QStringList& words){
         chart_name_and_index_.push_back({word[1],word[2],word[4] +" "+ word[5]});
     }
 }
+void DowlandFile::LoadDocEtalon_2v(QString path){
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        return;
+    }
+    QDataStream in(&file);
+    QString name;
+    QList<QPointF> points;
+    QVector<QPointF> points_rect;
+    QVector<QPointF> check_points;
+    double min;
+    double max;
+    data_etalon_.reserve(2);
+    for(int i = 0; i < 2;++i){
+        in >> name;
+        CreateSeriesEtalon(name);
+        in >> points;
+        in >> points_rect;
+        in >> min;
+        in >> max;
+        in >> check_points;
+        CreateVecCheckPoints(name, check_points);
+        data_etalon_.back().series->replace(points);
+        data_etalon_.back().points_rectangle_view = points_rect;
+        data_etalon_.back().points_triangle_view = points;
+        data_etalon_.back().point_series->replace(check_points);
+        data_etalon_.back().axis_y_->setRange(min,max + max * 0.1);
+        data_base_.AddListAxis(data_etalon_.back().axis_y_);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_.back());
+    }
+    axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(points.front().x()),QDateTime::fromMSecsSinceEpoch(points.back().x()));
+    data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
+    for(QPointF& p : check_points){
+        QDateTime time = QDateTime::fromMSecsSinceEpoch(p.x());
+        data_base_.GetCheckPoints().push_back(time);
+    }
+}
+void DowlandFile::CreateVecCheckPoints(QString name, QVector<QPointF> list){
+    QVector<double> vec;
+    for(QPointF p : list){
+        vec.push_back(p.y());
+    }
+    if(name == "ЛТ300"|| name == "Имитатор ЛТ300"){
+        data_base_.GetCheckPointTemp() = vec;
+    }
+    if(name == "ДМ5002М" || name == "Имитатор ДМ5002М"){
+        data_base_.GetCheckPointBar() = vec;
+    }
+}
+
 void DowlandFile::LoadDocEtalon(QString path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -150,8 +201,8 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
     data_base_.GetDataSerEtalon()[0] = data_etalon_[0];
     data_base_.GetDataSerEtalon()[1] = data_etalon_[1];
-    data_base_.GetDataSerEtalon()[1].points_triangle_view_bar = p_bar_;
-    data_base_.GetDataSerEtalon()[0].points_triangle_view_temp = p_temp_;
+    data_base_.GetDataSerEtalon()[1].points_triangle_view = p_bar_;
+    data_base_.GetDataSerEtalon()[0].points_triangle_view = p_temp_;
     data_base_.GetDataSerEtalon()[0].series->replace(p_temp_);
     data_base_.GetDataSerEtalon()[1].series->replace(p_bar_);
     p_temp_.clear();
@@ -231,8 +282,8 @@ void DowlandFile::CreateSeriesEtalon(QString word){
     doc.point_series->attachAxis(axis_x_);
     doc.series->attachAxis(axis_x_);
     data_etalon_.push_back(doc);
-    data_base_.AddDataSerEtalon(data_etalon_.back());
-    data_base_.AddListAxis(data_etalon_.back().axis_y_);
+    //data_base_.AddDataSerEtalon(data_etalon_.back());
+    //data_base_.AddListAxis(data_etalon_.back().axis_y_);
 }
 void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
     QVector<Canal>& vec_canal = data.vec_canal;
@@ -261,8 +312,8 @@ void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
 }
 
 void DowlandFile::AddDataEtalon(DataEtalon data){
-    QVector<QPointF>& points_bar = data_etalon_[1].points_rectangle_view_bar;
-    QVector<QPointF>& points_temp = data_etalon_[0].points_rectangle_view_temp;
+    QVector<QPointF>& points_bar = data_etalon_[1].points_rectangle_view;
+    QVector<QPointF>& points_temp = data_etalon_[0].points_rectangle_view;
     if(first_write_rectangle_){
         QPointF point_bar = points_bar.back();
         QPointF point_temp = points_temp.back();
@@ -409,6 +460,8 @@ void DowlandFile::LoadSVDoc(const QString path){
 
     file.close();
 }
+
+
 void DowlandFile::LoadDataEt(QDataStream& in){
     quint32 size;
     in >> size;
@@ -416,10 +469,8 @@ void DowlandFile::LoadDataEt(QDataStream& in){
     for(quint32 i = 0;i < size; ++i){
         in >> data.name_series;
         CreateSeriesEtalon(data.name_series);
-        in >> data_base_.GetDataSerEtalon()[i].points_triangle_view_bar
-            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view_bar
-            >> data_base_.GetDataSerEtalon()[i].points_triangle_view_temp
-            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view_temp;
+        in >> data_base_.GetDataSerEtalon()[i].points_triangle_view
+            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view;
     }
     qint64 min ;
     qint64 max ;
@@ -445,8 +496,8 @@ void DowlandFile::LoadDataEt(QDataStream& in){
     data_base_.GetDataSerEtalon()[0].axis_y_->setRange(temp_min,temp_max + temp_max * 0.1);
     data_base_.GetDataSerEtalon()[0].point_series->replace(check_points_temp_);
     data_base_.GetDataSerEtalon()[1].point_series->replace(check_points_bar_);
-    data_base_.GetDataSerEtalon()[1].series->replace(data_base_.GetDataSerEtalon()[1].points_rectangle_view_bar);
-    data_base_.GetDataSerEtalon()[0].series->replace(data_base_.GetDataSerEtalon()[0].points_rectangle_view_temp);
+    data_base_.GetDataSerEtalon()[1].series->replace(data_base_.GetDataSerEtalon()[1].points_rectangle_view);
+    data_base_.GetDataSerEtalon()[0].series->replace(data_base_.GetDataSerEtalon()[0].points_rectangle_view);
 }
 
 void DowlandFile::LoadDataACM(QDataStream& in){
@@ -522,10 +573,8 @@ void DowlandFile::SaveDataEt(QDataStream& out){
     out << static_cast<quint32>(data_base_.GetDataSerEtalon().size());
     for(DataSeriesEtalon& data : data_base_.GetDataSerEtalon()){
         out << data.name_series;
-           out << data.points_triangle_view_bar
-            << data.points_rectangle_view_bar
-            << data.points_triangle_view_temp
-            << data.points_rectangle_view_temp;
+           out << data.points_triangle_view
+            << data.points_rectangle_view;
     }
     qint64 min = axis_x_->min().toMSecsSinceEpoch();
     qint64 max = axis_x_->max().toMSecsSinceEpoch();

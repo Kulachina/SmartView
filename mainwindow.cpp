@@ -190,9 +190,13 @@ void MainWindow::LoadDocumentAMT(){
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
         QString path = QApplication::applicationDirPath();
-        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"SmartLog (*.sml);;SmartView (*.smv)");
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml);;(*.sml2);;(*.smv)");
         if(path_doc.isEmpty()){
             return;
+        }
+        if(path_doc.endsWith(".sml2", Qt::CaseInsensitive)){
+            dow_file_.LoadDocEtalon_2v(path_doc);
+            chart_view_->PanelLegendEtalon();
         }
         if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
             dow_file_.LoadDocEtalon(path_doc);
@@ -1077,9 +1081,9 @@ void MainWindow::ReplaceTriangle(){
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
         DataSeriesEtalon& data_temp = data_base_.GetDataSerEtalon()[0];
-        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_triangle_view_temp);
+        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_triangle_view);
         DataSeriesEtalon& data_bar = data_base_.GetDataSerEtalon()[1];
-        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_triangle_view_bar);
+        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_triangle_view);
     }
     chart_view_->GetChart()->update();
 }
@@ -1094,9 +1098,9 @@ void MainWindow::ReplaceRectangle(){
     }
     if(!data_base_.GetDataSerEtalon().isEmpty()){
         DataSeriesEtalon& data_temp = data_base_.GetDataSerEtalon()[0];
-        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_rectangle_view_temp);
+        data_base_.GetDataSerEtalon()[0].series->replace(data_temp.points_rectangle_view);
         DataSeriesEtalon& data_bar = data_base_.GetDataSerEtalon()[1];
-        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_rectangle_view_bar);
+        data_base_.GetDataSerEtalon()[1].series->replace(data_bar.points_rectangle_view);
     }
 
 }
@@ -1196,19 +1200,13 @@ void MainWindow::WindowSensorAndCanal(){
                 connect(min,&QSpinBox::editingFinished, w,[can_ptr = &can_ref, min](){
                     can_ptr->duration_error_min = min->value();
                 });
-                QDoubleSpinBox *min_accept = new QDoubleSpinBox();
-                min_accept->setRange(-1000,10000);
-                min_accept->setSingleStep(1);
-                min_accept->setValue(-1.5);
-                QDoubleSpinBox *max_accept = new QDoubleSpinBox();
-                max_accept->setRange(-1000,10000);
-                max_accept->setSingleStep(1);
-                max_accept->setValue(1.5);
-                connect(max_accept,&QDoubleSpinBox::editingFinished, w,[can_ptr = &can_ref, max_accept](){
-                    can_ptr->accept_max = max_accept->value();
-                });
-                connect(min_accept,&QDoubleSpinBox::editingFinished, w,[can_ptr = &can_ref, min_accept](){
-                    can_ptr->accept_min = min_accept->value();
+                QDoubleSpinBox *accept = new QDoubleSpinBox();
+                accept->setRange(-1000,10000);
+                accept->setSingleStep(1);
+                accept->setValue(0);
+                connect(accept,&QDoubleSpinBox::editingFinished, w,[can_ptr = &can_ref, accept](){
+                    can_ptr->accept_max = accept->value();
+                    can_ptr->accept_min = accept->value() * (-1);
                 });
                 connect(combo_error, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_error, min, max](const QString &text){
                     if(combo_error->currentText() == "Абсолютная"){
@@ -1287,9 +1285,8 @@ void MainWindow::WindowSensorAndCanal(){
                 hbox->addWidget(check_ACP);
                 hbox->addWidget(combo_unit);
                 hbox->addWidget(combo_error);
-                hbox->addWidget(new QLabel("Допуск"));
-                hbox->addWidget(min_accept);
-                hbox->addWidget(max_accept);
+                hbox->addWidget(new QLabel("Допуск ±"));
+                hbox->addWidget(accept);
                 hbox->addWidget(new QLabel("Диапазон"));
                 hbox->addWidget(min);
                 hbox->addWidget(max);

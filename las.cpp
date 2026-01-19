@@ -86,9 +86,13 @@ void Las::SelectCurve(QStringList& words){
 }
 
 void Las::LogData(const QStringList& words){
+    if(words[index_time_] == "-999.250"){
+        return;
+    }
     QVector<Canal>& vec_canal = data_.vec_canal;
     int index = words[index_time_].indexOf('.');
     QString word = words[index_time_].left(index);
+
     qint64 time = QDateTime::fromString(date_ +" "+ word, "dd/MM/yyyy hhmmss").toMSecsSinceEpoch();
     for(int i =1; i < vec_canal.size();++i){
         double num = words[i].toDouble();

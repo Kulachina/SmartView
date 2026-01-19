@@ -42,11 +42,13 @@ public:
     void ClearTable();
     void CheckFlag();
     void LoadDocEtalon(QString path);
+    void LoadDocEtalon_2v(QString path);
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime();
     void ClearAll();
     void SelectChart(QStringList& words);
 private:
+    void CreateVecCheckPoints(QString name, QList<QPointF> list);
     void LoadDataEt(QDataStream& in);
     void LoadDataACM(QDataStream& in);
     void SaveDataEt(QDataStream& out);
