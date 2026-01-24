@@ -45,7 +45,7 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name){
     prog_->hide();
     QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
-        acm[i].series->replace(acm[i].points_triangle);
+        acm[i].series->replace(acm[i].points_rectangle);
         if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
             axis_bar_->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
         }
@@ -87,7 +87,7 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path){
     prog_->hide();
     QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
-        acm[i].series->replace(acm[i].points_triangle);
+        acm[i].series->replace(acm[i].points_rectangle);
         if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
             axis_bar_->setRange(acm[i].unit_min,acm[i].unit_max +acm[i].unit_max * 0.1);
         }
@@ -132,7 +132,7 @@ void DowlandFile::LoadDocEtalon_2v(QString path){
         in >> max;
         in >> check_points;
         CreateVecCheckPoints(name, check_points);
-        data_etalon_.back().series->replace(points);
+        data_etalon_.back().series->replace(points_rect);
         data_etalon_.back().points_rectangle_view = points_rect;
         data_etalon_.back().points_triangle_view = points;
         data_etalon_.back().point_series->replace(check_points);
@@ -159,7 +159,6 @@ void DowlandFile::CreateVecCheckPoints(QString name, QVector<QPointF> list){
         data_base_.GetCheckPointBar() = vec;
     }
 }
-
 void DowlandFile::LoadDocEtalon(QString path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -203,8 +202,8 @@ void DowlandFile::LoadDocEtalon(QString path) {
     data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
     data_base_.GetDataSerEtalon()[1].points_triangle_view = p_bar_;
     data_base_.GetDataSerEtalon()[0].points_triangle_view = p_temp_;
-    data_base_.GetDataSerEtalon()[0].series->replace(p_temp_);
-    data_base_.GetDataSerEtalon()[1].series->replace(p_bar_);
+    data_base_.GetDataSerEtalon()[0].series->replace(data_base_.GetDataSerEtalon()[0].points_rectangle_view);
+    data_base_.GetDataSerEtalon()[1].series->replace(data_base_.GetDataSerEtalon()[1].points_rectangle_view);
     p_temp_.clear();
     p_bar_.clear();
     set_axis_x_ = false;

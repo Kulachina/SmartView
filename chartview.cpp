@@ -75,7 +75,7 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
         chart_->addSeries(acm[i].series);
         acm[i].series->attachAxis(axis_time_);
         acm[i].series->attachAxis(acm[i].axis_y_);
-        acm[i].series->replace(acm[i].points_triangle);
+        acm[i].series->replace(acm[i].points_rectangle);
         acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
         acm[i].axis_y_->setTitleText(data.name_sensor + " " + acm[i].name_canal +" "+acm[i].name_unit);
         acm[i].axis_y_->setVisible(false);

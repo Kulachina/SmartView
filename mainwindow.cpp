@@ -1058,7 +1058,7 @@ void MainWindow::WindowView(){
         connect(rad_1,&QRadioButton::clicked,this,&MainWindow::ReplaceRectangle);
         QRadioButton *rad_2 = new QRadioButton("В виде треугольников");
         connect(rad_2,&QAbstractButton::clicked,this,&MainWindow::ReplaceTriangle);
-        rad_2->setChecked(true);
+        rad_1->setChecked(true);
         gr_vbox->setAlignment(Qt::AlignLeft);
         gr_vbox->addWidget(rad_1);
         gr_vbox->addWidget(rad_2);
@@ -1275,17 +1275,25 @@ void MainWindow::WindowSensorAndCanal(){
                         can_ptr->select_box = false;
                     }
                 });
-                connect(check_ACP, &QCheckBox::toggled, w,[can_ptr = &can_ref,check_ACP,combo_unit](){
-                    if(check_ACP->isChecked()){
+                connect(check_ACP, &QCheckBox::clicked, w,[can_ptr = &can_ref,check_ACP,combo_unit,combo_error,combo_accept,combo_duration_min,combo_duration_max](){
+                    if(check_ACP->isChecked() && can_ptr->select_box){
                         can_ptr->name_canal = "АЦП_" + can_ptr->name_canal;
                         combo_unit->setCurrentText("-");
                         can_ptr->name_unit = "-";
                         combo_unit->setEnabled(false);
                         can_ptr->check_ACP = true;
+                        combo_error->setEnabled(false);
+                        combo_accept->setEnabled(false);
+                        combo_duration_min->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
                     } else {
                         can_ptr->name_canal = can_ptr->name_canal.mid(4);
                         combo_unit->setEnabled(true);
                         can_ptr->check_ACP = false;
+                        combo_error->setEnabled(true);
+                        combo_accept->setEnabled(true);
+                        combo_duration_min->setEnabled(true);
+                        combo_duration_max->setEnabled(true);
                     }
                 });
                 connect(combo_color, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, color_map](const QString &text){
@@ -1295,9 +1303,6 @@ void MainWindow::WindowSensorAndCanal(){
                 });
                 connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_unit](const QString &text){
                     can_ptr->name_canal = text;
-                    if(text == "Т-Температура"){
-                        combo_unit->setCurrentText("°C");
-                    }
                 });
                 connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
                     can_ptr->name_unit = text;
@@ -1336,28 +1341,6 @@ void MainWindow::WindowSensorAndCanal(){
                     can_ref.accept_max = 1.5;
 
                     combo_color->setCurrentText("Черный");
-                    if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
-                        //can_ref.name_canal = "Р-Давление";
-                        can_ref.color_series_RGB = "255, 0, 0";
-                        combo_color->setCurrentText("Красный");
-                        combo_name->setCurrentText("Р-Давление");
-                        combo_unit->setCurrentText("кгс/см2");
-                        combo_error->setCurrentText("Абсолютная");
-                        can_ref.type_error = 1;
-                        can_ref.accept_min = -1.5;
-                        can_ref.accept_max = 1.5;
-                    }
-                    if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
-                        //can_ref.name_canal = "Т-Температура";
-                        can_ref.color_series_RGB = "0, 0, 255";
-                        combo_color->setCurrentText("Темно-синий");
-                        combo_name->setCurrentText("Т-Температура");
-                        combo_unit->setCurrentText("°C");
-                        combo_error->setCurrentText("Абсолютная");
-                        can_ref.type_error = 1;
-                        can_ref.accept_min = -1.5;
-                        can_ref.accept_max = 1.5;
-                    }
                     can_ref.flag_setting = true;
                 }
                 hbox->addWidget(check);
