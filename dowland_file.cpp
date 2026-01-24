@@ -106,7 +106,7 @@ void DowlandFile::SelectChart(QStringList& words){
             return;
         }
         word = words[i].split(" ",Qt::SkipEmptyParts);
-        chart_name_and_index_.push_back({word[1],word[2],word[4] +" "+ word[5]});
+        chart_name_and_index_.push_back({word[0]+ " " + word[1],word[2],word[4] +" "+ word[5]});
     }
 }
 void DowlandFile::LoadDocEtalon_2v(QString path){

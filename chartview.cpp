@@ -94,12 +94,12 @@ void ChartView::PanelLegendACM(DataSeriesSensor& data){
         QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
         QLabel *l_name_canal = new QLabel(acm[i].name_canal);
         QLabel *l_name = new QLabel(data.name_sensor);
-        l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
-        l_name->setStyleSheet("color: rgb(" + acm[i].color_series + ");");
-        if(acm[i].color_series.isEmpty()){
-            acm[i].color_series = "0,0,0";
+        l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
+        l_name->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
+        if(acm[i].color_series_RGB.isEmpty()){
+            acm[i].color_series_RGB = "0,0,0";
         }
-        QStringList p = acm[i].color_series.split(',');
+        QStringList p = acm[i].color_series_RGB.split(',');
         QColor col(
             p[0].toInt(),
             p[1].toInt(),

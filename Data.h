@@ -30,10 +30,11 @@ struct Canal{
     QString name_canal;
     QString name_sensor;
     QString name_unit;
-    QString color_series;
+    QString color_series_RGB;
+    QString color_series_;
     int type_error;
-    int duration_error_min;
-    int duration_error_max;
+    int duration_error_min = 0;
+    int duration_error_max = 0;
     double accept_min;
     double accept_max;
     double unit_min = 0;
@@ -41,6 +42,8 @@ struct Canal{
     bool first_unit = true;
     bool first_write_rectangle = false;
     bool select_box =false;
+    bool flag_setting = false;
+    bool check_ACP = false;
 };
 struct DataSeriesSensor{
     QString name_sensor;

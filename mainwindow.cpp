@@ -1123,18 +1123,27 @@ void MainWindow::WindowSensorAndCanal(){
     if (first_open_win_sens_can_){
         win_sens_can_->setWindowTitle("Приборы и каналы");
         win_sens_can_->resize(900, 350);
+        win_sens_can_->setWindowFlags(Qt::Window
+                                      | Qt::WindowMinimizeButtonHint
+                                      | Qt::WindowMaximizeButtonHint);
         win_sens_can_->setWindowModality(Qt::ApplicationModal);
         sensor_list_ = new QListWidget();
         sensor_list_->setFixedWidth(150);
         canal_list_ = new QListWidget();
         QHBoxLayout *layout = new QHBoxLayout();
         QVBoxLayout *vlayout = new QVBoxLayout();
+        QHBoxLayout *layout_btn = new QHBoxLayout();
+        layout_btn->setAlignment(Qt::AlignLeft);
         QPushButton *btn = new QPushButton("OK");
+        QPushButton *btn_close = new QPushButton("Отмена");
+        connect(btn_close, &QPushButton::clicked, this, &MainWindow::Clear);
         connect(btn, &QPushButton::clicked, this, &MainWindow::PanelLegendACM);
         layout->addWidget(sensor_list_);
         layout->addWidget(canal_list_);
         vlayout->addLayout(layout);
-        vlayout->addWidget(btn);
+        layout_btn->addWidget(btn);
+        layout_btn->addWidget(btn_close);
+        vlayout->addLayout(layout_btn);
         win_sens_can_->setLayout(vlayout);
         first_open_win_sens_can_ = false;
     }
@@ -1163,66 +1172,100 @@ void MainWindow::WindowSensorAndCanal(){
                 continue;
             }
             for (Canal& can_ref : data.vec_canal) {
-                can_ref.select_box = false;
-                can_ref.accept_min = -1.5;
-                can_ref.accept_max = 1.5;
                 QListWidgetItem *item = new QListWidgetItem(canal_list_);
-                item->setSizeHint(QSize(400, 40));
                 QWidget *w = new QWidget;
                 QHBoxLayout *hbox = new QHBoxLayout(w);
-                hbox->setContentsMargins(0,0,0,0);
                 QCheckBox* check = new QCheckBox(can_ref.name_canal);
-                check->setCheckState(Qt::Unchecked);
                 QComboBox* combo_color = new QComboBox;
-                combo_color->addItems({"Чёрный","Красный","Синий","Голубой","Фиолетовый","Зелёный","Темно-синий","Коричневый"});
                 QComboBox* combo_name = new QComboBox;
                 QComboBox* combo_error = new QComboBox;
+                QComboBox* combo_accept = new QComboBox;
+                QComboBox* combo_unit = new QComboBox;
+                QComboBox* combo_duration_min = new QComboBox;
+                QComboBox* combo_duration_max = new QComboBox;
+                QCheckBox* check_ACP = new QCheckBox("AЦП");
+                combo_name->addItems(chanels_);
+                combo_duration_max->addItems({"0","250","400","600","1000",""});
+                combo_duration_min->addItems({"0","250","400","600","1000",""});
+                combo_color->addItems({"Чёрный","Красный","Синий","Голубой","Фиолетовый","Зелёный","Темно-синий","Коричневый"});
                 combo_error->addItems({" ","Абсолютная","Относительная","Приведённая"});
                 combo_error->setCurrentText(" ");
-                QComboBox* combo_unit = new QComboBox;
+                combo_accept->addItems({"0.5","1","1.5","0.15",""});
                 combo_unit->addItems({"кгс/см2","МПа","°C","К","мкР/ч","м3/ч",
-                                       "См/м","мСм/см","%","-","г/см3","кг/м3"});
-                QCheckBox* check_ACP = new QCheckBox("AЦП");
+                                      "См/м","мСм/см","%","-","г/см3","кг/м3"});
+                item->setSizeHint(QSize(400, 40));
+                hbox->setContentsMargins(0,0,0,0);
+                check->setCheckState(Qt::Unchecked);
                 check_ACP->setCheckState(Qt::Unchecked);
-                QSpinBox *min = new QSpinBox();
-                min->setEnabled(false);
-                min->setRange(-1000,10000);
-                min->setSingleStep(1);
-                min->setValue(0);
-                QSpinBox *max = new QSpinBox();
-                max->setEnabled(false);
-                max->setRange(-1000,10000);
-                max->setSingleStep(1);
-                max->setValue(0);
-                connect(max,&QSpinBox::editingFinished, w,[can_ptr = &can_ref, max](){
-                    can_ptr->duration_error_max = max->value();
+                combo_duration_max->setEditable(true);
+                combo_duration_min->setEditable(true);
+                connect(combo_duration_max,&QComboBox::currentIndexChanged, w,[can_ptr = &can_ref, combo_duration_max](const int index){
+                    if(combo_duration_max->count() - 1 == index){
+                        combo_duration_max->lineEdit()->setReadOnly(false);
+                        combo_duration_max->lineEdit()->clear();
+                    } else {
+                        combo_duration_max->lineEdit()->setReadOnly(true);
+                        can_ptr->duration_error_max = combo_duration_max->currentText().toDouble();
+                    }
                 });
-                connect(min,&QSpinBox::editingFinished, w,[can_ptr = &can_ref, min](){
-                    can_ptr->duration_error_min = min->value();
+                connect(combo_duration_max->lineEdit(), &QLineEdit::editingFinished,  [can_ptr = &can_ref, combo_duration_max](){
+                    bool ok = false;
+                    double val = combo_duration_max->lineEdit()->text().toDouble(&ok);
+                    if(ok){
+                        can_ptr->duration_error_max = val;
+                    }
                 });
-                QDoubleSpinBox *accept = new QDoubleSpinBox();
-                accept->setRange(-1000,10000);
-                accept->setSingleStep(1);
-                accept->setValue(0);
-                connect(accept,&QDoubleSpinBox::editingFinished, w,[can_ptr = &can_ref, accept](){
-                    can_ptr->accept_max = accept->value();
-                    can_ptr->accept_min = accept->value() * (-1);
+                connect(combo_duration_min,&QComboBox::currentIndexChanged, w,[can_ptr = &can_ref, combo_duration_min](const int index){
+                    if(combo_duration_min->count() - 1 == index){
+                        combo_duration_min->lineEdit()->setReadOnly(false);
+                        combo_duration_min->lineEdit()->clear();
+                    } else {
+                        combo_duration_min->lineEdit()->setReadOnly(true);
+                        can_ptr->duration_error_min = combo_duration_min->currentText().toDouble();
+                    }
                 });
-                connect(combo_error, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_error, min, max](const QString &text){
+                connect(combo_duration_min->lineEdit(), &QLineEdit::editingFinished,  [can_ptr = &can_ref, combo_duration_min](){
+                    bool ok = false;
+                    double val = combo_duration_min->lineEdit()->text().toDouble(&ok);
+                    if(ok){
+                        can_ptr->duration_error_min = val;
+                    }
+                });
+                combo_accept->setEditable(true);
+                connect(combo_accept,&QComboBox::currentIndexChanged, w,[can_ptr = &can_ref, combo_accept](const int index){
+                    if(combo_accept->count() - 1 == index){
+                        combo_accept->lineEdit()->setReadOnly(false);
+                        combo_accept->lineEdit()->clear();
+                    } else {
+                        combo_accept->lineEdit()->setReadOnly(true);
+                        can_ptr->accept_max = combo_accept->currentText().toDouble();
+                        can_ptr->accept_min = combo_accept->currentText().toDouble() * (-1);
+                    }
+                });
+                connect(combo_accept->lineEdit(), &QLineEdit::editingFinished,  [can_ptr = &can_ref, combo_accept](){
+                    bool ok = false;
+                    double val = combo_accept->lineEdit()->text().toDouble(&ok);
+                    if(ok){
+                        can_ptr->accept_max = val;
+                        can_ptr->accept_min = val * (-1);
+                    }
+
+                });
+                connect(combo_error, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_error, combo_duration_max, combo_duration_min](const QString &text){
                     if(combo_error->currentText() == "Абсолютная"){
                         can_ptr->type_error = 1;
-                        min->setEnabled(false);
-                        max->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
+                        combo_duration_min->setEnabled(false);
                     }
                     if(combo_error->currentText() == "Относительная"){
                         can_ptr->type_error = 2;
-                        min->setEnabled(false);
-                        max->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
+                        combo_duration_min->setEnabled(false);
                     }
                     if(combo_error->currentText() == "Приведённая"){
                         can_ptr->type_error = 3;
-                        min->setEnabled(true);
-                        max->setEnabled(true);
+                        combo_duration_max->setEnabled(true);
+                        combo_duration_min->setEnabled(true);
                     }
                 });
                 connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check](){
@@ -1238,37 +1281,16 @@ void MainWindow::WindowSensorAndCanal(){
                         combo_unit->setCurrentText("-");
                         can_ptr->name_unit = "-";
                         combo_unit->setEnabled(false);
+                        can_ptr->check_ACP = true;
                     } else {
                         can_ptr->name_canal = can_ptr->name_canal.mid(4);
                         combo_unit->setEnabled(true);
+                        can_ptr->check_ACP = false;
                     }
                 });
-                combo_name->addItems(chanels_);
-                combo_color->setCurrentText("Черный");
-                if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
-                    can_ref.name_canal = "Р-Давление";
-                    can_ref.color_series = "255, 0, 0";
-                    combo_color->setCurrentText("Красный");
-                    combo_name->setCurrentText("Р-Давление");
-                    combo_unit->setCurrentText("кгс/см2");
-                    combo_error->setCurrentText("Абсолютная");
-                    can_ref.type_error = 1;
-                    can_ref.accept_min = -1.5;
-                    can_ref.accept_max = 1.5;
-                }
-                if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
-                    can_ref.name_canal = "Т-Температура";
-                    can_ref.color_series = "0, 0, 255";
-                    combo_color->setCurrentText("Темно-синий");
-                    combo_name->setCurrentText("Т-Температура");
-                    combo_unit->setCurrentText("°C");
-                    combo_error->setCurrentText("Абсолютная");
-                    can_ref.type_error = 1;
-                    can_ref.accept_min = -1.5;
-                    can_ref.accept_max = 1.5;
-                }
                 connect(combo_color, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, color_map](const QString &text){
-                    can_ptr->color_series = color_map.value(text);
+                    can_ptr->color_series_RGB = color_map.value(text);
+                    can_ptr->color_series_ = text;
 
                 });
                 connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_unit](const QString &text){
@@ -1280,16 +1302,74 @@ void MainWindow::WindowSensorAndCanal(){
                 connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
                     can_ptr->name_unit = text;
                 });
+                if(can_ref.select_box){
+                    check->setCheckState(Qt::Checked);
+                    combo_name->setCurrentText(can_ref.name_canal);
+                    if(can_ref.check_ACP){
+                        check_ACP->setCheckState(Qt::Checked);
+                    } else {
+                        check_ACP->setCheckState(Qt::Unchecked);
+                    }
+                    if(can_ref.type_error == 1){
+                        combo_error->setCurrentText("Абсолютная");
+                        combo_duration_min->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
+                    }
+                    if(can_ref.type_error == 2){
+                        combo_error->setCurrentText("Относительная");
+                        combo_duration_min->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
+                    }
+                    if(can_ref.type_error == 3){
+                        combo_error->setCurrentText("Приведённая");
+                        combo_duration_min->setEnabled(true);
+                        combo_duration_max->setEnabled(true);
+                        combo_duration_min->setCurrentText(QString::number(can_ref.duration_error_min));
+                        combo_duration_max->setCurrentText(QString::number(can_ref.duration_error_max));
+                    }
+                    combo_unit->setCurrentText(can_ref.name_unit);
+                    combo_accept->setCurrentText(QString::number(can_ref.accept_max));
+                    combo_color->setCurrentText(can_ref.color_series_);
+                } else {
+                    can_ref.select_box = false;
+                    can_ref.accept_min = -1.5;
+                    can_ref.accept_max = 1.5;
+
+                    combo_color->setCurrentText("Черный");
+                    if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
+                        //can_ref.name_canal = "Р-Давление";
+                        can_ref.color_series_RGB = "255, 0, 0";
+                        combo_color->setCurrentText("Красный");
+                        combo_name->setCurrentText("Р-Давление");
+                        combo_unit->setCurrentText("кгс/см2");
+                        combo_error->setCurrentText("Абсолютная");
+                        can_ref.type_error = 1;
+                        can_ref.accept_min = -1.5;
+                        can_ref.accept_max = 1.5;
+                    }
+                    if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
+                        //can_ref.name_canal = "Т-Температура";
+                        can_ref.color_series_RGB = "0, 0, 255";
+                        combo_color->setCurrentText("Темно-синий");
+                        combo_name->setCurrentText("Т-Температура");
+                        combo_unit->setCurrentText("°C");
+                        combo_error->setCurrentText("Абсолютная");
+                        can_ref.type_error = 1;
+                        can_ref.accept_min = -1.5;
+                        can_ref.accept_max = 1.5;
+                    }
+                    can_ref.flag_setting = true;
+                }
                 hbox->addWidget(check);
                 hbox->addWidget(combo_name);
                 hbox->addWidget(check_ACP);
                 hbox->addWidget(combo_unit);
                 hbox->addWidget(combo_error);
                 hbox->addWidget(new QLabel("Допуск ±"));
-                hbox->addWidget(accept);
+                hbox->addWidget(combo_accept);
                 hbox->addWidget(new QLabel("Диапазон"));
-                hbox->addWidget(min);
-                hbox->addWidget(max);
+                hbox->addWidget(combo_duration_min);
+                hbox->addWidget(combo_duration_max);
                 hbox->addWidget(combo_color);
                 w->setLayout(hbox);
                 canal_list_->setItemWidget(item, w);
@@ -1297,6 +1377,11 @@ void MainWindow::WindowSensorAndCanal(){
         }
     });
     win_sens_can_->show();
+}
+
+void MainWindow::Clear(){
+    data_sensor_.clear();
+    win_sens_can_->hide();
 }
 void MainWindow::PanelLegendACM(){
     for(auto data : data_sensor_){
