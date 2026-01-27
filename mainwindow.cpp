@@ -1199,6 +1199,14 @@ void MainWindow::WindowSensorAndCanal(){
                 check_ACP->setCheckState(Qt::Unchecked);
                 combo_duration_max->setEditable(true);
                 combo_duration_min->setEditable(true);
+                combo_name->setEnabled(false);
+                check_ACP->setEnabled(false);
+                combo_unit->setEnabled(false);
+                combo_error->setEnabled(false);
+                combo_accept->setEnabled(false);
+                combo_duration_min->setEnabled(false);
+                combo_duration_max->setEnabled(false);
+                combo_color->setEnabled(false);
                 connect(combo_duration_max,&QComboBox::currentIndexChanged, w,[can_ptr = &can_ref, combo_duration_max](const int index){
                     if(combo_duration_max->count() - 1 == index){
                         combo_duration_max->lineEdit()->setReadOnly(false);
@@ -1268,10 +1276,26 @@ void MainWindow::WindowSensorAndCanal(){
                         combo_duration_min->setEnabled(true);
                     }
                 });
-                connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check](){
+                connect(check, &QCheckBox::toggled, w,[can_ptr = &can_ref,check,combo_name,check_ACP,combo_unit,combo_error,combo_accept,combo_duration_min,combo_duration_max,combo_color](){
                     if(check->isChecked()){
                         can_ptr->select_box = true;
+                        combo_name->setEnabled(true);
+                        check_ACP->setEnabled(true);
+                        combo_unit->setEnabled(true);
+                        combo_error->setEnabled(true);
+                        combo_accept->setEnabled(true);
+                        combo_duration_min->setEnabled(true);
+                        combo_duration_max->setEnabled(true);
+                        combo_color->setEnabled(true);
                     } else {
+                        combo_name->setEnabled(false);
+                        check_ACP->setEnabled(false);
+                        combo_unit->setEnabled(false);
+                        combo_error->setEnabled(false);
+                        combo_accept->setEnabled(false);
+                        combo_duration_min->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
+                        combo_color->setEnabled(false);
                         can_ptr->select_box = false;
                     }
                 });
@@ -1299,21 +1323,39 @@ void MainWindow::WindowSensorAndCanal(){
                 connect(combo_color, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, color_map](const QString &text){
                     can_ptr->color_series_RGB = color_map.value(text);
                     can_ptr->color_series_ = text;
-
                 });
-                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref,combo_unit](const QString &text){
-                    can_ptr->name_canal = text;
+                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
+                    if(!can_ptr->name_canal.contains("АЦП",Qt::CaseInsensitive)){
+                        can_ptr->name_canal = text;
+                    }
                 });
                 connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
                     can_ptr->name_unit = text;
                 });
                 if(can_ref.select_box){
                     check->setCheckState(Qt::Checked);
-                    combo_name->setCurrentText(can_ref.name_canal);
+                    int ind =  combo_name->findText(can_ref.name_canal);
+                    if(ind == -1){
+                        QString name = can_ref.name_canal;
+                        combo_name->setCurrentText(name.mid(4));
+                    } else {
+                        combo_name->setCurrentText(can_ref.name_canal);
+                    };
                     if(can_ref.check_ACP){
                         check_ACP->setCheckState(Qt::Checked);
+                        combo_unit->setCurrentText("-");
+                        combo_unit->setEnabled(false);
+                        combo_error->setEnabled(false);
+                        combo_accept->setEnabled(false);
+                        combo_duration_min->setEnabled(false);
+                        combo_duration_max->setEnabled(false);
                     } else {
                         check_ACP->setCheckState(Qt::Unchecked);
+                        combo_unit->setEnabled(true);
+                        combo_error->setEnabled(true);
+                        combo_accept->setEnabled(true);
+                        combo_duration_min->setEnabled(true);
+                        combo_duration_max->setEnabled(true);
                     }
                     if(can_ref.type_error == 1){
                         combo_error->setCurrentText("Абсолютная");
@@ -1336,6 +1378,16 @@ void MainWindow::WindowSensorAndCanal(){
                     combo_accept->setCurrentText(QString::number(can_ref.accept_max));
                     combo_color->setCurrentText(can_ref.color_series_);
                 } else {
+                    if(can_ref.name_canal.contains("Температура",Qt::CaseInsensitive)){
+                        combo_name->setCurrentText("Т-Температура");
+                        combo_unit->setCurrentText("°C");
+                        combo_color->setCurrentText("Синий");
+                    }
+                    if(can_ref.name_canal.contains("Давление",Qt::CaseInsensitive)){
+                        combo_name->setCurrentText("Р-Давление");
+                        combo_unit->setCurrentText("кгс/см2");
+                        combo_color->setCurrentText("Красный");
+                    }
                     can_ref.select_box = false;
                     can_ref.accept_min = -1.5;
                     can_ref.accept_max = 1.5;
