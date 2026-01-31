@@ -24,8 +24,6 @@ ChartView::ChartView(QChartView *parent, DataBase& data_base)
     axis_bar_->setTickCount(21);
     axis_temp_->setRange(0, 0);
     axis_temp_->setTickCount(21);
-    //data_base_.AddListAxis(axis_temp_);
-    //data_base_.AddListAxis(axis_bar_);
     chart_->addAxis(axis_time_,Qt::AlignBottom);
     chart_->addAxis(axis_temp_,Qt::AlignLeft);
     chart_->addAxis(axis_bar_,Qt::AlignLeft);
@@ -61,67 +59,80 @@ QWidget* ChartView::GetWidgetLegend(){
 }
 void ChartView::PanelLegendACM(DataSeriesSensor& data){
     QVector<Canal>& acm = data.vec_canal;
+    bool create_space = false;
     data.line = new QFrame();
     data.line->setFrameShape(QFrame::HLine);
     data.line->setStyleSheet("background-color: grey");
     data.line->setFixedHeight(1);
     data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
-    vbox_legend_->addWidget(data.line);
     for(int i =0;i < acm.size();++i){
         if(!acm[i].select_box){
             continue;
         }
-        chart_->addAxis(acm[i].axis_y_,Qt::AlignLeft);
-        chart_->addSeries(acm[i].series);
-        acm[i].series->attachAxis(axis_time_);
-        acm[i].series->attachAxis(acm[i].axis_y_);
-        acm[i].series->replace(acm[i].points_rectangle);
-        acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
-        acm[i].axis_y_->setTitleText(data.name_sensor + " " + acm[i].name_canal +" "+acm[i].name_unit);
-        acm[i].axis_y_->setVisible(false);
-        data_base_.AddListAxis(acm[i].axis_y_);
-        acm[i].hbox = new QHBoxLayout();
-        acm[i].hbox->setAlignment(Qt::AlignLeft);
-        acm[i].check_box = new QCheckBox();
-        acm[i].check_box->setCheckState(Qt::Checked);
-        connect(acm[i].check_box, &QCheckBox::toggled, this,[=](){
-            if(acm[i].check_box->isChecked()){
-                acm[i].series->setVisible(true);
-            } else {
-                acm[i].series->setVisible(false);
+        if(acm[i].flag_setting_canal){
+            ChangeCanalColor(acm[i]);
+        } else {
+            if(!create_space){
+                vbox_legend_->addWidget(data.line);
+                create_space= true;
             }
-        });
-        QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
-        QLabel *l_name_canal = new QLabel(acm[i].name_canal);
-        QLabel *l_name = new QLabel(data.name_sensor);
-        l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
-        l_name->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
-        if(acm[i].color_series_RGB.isEmpty()){
-            acm[i].color_series_RGB = "0,0,0";
+            chart_->addAxis(acm[i].axis_y_,Qt::AlignLeft);
+            chart_->addSeries(acm[i].series);
+            acm[i].series->attachAxis(axis_time_);
+            acm[i].series->attachAxis(acm[i].axis_y_);
+            acm[i].series->replace(acm[i].points_rectangle);
+            acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
+            acm[i].axis_y_->setTitleText(data.name_sensor + " " + acm[i].name_canal +" "+acm[i].name_unit);
+            acm[i].axis_y_->setVisible(false);
+            data_base_.AddListAxis(acm[i].axis_y_);
+            acm[i].hbox = new QHBoxLayout();
+            acm[i].hbox->setAlignment(Qt::AlignLeft);
+            acm[i].check_box = new QCheckBox();
+            acm[i].check_box->setCheckState(Qt::Checked);
+            connect(acm[i].check_box, &QCheckBox::toggled, this,[=](){
+                if(acm[i].check_box->isChecked()){
+                    acm[i].series->setVisible(true);
+                } else {
+                    acm[i].series->setVisible(false);
+                }
+            });
+            QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
+            QLabel *l_name_canal = new QLabel(acm[i].name_canal);
+            QLabel *l_name = new QLabel(data.name_sensor);
+            l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
+            l_name->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
+            if(acm[i].color_series_RGB.isEmpty()){
+                acm[i].color_series_RGB = "0,0,0";
+            }
+            ChangeCanalColor(acm[i]);
+            if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
+                acm[i].series->setObjectName("bar");
+            }
+            if(acm[i].name_canal.contains("Температура",Qt::CaseInsensitive)){
+                acm[i].series->setObjectName("temp");
+            }
+            acm[i].flag_setting_canal = true;
+            p_hbox->addWidget(acm[i].check_box);
+            p_hbox->addWidget(l_name_canal);
+            p_hbox->addWidget(l_name);
+            p_hbox->addWidget(acm[i].label_data);
+            p_hbox->addWidget(acm[i].label_delta);
+            vbox_legend_->addLayout(p_hbox);
+            data_base_.AddLabelSensor(l_name,l_name_canal);
         }
-        QStringList p = acm[i].color_series_RGB.split(',');
-        QColor col(
-            p[0].toInt(),
-            p[1].toInt(),
-            p[2].toInt()
-            );
-        acm[i].series->setColor(QColor(col));
-        if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
-            acm[i].series->setObjectName("bar");
-        }
-        if(acm[i].name_canal.contains("Температура",Qt::CaseInsensitive)){
-            acm[i].series->setObjectName("temp");
-        }
-        p_hbox->addWidget(acm[i].check_box);
-        p_hbox->addWidget(l_name_canal);
-        p_hbox->addWidget(l_name);
-        p_hbox->addWidget(acm[i].label_data);
-        p_hbox->addWidget(acm[i].label_delta);
-        vbox_legend_->addLayout(p_hbox);
-        data_base_.AddLabelSensor(l_name,l_name_canal);
     }
     CreateMapLabel(data);
     CreateMapSeries(data);
+}
+void ChartView::ChangeCanalColor(Canal& acm){
+    QStringList p = acm.color_series_RGB.split(',');
+    QColor col(
+        p[0].toInt(),
+        p[1].toInt(),
+        p[2].toInt()
+        );
+    acm.series->setColor(QColor(col));
+    chart_->update();
 }
 void ChartView::PanelLegendEtalon(){
     QList<QLineSeries*> list_series;
@@ -212,14 +223,18 @@ void ChartView::CreateMapSeries(DataSeriesSensor& data){
         list_series << acm[i].series;
     }
     for(int i =0; i < acm.size();++i){
-        map_series_[acm[i].series->name()] = list_series;
+        if(!map_series_.count((acm[i].series->name()))){
+            map_series_[acm[i].series->name()] = list_series;
+        }
     }
 }
 void ChartView::CreateMapLabel(DataSeriesSensor& data){
     QVector<Canal>& acm = data.vec_canal;
     for(int i =0; i < acm.size();++i){
         QPointer<QLabel> point = acm[i].label_data;
-        map_data_label_[acm[i].series->name()] = point;
+        if(!map_data_label_.count((acm[i].series->name()))){
+            map_data_label_[acm[i].series->name()] = point;
+        }
     }
 }
 void ChartView::ToogledFlagShiftSeries(){

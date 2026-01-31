@@ -54,6 +54,7 @@ protected slots:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
 private:
+    void ChangeCanalColor(Canal& acm);
     void CalcDelta();
     void AddSeparator();
     void SetLineFromMouse(QPointF point);

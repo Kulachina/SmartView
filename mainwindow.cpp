@@ -88,22 +88,25 @@ MainWindow::MainWindow(QMainWindow *parent)
     delete_sensor_->setEnabled(false);
     connect(delete_sensor_,&QAction::triggered, this, &MainWindow::WindowDeleteSensor);
     shift_check_point_ = new QAction("Сдвиг КТ");
-    shift_check_point_->setCheckable(true);
     shift_check_point_->setEnabled(false);
     connect(shift_check_point_, &QAction::triggered,this, &MainWindow::ShiftCheckPoint);
     QAction *load_doc = new QAction("Открыть Эталон",tool_bar);
     connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocumentEtalon);
+    change_canal_ = new QAction("Редактировать каналы",tool_bar);
+    change_canal_->setEnabled(false);
+    connect(change_canal_, &QAction::triggered, this,&MainWindow::ActoinWinSaC);
     tool_bar->addAction(load_doc);
     tool_bar->addAction(load_doc_2_);
     tool_bar->addAction(load_doc_3_);
     tool_bar->addAction(load_doc_4_);
+    tool_bar->addAction(change_canal_);
     tool_bar->addAction(window_axis_);
-    //tool_bar->addAction(action_series_);
     tool_bar->addAction(toogled_legend_);
     tool_bar->addAction(shift_series_);
     tool_bar->addAction(shift_check_point_);
     tool_bar->addAction(data_in_time_);
     tool_bar->addAction(delete_sensor_);
+
     addToolBar(tool_bar);
     SetWindow();
     dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
@@ -142,7 +145,7 @@ void MainWindow::LoadDocumentACM(){
             save_path_ = file_info.absolutePath();
         }
     }
-    WindowSensorAndCanal();
+    WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::LoadDocumentLAS(){
     if(!first_open_doc_){
@@ -163,7 +166,7 @@ void MainWindow::LoadDocumentLAS(){
             save_path_ = file_info.absolutePath();
         }
     }
-    WindowSensorAndCanal();
+    WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::LoadDocumentAMT(){
     if(!first_open_doc_){
@@ -181,11 +184,17 @@ void MainWindow::LoadDocumentAMT(){
             QFileInfo file_info(path);
             QString name = file_info.baseName();
             DataSeriesSensor data = dow_file_.LoadDocAMT(path, name);
+
             data_sensor_.push_back(data);
             save_path_ = file_info.absolutePath();
         }
     }
-    WindowSensorAndCanal();
+    WindowSensorAndCanal(data_sensor_);
+}
+void MainWindow::ActoinWinSaC(){
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        WindowSensorAndCanal(data_base_.GetDataSerACM());
+    }
 }
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
@@ -219,6 +228,7 @@ void MainWindow::LoadDocumentEtalon(){
         action_series_->setEnabled(true);
         delete_sensor_->setEnabled(true);
         shift_check_point_->setEnabled(true);
+        //change_canal_->setEnabled(true);
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
@@ -1119,7 +1129,7 @@ void MainWindow::SaveAllSV(){
     }
 
 }
-void MainWindow::WindowSensorAndCanal(){
+void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
     if (first_open_win_sens_can_){
         win_sens_can_->setWindowTitle("Приборы и каналы");
         win_sens_can_->resize(900, 350);
@@ -1137,7 +1147,8 @@ void MainWindow::WindowSensorAndCanal(){
         QPushButton *btn = new QPushButton("OK");
         QPushButton *btn_close = new QPushButton("Отмена");
         connect(btn_close, &QPushButton::clicked, this, &MainWindow::Clear);
-        connect(btn, &QPushButton::clicked, this, &MainWindow::PanelLegendACM);
+        connect(btn, &QPushButton::clicked, this, [this,&vec_data](){
+            PanelLegendACM(vec_data);});
         layout->addWidget(sensor_list_);
         layout->addWidget(canal_list_);
         vlayout->addLayout(layout);
@@ -1147,6 +1158,7 @@ void MainWindow::WindowSensorAndCanal(){
         win_sens_can_->setLayout(vlayout);
         first_open_win_sens_can_ = false;
     }
+
     QMap<QString, QString> color_map;
     color_map["Чёрный"] = "0, 0, 0";
     color_map["Красный"] = "255, 0, 0";
@@ -1158,16 +1170,16 @@ void MainWindow::WindowSensorAndCanal(){
     color_map["Коричневый"] = "191, 143, 0";
 
     sensor_list_->clear();
-    for(DataSeriesSensor&  data : data_sensor_){
+    for(DataSeriesSensor&  data : vec_data){
         sensor_list_->addItem(data.name_sensor +" "+ data.number_sensor);
     }
-    QObject::connect(sensor_list_, &QListWidget::itemSelectionChanged, [this, color_map]() {
+    QObject::connect(sensor_list_, &QListWidget::itemSelectionChanged, [this, color_map, &vec_data]() {
         canal_list_->clear();
         if (sensor_list_->selectedItems().isEmpty()){
             return;
         }
         QString sensor_name = sensor_list_->selectedItems().first()->text();
-        for (auto& data : data_sensor_) {
+        for (DataSeriesSensor& data : vec_data) {
             if (data.name_sensor +" "+ data.number_sensor != sensor_name){
                 continue;
             }
@@ -1393,7 +1405,6 @@ void MainWindow::WindowSensorAndCanal(){
                     can_ref.accept_max = 1.5;
 
                     combo_color->setCurrentText("Черный");
-                    can_ref.flag_setting = true;
                 }
                 hbox->addWidget(check);
                 hbox->addWidget(combo_name);
@@ -1418,10 +1429,10 @@ void MainWindow::Clear(){
     data_sensor_.clear();
     win_sens_can_->hide();
 }
-void MainWindow::PanelLegendACM(){
-    for(auto data : data_sensor_){
+void MainWindow::PanelLegendACM(QVector<DataSeriesSensor>& vec_data){
+    for(auto& data : vec_data){
+        chart_view_->PanelLegendACM(data);
         data_base_.AddDataSerACM(data);
-        chart_view_->PanelLegendACM(data_base_.GetDataSerACM().back());
     }
     data_sensor_.clear();
     win_sens_can_->hide();

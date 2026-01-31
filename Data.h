@@ -42,7 +42,7 @@ struct Canal{
     bool first_unit = true;
     bool first_write_rectangle = false;
     bool select_box =false;
-    bool flag_setting = false;
+    bool flag_setting_canal = false;
     bool check_ACP = false;
 };
 struct DataSeriesSensor{

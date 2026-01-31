@@ -56,12 +56,13 @@ public slots:
     void WindowTableError();
     void AutoZoom();
     void SaveAllSV();
-    void PanelLegendACM();
 private:
+    void PanelLegendACM(QVector<DataSeriesSensor>& vec_data);
+    void ActoinWinSaC();
     void Clear();
     void CreateCheckPoint(QTime hour);
     void CreateInContent();
-    void WindowSensorAndCanal();
+    void WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data);
     void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
@@ -80,6 +81,7 @@ private:
     ErrorTable error_table_;
     Las las_;
     QVector<DataSeriesSensor> data_sensor_;
+    QVector<DataSeriesSensor> data_sensor_redact_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;
     QDoubleSpinBox *s_step_bar_;
@@ -101,7 +103,8 @@ private:
             *data_in_time_,
             *window_axis_,
             *action_series_,
-            *delete_sensor_;
+            *delete_sensor_,
+            *change_canal_;
     QTabWidget *tab_;
     QCheckBox *check_step_bar_,
               *ch_sel_1_table_;
