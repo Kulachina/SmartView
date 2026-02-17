@@ -29,8 +29,8 @@ public:
     void CreateACM(DataSeriesSensor& data, QString name, QString name_canal, QString name_unit);
     void LoadSVDoc(const QString path);
     void SaveSVDoc(const QString path);
-    DataSeriesSensor LoadDocACM(QString path);
-    DataSeriesSensor LoadDocAMT(QString path, QString name);
+    DataSeriesSensor LoadDocACM(QString path, int count_file, int count_now);
+    DataSeriesSensor LoadDocAMT(QString path, QString name, int count_file, int count_now);
     void CreateSeriesACM(DataSeriesSensor& data);
     void CreateSeriesEtalon(QString word);
     void AddDataEtalon(DataEtalon data);

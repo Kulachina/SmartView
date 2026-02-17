@@ -138,11 +138,14 @@ void MainWindow::LoadDocumentACM(){
         return;
     }
     for(QString path : path_doc_){
+        int count_file = path_doc_.size();
+        static int count_now = 1;
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
-            DataSeriesSensor data = dow_file_.LoadDocACM(path);
+            DataSeriesSensor data = dow_file_.LoadDocACM(path, count_file, count_now);
             data_sensor_.push_back(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
+            ++count_now;
         }
     }
     WindowSensorAndCanal(data_sensor_);
@@ -179,12 +182,15 @@ void MainWindow::LoadDocumentAMT(){
     if(path_doc_.isEmpty()){
         return;
     }
+
     for(QString path : path_doc_){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
+            int count_file = path_doc_.size();
+            static int count_now = 1;
             QFileInfo file_info(path);
             QString name = file_info.baseName();
-            DataSeriesSensor data = dow_file_.LoadDocAMT(path, name);
-
+            DataSeriesSensor data = dow_file_.LoadDocAMT(path, name, count_file, count_now);
+            count_now++;
             data_sensor_.push_back(data);
             save_path_ = file_info.absolutePath();
         }
@@ -199,7 +205,10 @@ void MainWindow::ActoinWinSaC(){
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
         QString path = QApplication::applicationDirPath();
-        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml);;(*.sml2);;(*.smv)");
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml2);;(*.sml);;(*.smv)");
+        QFileInfo file_info(path_doc);
+        save_path_ = file_info.absolutePath();
+        first_open_doc_ = true;
         if(path_doc.isEmpty()){
             return;
         }

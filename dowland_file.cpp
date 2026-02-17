@@ -12,7 +12,7 @@ DowlandFile::DowlandFile(DataBase& data_base)
     prog_->setWindowTitle("Загрузка");
 
 }
-DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name){
+DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name, int count_file, int count_now){
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly)){
         qWarning() << "Не удалось открыть файл для чтения:" << path;
@@ -24,6 +24,7 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name){
     QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
     QStringList words;
     int size = line_text.size();
+    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + "in" + QString::number(count_file));
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
@@ -57,7 +58,7 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name){
     return data;
 }
 
-DataSeriesSensor DowlandFile::LoadDocACM(QString path){
+DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count_now){
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly)){
         qWarning() << "Не удалось открыть файл для чтения:" << path;
@@ -70,6 +71,7 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path){
     QStringList words;
     int size = line_text.size();
     SelectChart(line_text);
+    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + " in " + QString::number(count_file));
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
