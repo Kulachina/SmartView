@@ -24,7 +24,7 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name, int count_f
     QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
     QStringList words;
     int size = line_text.size();
-    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + "in" + QString::number(count_file));
+    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + " из " + QString::number(count_file));
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
@@ -71,7 +71,7 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count
     QStringList words;
     int size = line_text.size();
     SelectChart(line_text);
-    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + " in " + QString::number(count_file));
+    prog_->setWindowTitle("Загрузка " + QString::number(count_now) + " из " + QString::number(count_file));
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
@@ -140,7 +140,17 @@ void DowlandFile::LoadDocEtalon_2v(QString path){
         data_etalon_.back().point_series->replace(check_points);
         data_etalon_.back().axis_y_->setRange(min,max + max * 0.1);
         data_base_.AddListAxis(data_etalon_.back().axis_y_);
-        data_base_.GetDataSerEtalon().push_back(data_etalon_.back());
+    }
+    if(data_etalon_[0].name_series == "ДМ5002М"){
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
+        data_base_.AddListAxis(data_etalon_[1].axis_y_);
+        data_base_.AddListAxis(data_etalon_[0].axis_y_);
+    } else {
+        data_base_.AddListAxis(data_etalon_[0].axis_y_);
+        data_base_.AddListAxis(data_etalon_[1].axis_y_);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
     }
     axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(points.front().x()),QDateTime::fromMSecsSinceEpoch(points.back().x()));
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());

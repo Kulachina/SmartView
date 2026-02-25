@@ -88,6 +88,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     delete_sensor_->setEnabled(false);
     connect(delete_sensor_,&QAction::triggered, this, &MainWindow::WindowDeleteSensor);
     shift_check_point_ = new QAction("Сдвиг КТ");
+    shift_check_point_->setCheckable(true);
     shift_check_point_->setEnabled(false);
     connect(shift_check_point_, &QAction::triggered,this, &MainWindow::ShiftCheckPoint);
     QAction *load_doc = new QAction("Открыть Эталон",tool_bar);
@@ -137,9 +138,10 @@ void MainWindow::LoadDocumentACM(){
     if(path_doc_.isEmpty()){
         return;
     }
+    int count_now = 1;
     for(QString path : path_doc_){
         int count_file = path_doc_.size();
-        static int count_now = 1;
+
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             DataSeriesSensor data = dow_file_.LoadDocACM(path, count_file, count_now);
             data_sensor_.push_back(data);
@@ -148,6 +150,7 @@ void MainWindow::LoadDocumentACM(){
             ++count_now;
         }
     }
+    count_now = 0 ;
     WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::LoadDocumentLAS(){
@@ -182,11 +185,10 @@ void MainWindow::LoadDocumentAMT(){
     if(path_doc_.isEmpty()){
         return;
     }
-
+    int count_now = 1;
     for(QString path : path_doc_){
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             int count_file = path_doc_.size();
-            static int count_now = 1;
             QFileInfo file_info(path);
             QString name = file_info.baseName();
             DataSeriesSensor data = dow_file_.LoadDocAMT(path, name, count_file, count_now);
@@ -195,6 +197,7 @@ void MainWindow::LoadDocumentAMT(){
             save_path_ = file_info.absolutePath();
         }
     }
+    count_now = 0;
     WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::ActoinWinSaC(){
@@ -244,9 +247,13 @@ void MainWindow::LoadDocumentEtalon(){
         if(reply == QMessageBox::Yes){
             DeleteAllSens();
             QString path = QApplication::applicationDirPath();
-            QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"Формат SmartLog (*.sml);;Формат SmartView (*.smv)");
+            QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml2);;(*.sml);;(*.smv)");
             if(path_doc.isEmpty()){
                 return;
+            }
+            if(path_doc.endsWith(".sml2", Qt::CaseInsensitive)){
+                dow_file_.LoadDocEtalon_2v(path_doc);
+                chart_view_->PanelLegendEtalon();
             }
             if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
                 dow_file_.LoadDocEtalon(path_doc);
@@ -409,12 +416,14 @@ void MainWindow::WindowMasterPoint(){
         QHBoxLayout* hbox_sel_canal_2 = new QHBoxLayout();
         QComboBox* combo_name_1 = new QComboBox;
         combo_name_1->addItems(chanels_);
+        combo_name_1->setCurrentIndex(2);
         connect(combo_name_1, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_1_ = text;
             CreateInContent();
         });
         QComboBox* combo_name_2 = new QComboBox;
         combo_name_2->addItems(chanels_);
+        combo_name_2->setCurrentIndex(3);
         connect(combo_name_2, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_2_ = text;
             CreateInContent();
@@ -779,8 +788,10 @@ void MainWindow::AnalisingSeries(DataSeriesSensor data){
             }
             qint64 t = static_cast<qint64>(point.x());
             qint64 res = ((t + 500) / 1000) * 1000;
+            qint64 res_2 = ((vec[count].toMSecsSinceEpoch() + 500) / 1000) * 1000;
+            QDateTime check_time = QDateTime::fromMSecsSinceEpoch(res_2);
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-            if(time == vec[count]){
+            if(time == check_time){
                 count++;
                 QStandardItem *it = new QStandardItem(QString::number(point.y()));
                 it->setTextAlignment(Qt::AlignCenter);
@@ -805,8 +816,10 @@ void MainWindow::AnalisingSeries(DataSeriesSensor data){
             }
             qint64 t = static_cast<qint64>(point.x());
             qint64 res = ((t + 500) / 1000) * 1000;
+            qint64 res_2 = ((vec[count].toMSecsSinceEpoch() + 500) / 1000) * 1000;
+            QDateTime check_time = QDateTime::fromMSecsSinceEpoch(res_2);
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-            if(time == vec[count]){
+            if(time == check_time){
                 count++;
                 QStandardItem *it = new QStandardItem(QString::number(point.y()));
                 it->setTextAlignment(Qt::AlignCenter);
