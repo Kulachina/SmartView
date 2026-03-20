@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>SmartView</DisplayName>
+    <Description>Программа для просмотра показаний с приборов.</Description>
+    <Version>1.8.2</Version>
+    <ReleaseDate>2026-03-21</ReleaseDate>
+    <Default>true</Default>
+    <Essential>true</Essential>  <!-- Не удалять при обновлении -->
+    <ReplaceFiles>true</ReplaceFiles>  <!-- Перезаписывать файлы без подтверждения -->
+    <Script>installscript.qs</Script>
+    
+    <Licenses>
+        <License name="Лицензионное соглашение" file="license.txt" />
+    </Licenses>
+    
+
+</Package>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>SmartView</Name>
+    <Version>1.8.1</Version>
+    <Title>Установка SmartView</Title>
+    <Publisher>SmartView Team</Publisher>
+    <StartMenuDir>SmartView</StartMenuDir>
+    <TargetDir>@HomeDir@/SmartView</TargetDir>
+    <MaintenanceToolName>SmartViewUpdater</MaintenanceToolName>
+    <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
+	<AllowSpaceInPath>true</AllowSpaceInPath>
+   
+   <RemoteRepositories>
+        <Repository>
+            <Url>https://kulachina.github.io/SmartView/update/</Url>
+			<Enabled>1</Enabled> 
+			<DisplayName>Официальный репозиторий обновлений SmartView</DisplayName>
+        </Repository>
+    </RemoteRepositories>
+	
+	<RunProgram>@TargetDir@/SmartView.exe</RunProgram>
+    <RunProgramDescription>Запустить SmartView после установки</RunProgramDescription>
+</Installer>
