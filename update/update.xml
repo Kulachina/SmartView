@@ -1,18 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Installer>
-    <Name>SmartView</Name>
-    <Version>1.8.0</Version>
-    <Title>Установка SmartView</Title>
-    <Publisher>SmartView Team</Publisher>
-    <StartMenuDir>SmartView</StartMenuDir>
-    <TargetDir>@HomeDir@/SmartView</TargetDir>
-    <MaintenanceToolName>SmartViewUpdater</MaintenanceToolName>
-    <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
-    <RemoveTargetDir>false</RemoveTargetDir>  <!-- Не удалять папку при обновлении -->
-    <RemoteRepositories>
-        <Repository>
-            <Url>https://kulachina.github.io/SmartView/update/</Url>
-        </Repository>
-    </RemoteRepositories>
- 
-</Installer>
+<Version>1.8.1</Version>
+    

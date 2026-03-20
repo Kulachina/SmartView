@@ -16,7 +16,8 @@ SOURCES += \
     src/error_table.cpp \
     src/las.cpp \
     src/main.cpp \
-    src/mainwindow.cpp
+    src/mainwindow.cpp \
+    src/update.cpp
 
 HEADERS += \
     src/Data.h \
@@ -26,7 +27,9 @@ HEADERS += \
     src/dowland_file.h \
     src/error_table.h \
     src/las.h \
-    src/mainwindow.h
+    src/mainwindow.h \
+    src/update.h
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

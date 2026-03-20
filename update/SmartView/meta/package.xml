@@ -2,7 +2,7 @@
 <Package>
     <DisplayName>SmartView</DisplayName>
     <Description>Программа для просмотра показаний с приборов.</Description>
-    <Version>1.8.0</Version>
+    <Version>1.8.1</Version>
     <ReleaseDate>2026-03-21</ReleaseDate>
     <Default>true</Default>
     <Essential>true</Essential>  <!-- Не удалять при обновлении -->
