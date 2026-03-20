@@ -1,18 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Updates>
-    <Name>SmartView</Name>
-    <Version>1.8.2</Version>
-    <DownloadUrl>https://kulachina.github.io/SmartView/update/packages/SmartView/data/SmartView.exe</DownloadUrl>
-    <Description>
-        <![CDATA[
-SmartView 1.8.2
-
-Исправления:
-- Исправлена ошибка при открытии файлов
-- Улучшена стабильность работы
-- Обновлены локализации
-
-Для обновления скачайте установщик и запустите его.
-        ]]>
-    </Description>
+ <ApplicationName>{AnyApplication}</ApplicationName>
+ <ApplicationVersion>1.0.0</ApplicationVersion>
+ <Checksum>true</Checksum>
+ <PackageUpdate>
+  <Name>SmartView</Name>
+  <DisplayName>SmartView</DisplayName>
+  <Description>Программа для просмотра показаний с приборов.</Description>
+  <Version>1.8.2</Version>
+  <ReleaseDate>2026-03-21</ReleaseDate>
+  <Default>true</Default>
+  <Essential>true</Essential>
+  <ReplaceFiles>true</ReplaceFiles>
+  <Script>installscript.qs</Script>
+  <UpdateFile CompressedSize="19485483" OS="Any" UncompressedSize="67783426"/>
+  <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
+  <Licenses>
+   <License file="license.txt" name="Лицензионное соглашение"/>
+  </Licenses>
+  <SHA1>066424a130c1a8a5e80b7939619edaa2ea1481dd</SHA1>
+ </PackageUpdate>
+ <SHA1>4ae4a165c75724bfb97e2de6d241363f7a077b56</SHA1>
+ <MetadataName>2026-03-21-0022_meta.7z</MetadataName>
 </Updates>
