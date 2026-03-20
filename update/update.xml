@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Version>1.8.1</Version>
-    
+<Updates>
+    <Name>SmartView</Name>
+    <Version>1.8.1</Version>
+    <DowlandUrl>https://kulachina.github.io/SmartView/update/SmartView/data/SmartView.exe</DowlandUrl>
+</Updates>
