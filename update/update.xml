@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Installer>
+<Updates>
     <Name>SmartView</Name>
     <Version>1.8.1</Version>
-    <Url>https://kulachina.github.io/SmartView/update/</Url>
-</Installer>
+    <DownloadUrl>https://kulachina.github.io/SmartView/update/SmartView.exe</DownloadUrl>
+    <Description>
+        <![CDATA[
+SmartView 1.8.1
+
+Исправления:
+- Исправлена ошибка при открытии файлов
+- Улучшена стабильность работы
+- Обновлены локализации
+
+Для обновления скачайте установщик и запустите его.
+        ]]>
+    </Description>
+</Updates>
