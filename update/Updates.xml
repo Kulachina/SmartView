@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Updates>
     <Name>SmartView</Name>
-    <Version>1.8.1</Version>
+    <Version>1.8.2</Version>
     <DownloadUrl>https://kulachina.github.io/SmartView/update/SmartView.exe</DownloadUrl>
     <Description>
         <![CDATA[
-SmartView 1.8.1
+SmartView 1.8.2
 
 Исправления:
 - Исправлена ошибка при открытии файлов
