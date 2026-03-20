@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Updates>
+<Installer>
     <Name>SmartView</Name>
     <Version>1.8.1</Version>
     <Url>https://kulachina.github.io/SmartView/update/</Url>
-</Updates>
+</Installer>
