@@ -1,4 +1,4 @@
-QT       += core gui charts core5compat
+QT       += core gui charts core5compat network xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,7 +17,7 @@ SOURCES += \
     src/las.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
-    src/update.cpp
+    src/updater.cpp
 
 HEADERS += \
     src/Data.h \
@@ -28,7 +28,7 @@ HEADERS += \
     src/error_table.h \
     src/las.h \
     src/mainwindow.h \
-    src/update.h
+    src/updater.h
 
 
 # Default rules for deployment.

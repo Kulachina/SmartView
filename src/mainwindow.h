@@ -24,6 +24,7 @@
 #include "createraport.h"
 #include "error_table.h"
 #include "las.h"
+#include "updater.h"
 
 class MainWindow : public QMainWindow
 {
@@ -56,6 +57,7 @@ public slots:
     void WindowTableError();
     void AutoZoom();
     void SaveAllSV();
+    void CheckUpdate();
 private:
     void PanelLegendACM(QVector<DataSeriesSensor>& vec_data);
     void ActoinWinSaC();
@@ -80,6 +82,7 @@ private:
     CreateRaport create_raport_;
     ErrorTable error_table_;
     Las las_;
+    Updater update;
     QVector<DataSeriesSensor> data_sensor_;
     QVector<DataSeriesSensor> data_sensor_redact_;
     QSpinBox *s_et_bar_,
@@ -129,6 +132,7 @@ private:
          create_axis_ = false,
         create_sens_select_ = true,
         first_open_win_sens_can_ = true,
-        change_all_tables_ = false;
+        change_all_tables_ = false,
+        update_flag_ = false;
 };
 #endif // MAINWINDOW_H

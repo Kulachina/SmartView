@@ -17,7 +17,10 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *file = new QAction("Файл");
     file->setMenu(menu_file);
     QAction *import = new QAction("Импорт");
+    QAction *update = new QAction("Проверить обновление");
     menu_file->addAction(import);
+    menu_file->addAction(update);
+    connect(update, &QAction::triggered,this, &MainWindow::CheckUpdate);
     QMenu *menu_import = new QMenu();
     import->setMenu(menu_import);
     QMenu *menu_sensor = new QMenu();
@@ -363,6 +366,9 @@ void MainWindow::WindowSeries(){
     }
 }
 void MainWindow::closeEvent(QCloseEvent *event){
+    if(update_flag_){
+        return;
+    }
     int reply = QMessageBox::question(this, "Выход", "Вы уверены что хотите выйти?",QMessageBox::Yes | QMessageBox::No);
     if(reply == QMessageBox::Yes){
         QApplication::closeAllWindows();
@@ -1458,4 +1464,8 @@ void MainWindow::PanelLegendACM(QVector<DataSeriesSensor>& vec_data){
     }
     data_sensor_.clear();
     win_sens_can_->hide();
+}
+void MainWindow::CheckUpdate(){
+    update.SetFlagExit(update_flag_);
+    update.CheckVersion();
 }
