@@ -81,8 +81,8 @@ private:
     DowlandFile dow_file_;
     CreateRaport create_raport_;
     ErrorTable error_table_;
+    Updater update_;
     Las las_;
-    Updater update;
     QVector<DataSeriesSensor> data_sensor_;
     QVector<DataSeriesSensor> data_sensor_redact_;
     QSpinBox *s_et_bar_,

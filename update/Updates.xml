@@ -12,13 +12,13 @@
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19487761" OS="Any" UncompressedSize="67791618"/>
+  <UpdateFile CompressedSize="19487975" OS="Any" UncompressedSize="67792130"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>a34c0fe7863e8b7e56bb9e2975f04a9d7267bbef</SHA1>
+  <SHA1>d788286a3bc47497815270339654e0a741ec5de1</SHA1>
  </PackageUpdate>
- <SHA1>107686d237f15bf19e34348d0ec4eb2a76244912</SHA1>
- <MetadataName>2026-03-21-1906_meta.7z</MetadataName>
+ <SHA1>775caedd2e1624b226e2cd449c771f7b639d6635</SHA1>
+ <MetadataName>2026-03-21-2037_meta.7z</MetadataName>
 </Updates>

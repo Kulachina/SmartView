@@ -10,8 +10,10 @@ MainWindow::MainWindow(QMainWindow *parent)
     data_base_(),
     dow_file_(data_base_),
     create_raport_(data_base_),
-    error_table_(data_base_,create_raport_,nullptr)
+    error_table_(data_base_,create_raport_,nullptr),
+    update_()
 {
+    update_.AutoCheck();
     QMenuBar *menu = menuBar();
     QMenu *menu_file = new QMenu();
     QAction *file = new QAction("Файл");
@@ -1466,6 +1468,6 @@ void MainWindow::PanelLegendACM(QVector<DataSeriesSensor>& vec_data){
     win_sens_can_->hide();
 }
 void MainWindow::CheckUpdate(){
-    update.SetFlagExit(update_flag_);
-    update.CheckVersion();
+    update_flag_ = true;
+    update_.ManualCheck();
 }

@@ -16,10 +16,15 @@ class Updater : public QObject
     Q_OBJECT
 public:
     Updater();
-    void CheckVersion();
-    void SetFlagExit(bool& flag);
+    void AutoCheck();
+    void ManualCheck();
 private:
+    void CheckVersion();
     void CheckUpdate();
+    QVersionNumber local_version_;
+    QVersionNumber net_version_;
+    QString latest_version_;
+    QNetworkAccessManager *manager_;
 };
 
 #endif // UPDATER_H
