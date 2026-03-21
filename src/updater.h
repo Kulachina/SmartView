@@ -9,7 +9,7 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QCoreApplication>
-#define VERSION "0.8.7"
+#define VERSION "0.8.8"
 
 class Updater : public QObject
 {

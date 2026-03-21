@@ -46,7 +46,7 @@ void Updater::CheckUpdate(){
     if(!QFileInfo::exists(updater)){
         return;
     }
-    QProcess::startDetached(updater,QStringList() << "--updater");
+    QProcess::startDetached(updater,QStringList() << "--updater" << "--silentUpdate");
     qApp->quit();
 }
 void Updater::SetFlagExit(bool& flag){

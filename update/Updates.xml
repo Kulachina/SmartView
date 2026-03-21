@@ -6,19 +6,19 @@
   <Name>SmartView</Name>
   <DisplayName>SmartView</DisplayName>
   <Description>Программа для просмотра показаний с приборов.</Description>
-  <Version>0.8.7</Version>
+  <Version>0.8.8</Version>
   <ReleaseDate>2026-03-21</ReleaseDate>
   <Default>true</Default>
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19487561" OS="Any" UncompressedSize="67791618"/>
+  <UpdateFile CompressedSize="19487761" OS="Any" UncompressedSize="67791618"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>c712386e311f86c21c2d8dcad57bb626583bdedd</SHA1>
+  <SHA1>a34c0fe7863e8b7e56bb9e2975f04a9d7267bbef</SHA1>
  </PackageUpdate>
- <SHA1>da9e4cd93614227e260128f4ea41fbf068173914</SHA1>
- <MetadataName>2026-03-21-1859_meta.7z</MetadataName>
+ <SHA1>107686d237f15bf19e34348d0ec4eb2a76244912</SHA1>
+ <MetadataName>2026-03-21-1906_meta.7z</MetadataName>
 </Updates>
