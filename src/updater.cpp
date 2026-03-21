@@ -30,7 +30,7 @@ void Updater::CheckVersion(){
         QVersionNumber v1 = QVersionNumber::fromString(latest_version);
         QVersionNumber v2 = QVersionNumber::fromString(VERSION);
         if (v2 < v1){
-            int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version + "/nУстановить сейчас?",QMessageBox::Yes,QMessageBox::No);
+            int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version + "\n Установить сейчас?",QMessageBox::Yes,QMessageBox::No);
             if(res == QMessageBox::Yes){
                 CheckUpdate();
             }
@@ -48,7 +48,6 @@ void Updater::CheckUpdate(){
     }
     QProcess::startDetached(updater,QStringList() << "--updater");
     qApp->quit();
-
 }
 void Updater::SetFlagExit(bool& flag){
     if(flag){
