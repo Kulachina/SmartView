@@ -432,13 +432,15 @@ void MainWindow::WindowMasterPoint(){
         QComboBox* combo_name_1 = new QComboBox;
         combo_name_1->addItems(chanels_);
         combo_name_1->setCurrentIndex(2);
+        name_canal_1_ = "Т-Температура";
+        name_canal_2_ = "Р-Давление";
         connect(combo_name_1, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_1_ = text;
             CreateInContent();
         });
         QComboBox* combo_name_2 = new QComboBox;
         combo_name_2->addItems(chanels_);
-        combo_name_2->setCurrentIndex(3);
+        combo_name_2->setCurrentIndex(4);
         connect(combo_name_2, &QComboBox::currentTextChanged, this, [&](const QString &text){
             name_canal_2_ = text;
             CreateInContent();
