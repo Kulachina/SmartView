@@ -46,7 +46,7 @@ public:
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime();
     void ClearAll();
-    void SelectChart(QStringList& words);
+    bool SelectChart(QStringList& words);
 private:
     void CreateVecCheckPoints(QString name, QList<QPointF> list);
     void LoadDataEt(QDataStream& in);

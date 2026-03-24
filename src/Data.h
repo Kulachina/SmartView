@@ -1,4 +1,4 @@
-#ifndef DATA_H
+ #ifndef DATA_H
 #define DATA_H
 #pragma once
 #include "qboxlayout.h"
@@ -19,15 +19,18 @@ struct Canal{
     QLabel* label;
     QLabel* label_data;
     QLabel* label_delta;
+    QLabel* label_name_canal;
+    QLabel* label_name_sensor;
+    QHBoxLayout* hbox;
+    QCheckBox* check_box;
     QVector<QPointF> points_triangle;
     QVector<QPointF> points_rectangle;
     QVector<double> check_points;
     QVector<double> delta_points;
     QVector<QPair<double,double>> vec_max_min_unit;
-    QHBoxLayout* hbox;
-    QCheckBox* check_box;
     QPointer<QStandardItemModel> model;
     QString name_canal;
+    QString new_name_canal;
     QString name_sensor;
     QString name_unit;
     QString color_series_RGB;

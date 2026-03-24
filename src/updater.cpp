@@ -1,5 +1,6 @@
 #include "updater.h"
 #include <QMessageBox>
+
 Updater::Updater() {
     manager_ = new QNetworkAccessManager(this);
     connect(manager_, &QNetworkAccessManager::finished, this,[this](QNetworkReply *reply){

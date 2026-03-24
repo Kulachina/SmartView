@@ -70,15 +70,19 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count
     QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
     QStringList words;
     int size = line_text.size();
-    SelectChart(line_text);
+    bool check = SelectChart(line_text);
+    if(!check){
+        chart_name_and_index_.clear();
+        return {};
+    }
     prog_->setWindowTitle("Загрузка " + QString::number(count_now) + " из " + QString::number(count_file));
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
     DataSeriesSensor data;
     CreateSeriesACM(data);
-    int i = line_text.size()-2;
-    words = line_text[i].split(" ",Qt::SkipEmptyParts);
+    int index = line_text.size()-2;
+    words = line_text[index].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0].trimmed()+ " " +words[1].trimmed())));
     for(int i = index_data_;i < line_text.size()-1; ++i){
         prog_->setValue(i);
@@ -100,16 +104,20 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count
     chart_name_and_index_.clear();
     return data;
 }
-void DowlandFile::SelectChart(QStringList& words){
+bool DowlandFile::SelectChart(QStringList& words){
     QStringList word;
     for(int i = 0 ; i < words.size()-1; ++i){
         if(words[i].size() < 2){
             index_data_ = i +1;
-            return;
+            return true;
         }
         word = words[i].split(" ",Qt::SkipEmptyParts);
+        if(word.size() < 5){
+            return false;
+        }
         chart_name_and_index_.push_back({word[0]+ " " + word[1],word[2],word[4] +" "+ word[5]});
     }
+    return true;
 }
 void DowlandFile::LoadDocEtalon_2v(QString path){
     QFile file(path);
@@ -139,7 +147,6 @@ void DowlandFile::LoadDocEtalon_2v(QString path){
         data_etalon_.back().points_triangle_view = points;
         data_etalon_.back().point_series->replace(check_points);
         data_etalon_.back().axis_y_->setRange(min,max + max * 0.1);
-        data_base_.AddListAxis(data_etalon_.back().axis_y_);
     }
     if(data_etalon_[0].name_series == "ДМ5002М"){
         data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
@@ -239,8 +246,10 @@ void DowlandFile::CreateACM(DataSeriesSensor& data, QString name_canal, QString 
     Canal acm;
     acm.label_data = new QLabel();
     acm.name_canal = name_canal;
+    acm.label_name_canal = new QLabel(name_canal);
     acm.name_unit = name_unit;
     acm.name_sensor = name_sensor;
+    acm.label_name_sensor = new QLabel(name_sensor);
     acm.select_box = false;
     QPen pen;
     pen.setWidth(1);
@@ -533,6 +542,8 @@ void DowlandFile::LoadDataACM(QDataStream& in){
                 >> acm.points_rectangle
                 >> acm.points_triangle;
             acm.label_data = new QLabel();
+            acm.label_name_canal = new QLabel(acm.name_canal);
+            acm.label_name_sensor = new QLabel(data.name_sensor);
             QPen pen;
             pen.setWidth(1);
             acm.series = new QLineSeries();

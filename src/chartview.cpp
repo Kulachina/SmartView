@@ -59,70 +59,72 @@ QWidget* ChartView::GetWidgetLegend(){
 }
 void ChartView::PanelLegendACM(DataSeriesSensor& data){
     QVector<Canal>& acm = data.vec_canal;
-    bool create_space = false;
+    /*bool create_space = false;
     data.line = new QFrame();
     data.line->setFrameShape(QFrame::HLine);
     data.line->setStyleSheet("background-color: grey");
     data.line->setFixedHeight(1);
-    data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+    data.line->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);*/
     for(int i =0;i < acm.size();++i){
-        if(!acm[i].select_box){
-            continue;
-        }
-        if(acm[i].flag_setting_canal){
-            ChangeCanalColor(acm[i]);
-        } else {
-            if(!create_space){
-                vbox_legend_->addWidget(data.line);
-                create_space= true;
-            }
-            chart_->addAxis(acm[i].axis_y_,Qt::AlignLeft);
-            chart_->addSeries(acm[i].series);
-            acm[i].series->attachAxis(axis_time_);
-            acm[i].series->attachAxis(acm[i].axis_y_);
-            acm[i].series->replace(acm[i].points_rectangle);
-            acm[i].axis_y_->setRange(acm[i].unit_min,acm[i].unit_max);
-            acm[i].axis_y_->setTitleText(data.name_sensor + " " + acm[i].name_canal +" "+acm[i].name_unit);
-            acm[i].axis_y_->setVisible(false);
-            data_base_.AddListAxis(acm[i].axis_y_);
-            acm[i].hbox = new QHBoxLayout();
-            acm[i].hbox->setAlignment(Qt::AlignLeft);
-            acm[i].check_box = new QCheckBox();
-            acm[i].check_box->setCheckState(Qt::Checked);
-            connect(acm[i].check_box, &QCheckBox::toggled, this,[=](){
-                if(acm[i].check_box->isChecked()){
-                    acm[i].series->setVisible(true);
-                } else {
-                    acm[i].series->setVisible(false);
-                }
-            });
-            QPointer<QHBoxLayout> p_hbox = acm[i].hbox;
-            QLabel *l_name_canal = new QLabel(acm[i].name_canal);
-            QLabel *l_name = new QLabel(data.name_sensor);
-            l_name_canal->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
-            l_name->setStyleSheet("color: rgb(" + acm[i].color_series_RGB + ");");
-            if(acm[i].color_series_RGB.isEmpty()){
-                acm[i].color_series_RGB = "0,0,0";
-            }
-            ChangeCanalColor(acm[i]);
-            if(acm[i].name_canal.contains("Давление",Qt::CaseInsensitive)){
-                acm[i].series->setObjectName("bar");
-            }
-            if(acm[i].name_canal.contains("Температура",Qt::CaseInsensitive)){
-                acm[i].series->setObjectName("temp");
-            }
-            acm[i].flag_setting_canal = true;
-            p_hbox->addWidget(acm[i].check_box);
-            p_hbox->addWidget(l_name_canal);
-            p_hbox->addWidget(l_name);
-            p_hbox->addWidget(acm[i].label_data);
-            p_hbox->addWidget(acm[i].label_delta);
-            vbox_legend_->addLayout(p_hbox);
-            data_base_.AddLabelSensor(l_name,l_name_canal);
-        }
+        SetCanal(acm[i]);
     }
     CreateMapLabel(data);
     CreateMapSeries(data);
+}
+void ChartView::SetCanal(Canal& acm){
+    if(!acm.select_box){
+        return;
+    }
+    if(acm.flag_setting_canal){
+        ChangeCanalColor(acm);
+    } else {
+        /*if(!create_space){
+            vbox_legend_->addWidget(data.line);
+            create_space= true;
+        }*/
+        chart_->addAxis(acm.axis_y_,Qt::AlignLeft);
+        chart_->addSeries(acm.series);
+        acm.series->attachAxis(axis_time_);
+        acm.series->attachAxis(acm.axis_y_);
+        acm.series->replace(acm.points_rectangle);
+        acm.axis_y_->setRange(acm.unit_min,acm.unit_max);
+        acm.axis_y_->setTitleText(acm.name_sensor + " " + acm.name_canal +" "+acm.name_unit);
+        acm.axis_y_->setVisible(false);
+        data_base_.AddListAxis(acm.axis_y_);
+        acm.hbox = new QHBoxLayout();
+        acm.hbox->setAlignment(Qt::AlignLeft);
+        acm.check_box = new QCheckBox();
+        acm.check_box->setCheckState(Qt::Checked);
+        connect(acm.check_box, &QCheckBox::toggled, this,[=](){
+            if(acm.check_box->isChecked()){
+                acm.series->setVisible(true);
+            } else {
+                acm.series->setVisible(false);
+            }
+        });
+        QPointer<QHBoxLayout> p_hbox = acm.hbox;
+        QPointer<QLabel> l_name_canal = acm.label_name_canal;
+        QPointer<QLabel> l_name = acm.label_name_sensor;
+        l_name_canal->setText(acm.name_canal);
+        if(acm.color_series_RGB.isEmpty()){
+            acm.color_series_RGB = "0,0,0";
+        }
+        ChangeCanalColor(acm);
+        if(acm.name_canal.contains("Давление",Qt::CaseInsensitive)){
+            acm.series->setObjectName("bar");
+        }
+        if(acm.name_canal.contains("Температура",Qt::CaseInsensitive)){
+            acm.series->setObjectName("temp");
+        }
+        acm.flag_setting_canal = true;
+        p_hbox->addWidget(acm.check_box);
+        p_hbox->addWidget(l_name_canal);
+        p_hbox->addWidget(l_name);
+        p_hbox->addWidget(acm.label_data);
+        p_hbox->addWidget(acm.label_delta);
+        vbox_legend_->addLayout(p_hbox);
+        //data_base_.AddLabelSensor(l_name,l_name_canal);
+    }
 }
 void ChartView::ChangeCanalColor(Canal& acm){
     QStringList p = acm.color_series_RGB.split(',');
@@ -132,6 +134,8 @@ void ChartView::ChangeCanalColor(Canal& acm){
         p[2].toInt()
         );
     acm.series->setColor(QColor(col));
+    acm.label_name_canal->setStyleSheet("color: rgb(" + acm.color_series_RGB + ");");
+    acm.label_name_sensor->setStyleSheet("color: rgb(" + acm.color_series_RGB + ");");
     chart_->update();
 }
 void ChartView::PanelLegendEtalon(){
@@ -665,18 +669,20 @@ void ChartView::ReplaceCheckSeries(){
     data_base_.GetDataSerEtalon()[1].point_series->replace(bar);
 }
 void ChartView::ReBuildPointSeries(){
-    QVector<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].point_series->points().toVector();
-    std::sort(points_bar.begin(),points_bar.end(), [](const QPointF& a, const QPointF& b){
-        return a.x() < b.x();
-    });
-    QVector<QPointF> points_temp = data_base_.GetDataSerEtalon()[0].point_series->points().toVector();
-    std::sort(points_temp.begin(),points_temp.end(), [](const QPointF& a, const QPointF& b){
-        return a.x() < b.x();
-    });
-    for(int i =0; i < data_base_.GetCheckPointTemp().size(); ++i){
-        data_base_.GetCheckPoints()[i] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
-        data_base_.GetCheckPointTemp()[i] = points_temp[i].y();
-        data_base_.GetCheckPointBar()[i] = points_bar[i].y();
+    if(!data_base_.GetDataSerEtalon().isEmpty()){
+        QVector<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].point_series->points().toVector();
+        std::sort(points_bar.begin(),points_bar.end(), [](const QPointF& a, const QPointF& b){
+            return a.x() < b.x();
+        });
+        QVector<QPointF> points_temp = data_base_.GetDataSerEtalon()[0].point_series->points().toVector();
+        std::sort(points_temp.begin(),points_temp.end(), [](const QPointF& a, const QPointF& b){
+            return a.x() < b.x();
+        });
+        for(int i =0; i < data_base_.GetCheckPointTemp().size(); ++i){
+            data_base_.GetCheckPoints()[i] = QDateTime::fromMSecsSinceEpoch(points_temp[i].x());
+            data_base_.GetCheckPointTemp()[i] = points_temp[i].y();
+            data_base_.GetCheckPointBar()[i] = points_bar[i].y();
+        }
     }
 }
 void  ChartView::AutoZoom(){

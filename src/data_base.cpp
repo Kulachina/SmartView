@@ -98,3 +98,24 @@ void DataBase::ClearAll(){
     vector_name_.clear();
     vector_name_sensor_.clear();
 }
+
+bool DataBase::FindSensor(QString& name){
+    for(const auto& data : data_acm_){
+        if(data.name_sensor == name){
+            return true;
+        }
+    }
+    return false;
+}
+bool DataBase::FindCanal(const QString& sensor, const QString& canal){
+    for(const auto& data : data_acm_){
+        if(data.name_sensor == sensor){
+            for(const auto& can : data.vec_canal){
+                if(can.name_canal == canal){
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}

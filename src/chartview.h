@@ -49,6 +49,7 @@ public:
     void FlagCalcDelta();
     void AutoZoom();
     void ZeroZoom();
+    void SetCanal(Canal& acm);
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

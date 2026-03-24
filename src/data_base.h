@@ -25,6 +25,8 @@ public:
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();
     void ClearAll();
     void CreatePointsDate();
+    bool FindSensor(QString& name);
+    bool FindCanal(const QString& sensor, const QString& canal);
 private:
     QVector<DataSeriesSensor> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;

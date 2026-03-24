@@ -146,9 +146,13 @@ void MainWindow::LoadDocumentACM(){
     int count_now = 1;
     for(QString path : path_doc_){
         int count_file = path_doc_.size();
-
         if(path.endsWith(".txt", Qt::CaseInsensitive)){
             DataSeriesSensor data = dow_file_.LoadDocACM(path, count_file, count_now);
+            if(data.name_sensor.isEmpty()){
+                QMessageBox::critical(nullptr,"Ошибка", "Ошибка чтения заголовка, файла " + QString::number(count_now));
+                ++count_now;
+                continue;
+            }
             data_sensor_.push_back(data);
             QFileInfo file_info(path);
             save_path_ = file_info.absolutePath();
@@ -156,7 +160,10 @@ void MainWindow::LoadDocumentACM(){
         }
     }
     count_now = 0 ;
-    WindowSensorAndCanal(data_sensor_);
+    if(!data_sensor_.isEmpty()){
+        foo_call_ = false;
+        WindowSensorAndCanal(data_sensor_);
+    }
 }
 void MainWindow::LoadDocumentLAS(){
     if(!first_open_doc_){
@@ -177,6 +184,7 @@ void MainWindow::LoadDocumentLAS(){
             save_path_ = file_info.absolutePath();
         }
     }
+    foo_call_ = false;
     WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::LoadDocumentAMT(){
@@ -196,18 +204,20 @@ void MainWindow::LoadDocumentAMT(){
             int count_file = path_doc_.size();
             QFileInfo file_info(path);
             QString name = file_info.baseName();
-            DataSeriesSensor data = dow_file_.LoadDocAMT(path, name, count_file, count_now);
-            count_now++;
+            DataSeriesSensor data;
+            data = dow_file_.LoadDocAMT(path, name, count_file, count_now);
             data_sensor_.push_back(data);
             save_path_ = file_info.absolutePath();
         }
     }
     count_now = 0;
+    foo_call_ = false;
     WindowSensorAndCanal(data_sensor_);
 }
 void MainWindow::ActoinWinSaC(){
-    if(!data_base_.GetDataSerACM().isEmpty()){
-        WindowSensorAndCanal(data_base_.GetDataSerACM());
+    if(!all_data_sensor_.isEmpty()){
+        foo_call_ = true;
+        WindowSensorAndCanal(all_data_sensor_);
     }
 }
 void MainWindow::LoadDocumentEtalon(){
@@ -245,7 +255,7 @@ void MainWindow::LoadDocumentEtalon(){
         action_series_->setEnabled(true);
         delete_sensor_->setEnabled(true);
         shift_check_point_->setEnabled(true);
-        //change_canal_->setEnabled(true);
+        change_canal_->setEnabled(true);
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
@@ -368,9 +378,6 @@ void MainWindow::WindowSeries(){
     }
 }
 void MainWindow::closeEvent(QCloseEvent *event){
-    if(update_flag_){
-        return;
-    }
     int reply = QMessageBox::question(this, "Выход", "Вы уверены что хотите выйти?",QMessageBox::Yes | QMessageBox::No);
     if(reply == QMessageBox::Yes){
         QApplication::closeAllWindows();
@@ -890,6 +897,16 @@ void MainWindow::DeleteOneSens(){
             DeleteSens(*it);
             it = data.erase(it);
             UpdateComboBox();
+            break;
+        } else {
+            ++it;
+        }
+    }
+    for(auto it = all_data_sensor_.begin();it != all_data_sensor_.end();){
+        if(sens == it->name_sensor){
+            //DeleteSens(*it);
+            it = all_data_sensor_.erase(it);
+            UpdateComboBox();
             return;
         } else {
             ++it;
@@ -925,20 +942,24 @@ void MainWindow::DeleteAllSens(){
 void MainWindow::DeleteSens(DataSeriesSensor& data){
     QVector<Canal>& acm = data.vec_canal;
     for(Canal& a : acm){
-        delete a.check_box;
-        delete a.hbox->itemAt(3)->widget();
-        delete a.hbox->itemAt(2)->widget();
-        delete a.hbox->itemAt(1)->widget();
-        delete a.hbox->itemAt(0)->widget();
-        delete a.hbox;
-        delete a.label;
-        delete a.model;
-        delete a.series;
-        delete a.axis_y_;
+        DeleteCanal(a);
     }
     delete data.label_sensor;
-    delete data.line;
-
+    //delete data.line;
+}
+void MainWindow::DeleteCanal(Canal& a){
+    delete a.check_box;
+    delete a.hbox->itemAt(3)->widget();
+    delete a.hbox->itemAt(2)->widget();
+    delete a.hbox->itemAt(1)->widget();
+    delete a.hbox->itemAt(0)->widget();
+    delete a.hbox;
+    delete a.label;
+    delete a.model;
+    delete a.series;
+    delete a.axis_y_;
+    a.label_name_canal = nullptr;
+    a.label_name_sensor = nullptr;
 }
 void MainWindow::WindowCheckPoints(){
         if(!first_open_win_check_points_){
@@ -988,7 +1009,6 @@ void MainWindow::WindowCheckPoints(){
         CreateTableCheckPoints();
         window_check_points_->show();
     }
-
 void MainWindow::CreateCheckPoint(QTime time_read){
     double temp = 0.0;
     double bar = 0.0;
@@ -1042,8 +1062,6 @@ void MainWindow::CreateCheckPoint(QTime time_read){
         v_temp.push_back(temp);
     }
 }
-
-
 void MainWindow::DeleteCheckPoint(){
     if(fix_table_->selectionModel()->hasSelection()){
         QModelIndex index = fix_table_->currentIndex();
@@ -1177,8 +1195,13 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
         QPushButton *btn = new QPushButton("OK");
         QPushButton *btn_close = new QPushButton("Отмена");
         connect(btn_close, &QPushButton::clicked, this, &MainWindow::Clear);
-        connect(btn, &QPushButton::clicked, this, [this,&vec_data](){
-            PanelLegendACM(vec_data);});
+        connect(btn, &QPushButton::clicked, this, [&](){
+            if(foo_call_){
+                SetPanelLegend();
+            }   else{
+                CreatePanelLegend();
+            }
+        });
         layout->addWidget(sensor_list_);
         layout->addWidget(canal_list_);
         vlayout->addLayout(layout);
@@ -1234,7 +1257,7 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                 combo_error->setCurrentText(" ");
                 combo_accept->addItems({"0.5","1","1.5","0.15",""});
                 combo_unit->addItems({"кгс/см2","МПа","°C","К","мкР/ч","м3/ч",
-                                      "См/м","мСм/см","%","-","г/см3","кг/м3"});
+                                      "См/м","мСм/см","%","-","г/см3","кг/м3","усл.ед"});
                 item->setSizeHint(QSize(400, 40));
                 hbox->setContentsMargins(0,0,0,0);
                 check->setCheckState(Qt::Unchecked);
@@ -1332,6 +1355,7 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                     } else {
                         combo_name->setEnabled(false);
                         check_ACP->setEnabled(false);
+                        check_ACP->setCheckState(Qt::Unchecked);
                         combo_unit->setEnabled(false);
                         combo_error->setEnabled(false);
                         combo_accept->setEnabled(false);
@@ -1341,9 +1365,9 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                         can_ptr->select_box = false;
                     }
                 });
-                connect(check_ACP, &QCheckBox::clicked, w,[can_ptr = &can_ref,check_ACP,combo_unit,combo_error,combo_accept,combo_duration_min,combo_duration_max](){
+                connect(check_ACP, &QCheckBox::checkStateChanged, w,[can_ptr = &can_ref,check_ACP,combo_unit,combo_error,combo_accept,combo_duration_min,combo_duration_max,check](){
                     if(check_ACP->isChecked() && can_ptr->select_box){
-                        can_ptr->name_canal = "АЦП_" + can_ptr->name_canal;
+                        check->setText(can_ptr->name_canal);
                         combo_unit->setCurrentText("-");
                         can_ptr->name_unit = "-";
                         combo_unit->setEnabled(false);
@@ -1353,7 +1377,7 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                         combo_duration_min->setEnabled(false);
                         combo_duration_max->setEnabled(false);
                     } else {
-                        can_ptr->name_canal = can_ptr->name_canal.mid(4);
+                        check->setText(can_ptr->name_canal);
                         combo_unit->setEnabled(true);
                         can_ptr->check_ACP = false;
                         combo_error->setEnabled(true);
@@ -1366,13 +1390,13 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                     can_ptr->color_series_RGB = color_map.value(text);
                     can_ptr->color_series_ = text;
                 });
-                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
-                    if(!can_ptr->name_canal.contains("АЦП",Qt::CaseInsensitive)){
-                        can_ptr->name_canal = text;
-                    }
+                connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, check](const QString &text){
+                        can_ptr->new_name_canal =  can_ptr->name_canal;
+                        can_ptr->name_canal =  text;
+                        check->setText(text);
                 });
                 connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
-                    can_ptr->name_unit = text;
+                        can_ptr->name_unit = text;
                 });
                 if(can_ref.select_box){
                     check->setCheckState(Qt::Checked);
@@ -1454,20 +1478,118 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
     });
     win_sens_can_->show();
 }
-
 void MainWindow::Clear(){
     data_sensor_.clear();
     win_sens_can_->hide();
 }
-void MainWindow::PanelLegendACM(QVector<DataSeriesSensor>& vec_data){
-    for(auto& data : vec_data){
+void MainWindow::CreatePanelLegend(){
+    for(auto& data : data_sensor_){
         chart_view_->PanelLegendACM(data);
         data_base_.AddDataSerACM(data);
+        all_data_sensor_.push_back(data);
     }
     data_sensor_.clear();
     win_sens_can_->hide();
 }
+void MainWindow::SetPanelLegend(){
+    for(auto& data : all_data_sensor_){
+        bool active_sens = false;
+        if(!data_base_.FindSensor(data.name_sensor)){
+            for(auto& canal : data.vec_canal){
+                RebuildCanal(canal);
+            }
+            chart_view_->PanelLegendACM(data);
+            data_base_.AddDataSerACM(data);
+            continue;
+        }
+        for(auto& canal : data.vec_canal){
+            QVector<DataSeriesSensor>& data_acm =  data_base_.GetDataSerACM();
+            if(canal.select_box && (data_base_.FindCanal(data.name_sensor, canal.name_canal) || data_base_.FindCanal(data.name_sensor, canal.new_name_canal))){
+                for(auto& d : data_acm){
+                    if(d.name_sensor == data.name_sensor){
+                        for(auto& can : d.vec_canal){
+                            if(can.name_canal == canal.new_name_canal){
+                                can.duration_error_max = canal.duration_error_max;
+                                can.duration_error_min = canal.duration_error_min;
+                                can.name_unit = canal.name_unit;
+                                can.name_canal = canal.name_canal;
+                                can.color_series_ = canal.color_series_;
+                                can.color_series_RGB = canal.color_series_RGB;
+                                can.select_box = canal.select_box;
+                                can.type_error = canal.type_error;
+                                can.accept_max = canal.accept_max;
+                                can.accept_min = canal.accept_min;
+                                if(canal.check_ACP){
+                                    can.check_ACP = true;
+                                    can.label_name_canal->setText("АЦП_" + can.name_canal);
+                                } else {
+                                    can.check_ACP = false;
+                                    can.label_name_canal->setText(can.name_canal);
+                                }
+                                chart_view_->SetCanal(can);
+                            }
+                        }
+                    }
+                }
+                active_sens = true;
+                continue;
+            }
+            if(canal.select_box && !data_base_.FindCanal(data.name_sensor, canal.name_canal)){
+                for(auto& d : data_acm){
+                    if(d.name_sensor == data.name_sensor){
+                        d.vec_canal.push_back(canal);
+                        RebuildCanal(d.vec_canal.back());
+                        chart_view_->SetCanal(d.vec_canal.back());
+                    }
+                }
+            }
+            if(!canal.select_box && data_base_.FindCanal(data.name_sensor, canal.name_canal)){
+                for(auto& d : data_acm){
+                    if(d.name_sensor == data.name_sensor){
+                        for(auto it = d.vec_canal.begin();it != d.vec_canal.end();){
+                            if(canal.name_canal == it->name_canal){
+                                DeleteCanal(*it);
+                                it = d.vec_canal.erase(it);
+                            } else {
+                                ++it;
+                            }
+                        }
+                    }
+                }
+            }
+            if(canal.select_box){
+                active_sens = true;
+            }
+        }
+        if(!active_sens){
+            for(auto iter = data_base_.GetDataSerACM().begin();iter != data_base_.GetDataSerACM().end();){
+                if(iter->name_sensor == data.name_sensor){
+                    //DeleteSens(*iter);
+                    iter = data_base_.GetDataSerACM().erase(iter);
+                } else {
+                    ++iter;
+                }
+            }
+        }
+    }
+    win_sens_can_->hide();
+}
+void MainWindow::RebuildCanal(Canal& canal){
+    canal.flag_setting_canal = false;
+    canal.label_data = new QLabel();
+    canal.label_name_canal = new QLabel(canal.name_canal);
+    canal.label_name_sensor = new QLabel(canal.name_sensor);
+    QPen pen;
+    pen.setWidth(1);
+    canal.axis_y_ = new QValueAxis();
+    canal.axis_y_->setTickCount(21);
+    canal.series = new QLineSeries();
+    canal.series->setPen(pen);
+    canal.series->setName(canal.name_sensor + canal.name_canal);
+    canal.label = new QLabel();
+    canal.label_delta = new QLabel();
+    canal.hbox = new QHBoxLayout();
+}
 void MainWindow::CheckUpdate(){
-    update_flag_ = true;
     update_.ManualCheck();
 }

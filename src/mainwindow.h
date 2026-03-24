@@ -59,7 +59,9 @@ public slots:
     void SaveAllSV();
     void CheckUpdate();
 private:
-    void PanelLegendACM(QVector<DataSeriesSensor>& vec_data);
+    void RebuildCanal(Canal& canal);
+    void SetPanelLegend();
+    void CreatePanelLegend();
     void ActoinWinSaC();
     void Clear();
     void CreateCheckPoint(QTime hour);
@@ -72,6 +74,7 @@ private:
     void AnalisingSeries(DataSeriesSensor data);
     void DeleteOneSens();
     void DeleteSens(DataSeriesSensor& data);
+    void DeleteCanal(Canal& canal);
     void DeleteAllSens();
     void UpdateComboBox();
     void CreateTableCheckPoints();
@@ -84,7 +87,7 @@ private:
     Updater update_;
     Las las_;
     QVector<DataSeriesSensor> data_sensor_;
-    QVector<DataSeriesSensor> data_sensor_redact_;
+    QVector<DataSeriesSensor> all_data_sensor_;
     QSpinBox *s_et_bar_,
              *s_et_temp_;
     QDoubleSpinBox *s_step_bar_;
@@ -120,7 +123,7 @@ private:
     QTableView *fix_table_;
     QListWidget *sensor_list_;
     QListWidget *canal_list_;
-    QStringList chanels_ = {"GK-ГК","Q-Расход","Т-Температура","Р-Давление","VLG-Влагомер","REZ-Резистивиметр","PL-Плотность флюида"};
+    QStringList chanels_ = {"GK-ГК","Q-Расход","Т-Температура","E-Термокомпенсация","Р-Давление","VLG-Влагомер","REZ-Резистивиметр","PL-Плотность флюида"};
     bool first_open_ = false,
          first_open_2_ = false,
          first_open_3_ = false,
@@ -132,7 +135,7 @@ private:
          create_axis_ = false,
         create_sens_select_ = true,
         first_open_win_sens_can_ = true,
-        change_all_tables_ = false,
-        update_flag_ = false;
+        foo_call_ = false,
+        change_all_tables_ = false;
 };
 #endif // MAINWINDOW_H

@@ -148,7 +148,9 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             qint64 t = static_cast<qint64>(point.x());
             qint64 res = ((t + 500) / 1000) * 1000;
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-            if(time == vec[count]){
+            QDateTime dt = vec[count];
+            dt = dt.addMSecs(-dt.time().msec());
+            if(time == dt){
                 count++;
                 value = table->item(row,1)->text().toDouble();
 
@@ -183,7 +185,9 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
             qint64 t = static_cast<qint64>(point.x());
             qint64 res = ((t + 500) / 1000) * 1000;
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
-            if(time == vec[count]){
+            QDateTime dt = vec[count];
+            dt = dt.addMSecs(-dt.time().msec());
+            if(time == dt){
                 count++;
                 value = table->item(row,2)->text().toDouble();
                 delta = CalcError(type_er_temp,value,point.y(),duration_temp);
@@ -214,7 +218,7 @@ void ErrorTable::CreateAllDeltaDoc(){
     QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
     QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
     for(DataSeriesSensor& acm : data){
-        QString file_data ="/" + acm.name_sensor.trimmed() + "_Погрешность.txt";
+        QString file_data ="/" + acm.name_sensor.trimmed() + "_Погрешность.csv";
         QString file_name = dir_name +  file_data  ;
         if(file_name.isEmpty()){
             return;
@@ -232,11 +236,12 @@ void ErrorTable::CreateDeltaDoc(QTableWidget* table, QString file_name,QString n
         return;
     }
     QTextStream out(&raport);
-    out << name_sensor + "\n";
+    out <<  name_sensor << "\n";
     if(table){
         for (int col = 0; col < table->columnCount(); ++col) {
             QString text = table->model()->headerData(col, Qt::Horizontal).toString();
-            out << QString("%1").arg(text,10);
+            out << text << ";";
+            //out << QString("%1").arg(text,10);
             if(col == table->columnCount()-1){
                 out <<"\n";
             }
@@ -247,7 +252,8 @@ void ErrorTable::CreateDeltaDoc(QTableWidget* table, QString file_name,QString n
                 if(column >= 1){
                     word.replace('.',',');
                 }
-                out << QString("%1").arg(word,10);
+                out << word +";";
+                //out << QString("%1").arg(word,10);
                 if(column == table->columnCount()-1){
                     out <<"\n";
                 }
