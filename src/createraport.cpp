@@ -45,13 +45,13 @@ void CreateRaport::CreateDoc(DataSeriesSensor& data, QString name){
     QPointer<QStandardItemModel> model_temp ;
     for(Canal& a :acm){
         if(a.name_canal.contains("Давление",Qt::CaseInsensitive)){
-            if(a.model.isNull()){
+            if(!a.model){
                 continue;
             }
             model_bar = a.model;
         }
         if(a.name_canal.contains("Температура",Qt::CaseInsensitive)){
-            if(a.model.isNull()){
+            if(!a.model){
                 continue;
             }
             model_temp = a.model;
@@ -108,7 +108,7 @@ void CreateRaport::CreateShortDoc(DataSeriesSensor& data, QString name,QString n
     QPointer<QStandardItemModel> model ;
     for(Canal& a :acm){
         if(a.name_canal.contains(name_canal,Qt::CaseInsensitive)){
-            if(a.model.isNull()){
+            if(!a.model){
                 continue;
             }
             model = a.model;
@@ -150,4 +150,51 @@ void CreateRaport::CreateShortDoc(DataSeriesSensor& data, QString name,QString n
         }
     }
     out << QString(66,'-') <<"\n";
+}
+void CreateRaport::CreateAllDocLAS(QVector<DataSeriesSensor>& vec_data,QString name_canal, QString date){
+    QString path = QApplication::applicationDirPath();
+    QString dir_name = QFileDialog::getExistingDirectory(nullptr, "Сохранить контрольные точки", path);
+    for (DataSeriesSensor& data : vec_data){
+        QString file_data ="/" + data.name_sensor.trimmed() + "_PT_" + date + ".csv";
+        QString file_name = dir_name +  file_data ;
+        if(file_name.isEmpty()){
+            return;
+        }
+        CreateDocLAS(data,file_name,name_canal, date);
+    }
+    QMessageBox::information(nullptr, "Информация","Все отчеты успешно сохранены!");
+}
+void CreateRaport::CreateDocLAS(DataSeriesSensor& data, QString name,QString name_canal, QString date){
+    QVector<Canal>& acm = data.vec_canal;
+    QPointer<QStandardItemModel> model ;
+    for(Canal& a :acm){
+        if(a.name_canal.contains(name_canal,Qt::CaseInsensitive)){
+            if(!a.model){
+                continue;
+            }
+            model = a.model;
+        }
+    }
+    QFile raport(name);
+    if(!raport.open(QIODevice::WriteOnly | QIODevice::Text)){
+        QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
+        return;
+    }
+    QTextStream out(&raport);
+    if(!model.isNull()){
+        out << data.name_sensor << ";" << date << ";" << "\n";
+        for(int row = 0; row <= model->rowCount()-1; ++row){
+            for(int column = 0;column <=model->columnCount()-1;column++){
+                QModelIndex index = model->index(row,column);
+                QString word = model->data(index).toString();
+                if(column == model->columnCount()-1){
+                    out <<"\n";
+                    continue;
+                }
+                word.replace('.',',');
+                out << word << ";";
+            }
+        }
+    }
+    raport.close();
 }

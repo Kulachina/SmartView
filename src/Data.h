@@ -22,13 +22,14 @@ struct Canal{
     QLabel* label_name_canal;
     QLabel* label_name_sensor;
     QHBoxLayout* hbox;
-    QCheckBox* check_box;
+    QCheckBox* check_active_canal;
     QVector<QPointF> points_triangle;
     QVector<QPointF> points_rectangle;
     QVector<double> check_points;
     QVector<double> delta_points;
     QVector<QPair<double,double>> vec_max_min_unit;
-    QPointer<QStandardItemModel> model;
+    QPointer<QCheckBox> check_box;
+    QStandardItemModel* model;
     QString name_canal;
     QString new_name_canal;
     QString name_sensor;

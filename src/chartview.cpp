@@ -91,6 +91,7 @@ void ChartView::SetCanal(Canal& acm){
         acm.axis_y_->setTitleText(acm.name_sensor + " " + acm.name_canal +" "+acm.name_unit);
         acm.axis_y_->setVisible(false);
         data_base_.AddListAxis(acm.axis_y_);
+        acm.model = new QStandardItemModel();
         acm.hbox = new QHBoxLayout();
         acm.hbox->setAlignment(Qt::AlignLeft);
         acm.check_box = new QCheckBox();
@@ -241,6 +242,15 @@ void ChartView::CreateMapLabel(DataSeriesSensor& data){
         }
     }
 }
+void ChartView::ReBuildMapLbelndSeries(){
+    map_data_label_.clear();
+    map_series_.clear();
+    QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
+    for(auto& d : data){
+        CreateMapSeries(d);
+        CreateMapLabel(d);
+    }
+}
 void ChartView::ToogledFlagShiftSeries(){
     if(shift_series_){
         shift_series_ = false;
@@ -330,7 +340,9 @@ void ChartView::mousePressEvent(QMouseEvent *event){
                 for(QPointF& p : series->points()){
                     QPoint screen_pos = chart_->mapToPosition(p,series).toPoint();
                     if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
-                        active_series_ = map_series_[series->name()];
+                        if(!map_series_[series->name()].isEmpty()){
+                            active_series_ = map_series_[series->name()];
+                        }
                         is_dragging_series_ = true;
                         last_pos_mouse_ = event->pos();
                         return;
@@ -384,13 +396,15 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         last_pos_mouse_ = event->pos();
     }
     if(is_dragging_series_){
-        QPointF last = chart_->mapToValue(last_pos_mouse_,active_series_[0]);
-        QPointF now = chart_->mapToValue(event->pos(),active_series_[0]);
-        qreal dx = now.x() - last.x();
-        for(QLineSeries* series : active_series_){
-            MoveSeries(series, dx);
+        if(!active_series_.isEmpty()){
+            QPointF last = chart_->mapToValue(last_pos_mouse_,active_series_[0]);
+            QPointF now = chart_->mapToValue(event->pos(),active_series_[0]);
+            qreal dx = now.x() - last.x();
+            for(QLineSeries* series : active_series_){
+                MoveSeries(series, dx);
+            }
+            last_pos_mouse_ = event->pos();
         }
-        last_pos_mouse_ = event->pos();
     }
     if(is_dragging_){
         QPointF  delta = mapToScene(event->pos()) - mapToScene(last_pos_mouse_);

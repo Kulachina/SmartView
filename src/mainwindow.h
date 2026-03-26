@@ -51,7 +51,9 @@ public slots:
     void WindowView();
     void FillFromOneTable();
     void FillAllTables();
+    void FillAllTablesLAS();
     void CreateAllDoc();
+    void CreateAllDocLAS();
     void ReplaceTriangle();
     void ReplaceRectangle();
     void WindowTableError();
@@ -59,19 +61,27 @@ public slots:
     void SaveAllSV();
     void CheckUpdate();
 private:
+    QWidget* CreateTabMasterLAS();
+    QWidget* CreateTabMasterACM();
+    DataSeriesSensor* PreparationData();
+    void UncheckCanals();
+    void CheckCanals();
     void RebuildCanal(Canal& canal);
     void SetPanelLegend();
     void CreatePanelLegend();
     void ActoinWinSaC();
     void Clear();
     void CreateCheckPoint(QTime hour);
-    void CreateInContent();
+    void CreateInContentLAS();
+    void CreateInContentACM();
     void WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data);
     void ChangeAllTables(QStandardItem * item);
     void DeleteCheckPoint();
     void closeEvent(QCloseEvent *event) override;
+    void FilingTableLAS(QStandardItemModel* model);
     void FilingTable(QStandardItemModel* model_temp, QStandardItemModel* model_bar);
     void AnalisingSeries(DataSeriesSensor data);
+    void AnalisingSeriesLAS(DataSeriesSensor data);
     void DeleteOneSens();
     void DeleteSens(DataSeriesSensor& data);
     void DeleteCanal(Canal& canal);
@@ -89,8 +99,11 @@ private:
     QVector<DataSeriesSensor> data_sensor_;
     QVector<DataSeriesSensor> all_data_sensor_;
     QSpinBox *s_et_bar_,
-             *s_et_temp_;
-    QDoubleSpinBox *s_step_bar_;
+             *s_et_temp_,
+             *s_et_bar_las_,
+             *s_et_temp_las_;
+    QDoubleSpinBox *s_step_bar_,
+                   *s_step_bar_las_;
     QVBoxLayout *vb_del_sens_,
                 *vbox_axes_;
     QWidget *window_axes_,
@@ -111,14 +124,19 @@ private:
             *action_series_,
             *delete_sensor_,
             *change_canal_;
-    QTabWidget *tab_;
+    QTabWidget *tab_,
+               *tab_las_;
     QCheckBox *check_step_bar_,
-              *ch_sel_1_table_;
+              *check_step_bar_las_,
+              *ch_sel_1_table_,
+              *ch_sel_1_table_las_;
     QComboBox *combo_del_sens_;
     QStringList path_doc_;
     QString  save_path_,
              name_canal_1_,
-             name_canal_2_;
+             name_canal_2_,
+             name_canal_las_1_,
+             name_canal_las_2_;
     QStandardItemModel *fix_model_;
     QTableView *fix_table_;
     QListWidget *sensor_list_;
@@ -136,6 +154,7 @@ private:
         create_sens_select_ = true,
         first_open_win_sens_can_ = true,
         foo_call_ = false,
+        flag_termocompens_ = false,
         change_all_tables_ = false;
 };
 #endif // MAINWINDOW_H

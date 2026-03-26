@@ -50,6 +50,7 @@ public:
     void AutoZoom();
     void ZeroZoom();
     void SetCanal(Canal& acm);
+    void ReBuildMapLbelndSeries();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

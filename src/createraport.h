@@ -14,6 +14,8 @@ public:
     void CreateAllDeltaDoc(QTabWidget* tab);
     void CreateDeltaDoc(QTableWidget* table, QString file_name, QString name_sensor);
     void CreateShortDoc(DataSeriesSensor& data, QString name, QString name_canal);
+    void CreateAllDocLAS(QVector<DataSeriesSensor>& vec_data,QString name_canal, QString date);
+    void CreateDocLAS(DataSeriesSensor& data, QString name,QString name_canal,  QString date);
 private:
     DataBase& data_base_;
 };
