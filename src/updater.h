@@ -9,7 +9,7 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QCoreApplication>
-#define VERSION "0.8.8"
+#define VERSION "0.8.9"
 
 class Updater : public QObject
 {
@@ -25,6 +25,7 @@ private:
     QVersionNumber net_version_;
     QString latest_version_;
     QNetworkAccessManager *manager_;
+    bool error_connect_ = false;
 };
 
 #endif // UPDATER_H

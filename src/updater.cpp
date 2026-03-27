@@ -5,7 +5,8 @@ Updater::Updater() {
     manager_ = new QNetworkAccessManager(this);
     connect(manager_, &QNetworkAccessManager::finished, this,[this](QNetworkReply *reply){
         if(reply->error() != QNetworkReply::NoError){
-            QMessageBox::warning(nullptr,"Ошибка", reply->errorString());
+            QMessageBox::warning(nullptr,"Ошибка", "Неудалось связатся с сервером");
+            error_connect_ = true;
             reply->deleteLater();
             return;
         }
@@ -51,14 +52,17 @@ void Updater::AutoCheck(){
     CheckVersion();
 }
 void Updater::ManualCheck(){
-    //CheckVersion();
-    if (local_version_ < net_version_){
-        int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version_ + "\n Установить сейчас?",QMessageBox::Yes,QMessageBox::No);
-        if(res == QMessageBox::Yes){
-            CheckUpdate();
-        }
+    if(error_connect_){
+       CheckVersion();
     } else {
-        QMessageBox::information(nullptr,"Обновление","Установлена последняя версия " + latest_version_);
+        if (local_version_ < net_version_){
+            int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version_ + "\n Установить сейчас?",QMessageBox::Yes,QMessageBox::No);
+            if(res == QMessageBox::Yes){
+                CheckUpdate();
+            }
+        } else {
+            QMessageBox::information(nullptr,"Обновление","Установлена последняя версия " + latest_version_);
+        }
     }
 }
 

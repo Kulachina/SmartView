@@ -235,7 +235,9 @@ void ErrorTable::CreateDeltaDoc(QTableWidget* table, QString file_name,QString n
         QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
         return;
     }
+    raport.write("\xEF\xBB\xBF");
     QTextStream out(&raport);
+    out.setEncoding(QStringConverter::Utf8);
     out <<  name_sensor << "\n";
     if(table){
         for (int col = 0; col < table->columnCount(); ++col) {

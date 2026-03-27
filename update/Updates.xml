@@ -2,23 +2,23 @@
  <ApplicationName>{AnyApplication}</ApplicationName>
  <ApplicationVersion>1.0.0</ApplicationVersion>
  <Checksum>true</Checksum>
+ <SHA1>fee751dc15fee81c0363f6a1dd2deb4bb8e034f3</SHA1>
+ <MetadataName>2026-03-27-1111_meta.7z</MetadataName>
  <PackageUpdate>
   <Name>SmartView</Name>
   <DisplayName>SmartView</DisplayName>
   <Description>Программа для просмотра показаний с приборов.</Description>
-  <Version>0.8.8</Version>
+  <Version>0.8.9</Version>
   <ReleaseDate>2026-03-21</ReleaseDate>
   <Default>true</Default>
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19487975" OS="Any" UncompressedSize="67792130"/>
+  <UpdateFile CompressedSize="19498582" OS="Any" UncompressedSize="67823362"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>d788286a3bc47497815270339654e0a741ec5de1</SHA1>
+  <SHA1>5b1703561ae7352cab63d848cf48d27a6b4c9def</SHA1>
  </PackageUpdate>
- <SHA1>775caedd2e1624b226e2cd449c771f7b639d6635</SHA1>
- <MetadataName>2026-03-21-2037_meta.7z</MetadataName>
 </Updates>

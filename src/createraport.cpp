@@ -180,14 +180,16 @@ void CreateRaport::CreateDocLAS(DataSeriesSensor& data, QString name,QString nam
         QMessageBox::warning(nullptr, "Ошибка","Неудалось открыть файл для записи");
         return;
     }
+    raport.write("\xEF\xBB\xBF");
     QTextStream out(&raport);
     if(!model.isNull()){
+        out.setEncoding(QStringConverter::Utf8);
         out << data.name_sensor << ";" << date << ";" << "\n";
         for(int row = 0; row <= model->rowCount()-1; ++row){
-            for(int column = 0;column <=model->columnCount()-1;column++){
+            for(int column = 0;column <= model->columnCount();column++){
                 QModelIndex index = model->index(row,column);
                 QString word = model->data(index).toString();
-                if(column == model->columnCount()-1){
+                if(column == model->columnCount()){
                     out <<"\n";
                     continue;
                 }
