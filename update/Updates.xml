@@ -2,8 +2,8 @@
  <ApplicationName>{AnyApplication}</ApplicationName>
  <ApplicationVersion>1.0.0</ApplicationVersion>
  <Checksum>true</Checksum>
- <SHA1>472f9af426377a8832cfe70a2a6e5a1ffdfd506d</SHA1>
- <MetadataName>2026-03-27-2145_meta.7z</MetadataName>
+ <SHA1>e3296abfccad8e77f508f3695cdb2109df768564</SHA1>
+ <MetadataName>2026-03-27-2253_meta.7z</MetadataName>
  <PackageUpdate>
   <Name>0.8.8</Name>
   <DisplayName>SmartView</DisplayName>
@@ -31,11 +31,11 @@
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19498882" OS="Any" UncompressedSize="67824386"/>
+  <UpdateFile CompressedSize="19498878" OS="Any" UncompressedSize="67824386"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>039c9e7a709027f62acb0878ce166ec14dc53479</SHA1>
+  <SHA1>cf73dc0f3e3fb8f813bbf0ad717e5accb6a05a22</SHA1>
  </PackageUpdate>
 </Updates>
