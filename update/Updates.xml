@@ -2,25 +2,6 @@
  <ApplicationName>{AnyApplication}</ApplicationName>
  <ApplicationVersion>1.0.0</ApplicationVersion>
  <Checksum>true</Checksum>
- <SHA1>e3296abfccad8e77f508f3695cdb2109df768564</SHA1>
- <MetadataName>2026-03-27-2253_meta.7z</MetadataName>
- <PackageUpdate>
-  <Name>0.8.8</Name>
-  <DisplayName>SmartView</DisplayName>
-  <Description>Программа для просмотра показаний с приборов.</Description>
-  <Version>0.8.8</Version>
-  <Default>false</Default>
-  <ReleaseDate>2026-03-27</ReleaseDate>
-  <Essential>true</Essential>
-  <ReplaceFiles>true</ReplaceFiles>
-  <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19498666" OS="Any" UncompressedSize="67823362"/>
-  <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
-  <Licenses>
-   <License file="license.txt" name="Лицензионное соглашение"/>
-  </Licenses>
-  <SHA1>5cab96604e2d70b429417519e29b12cfa94da538</SHA1>
- </PackageUpdate>
  <PackageUpdate>
   <Name>0.8.9</Name>
   <DisplayName>SmartView</DisplayName>
@@ -31,11 +12,13 @@
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19498878" OS="Any" UncompressedSize="67824386"/>
+  <UpdateFile CompressedSize="19498854" OS="Any" UncompressedSize="67824386"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>cf73dc0f3e3fb8f813bbf0ad717e5accb6a05a22</SHA1>
+  <SHA1>bc9d44a227e4541870094fe2eb5e176f296c5f89</SHA1>
  </PackageUpdate>
+ <SHA1>a1324334fe9fab81874ba276724334b367506407</SHA1>
+ <MetadataName>2026-03-27-2255_meta.7z</MetadataName>
 </Updates>
