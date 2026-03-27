@@ -2,40 +2,40 @@
  <ApplicationName>{AnyApplication}</ApplicationName>
  <ApplicationVersion>1.0.0</ApplicationVersion>
  <Checksum>true</Checksum>
- <SHA1>8cdc9cb15c3d25abb3bacab5b20360b823948314</SHA1>
- <MetadataName>2026-03-27-1151_meta.7z</MetadataName>
+ <SHA1>472f9af426377a8832cfe70a2a6e5a1ffdfd506d</SHA1>
+ <MetadataName>2026-03-27-2145_meta.7z</MetadataName>
  <PackageUpdate>
   <Name>0.8.8</Name>
   <DisplayName>SmartView</DisplayName>
   <Description>Программа для просмотра показаний с приборов.</Description>
   <Version>0.8.8</Version>
+  <Default>false</Default>
   <ReleaseDate>2026-03-27</ReleaseDate>
-  <Default>true</Default>
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19498648" OS="Any" UncompressedSize="67823362"/>
+  <UpdateFile CompressedSize="19498666" OS="Any" UncompressedSize="67823362"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>227b0cbc0569796da26ce7898fdb8f4abb0ecc1b</SHA1>
+  <SHA1>5cab96604e2d70b429417519e29b12cfa94da538</SHA1>
  </PackageUpdate>
  <PackageUpdate>
   <Name>0.8.9</Name>
   <DisplayName>SmartView</DisplayName>
   <Description>Программа для просмотра показаний с приборов.</Description>
   <Version>0.8.9</Version>
-  <ReleaseDate>2026-03-27</ReleaseDate>
   <Default>true</Default>
+  <ReleaseDate>2026-03-27</ReleaseDate>
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="19498582" OS="Any" UncompressedSize="67823362"/>
+  <UpdateFile CompressedSize="19498882" OS="Any" UncompressedSize="67824386"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,networkinformation.7z,platforms.7z,styles.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <Licenses>
    <License file="license.txt" name="Лицензионное соглашение"/>
   </Licenses>
-  <SHA1>c8ca2b22ab03dfb7b2cd25a3b7a2712c77d5117b</SHA1>
+  <SHA1>039c9e7a709027f62acb0878ce166ec14dc53479</SHA1>
  </PackageUpdate>
 </Updates>

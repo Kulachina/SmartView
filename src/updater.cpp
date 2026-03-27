@@ -14,9 +14,17 @@ Updater::Updater() {
         QXmlStreamReader xml(data);
         while(!xml.atEnd()){
             xml.readNext();
-            if(xml.readNextStartElement() && xml.name() == "Version"){
-                latest_version_ = xml.readElementText();
-                break;
+            QString version;
+            if(xml.isStartElement() && xml.name() == "PackageUpdate"){
+                while(xml.readNextStartElement()){
+                    if(xml.name() == "Version"){
+                        version = xml.readElementText();
+                    }
+                    if(xml.name() == "Default" && xml.readElementText() == "true"){
+                        latest_version_ = version;
+                        break;
+                    }
+                }
             }
         }
         if(xml.hasError()){
