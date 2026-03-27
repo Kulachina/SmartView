@@ -12,17 +12,21 @@ Updater::Updater() {
         }
         QByteArray data = reply->readAll();
         QXmlStreamReader xml(data);
+        QString version;
         while(!xml.atEnd()){
             xml.readNext();
-            QString version;
+
             if(xml.isStartElement() && xml.name() == "PackageUpdate"){
                 while(xml.readNextStartElement()){
                     if(xml.name() == "Version"){
                         version = xml.readElementText();
-                    }
-                    if(xml.name() == "Default" && xml.readElementText() == "true"){
-                        latest_version_ = version;
-                        break;
+                    } else if(xml.name() == "Default" ){
+                        if(xml.readElementText().trimmed().toLower() == "true"){
+                            latest_version_ = version;
+                            break;
+                        }
+                    } else{
+                        xml.skipCurrentElement();
                     }
                 }
             }
