@@ -43,6 +43,7 @@ public:
     void CheckFlag();
     void LoadDocEtalon(QString path);
     void LoadDocEtalon_2v(QString path);
+    void LoadTXTEtalon(QString path);
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime();
     void ClearAll();
@@ -54,6 +55,7 @@ private:
     void SaveDataEt(QDataStream& out);
     void SaveDataACM(QDataStream& out);
     void SetMinMaxY(double temp, double bar);
+    qint64 TextToIntEtalon(QString time);
     qint64 TextToInt(QString time);
     DataBase& data_base_;
     QVector<DataSeriesEtalon> data_etalon_;

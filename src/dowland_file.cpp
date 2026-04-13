@@ -57,6 +57,113 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name, int count_f
     chart_name_and_index_.clear();
     return data;
 }
+void DowlandFile::LoadTXTEtalon(QString path){
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly)){
+        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        return ;
+    }
+    QTextStream in(&file);
+    QString all_text = in.readAll();
+    file.close();
+    QStringList line_text = all_text.split("\n",Qt::SkipEmptyParts);
+    QStringList words;
+    int size = line_text.size();
+    prog_->setWindowTitle("Загрузка Эталона");
+    prog_->setRange(0,size);
+    prog_->setValue(0);
+    prog_->show();
+    DataSeriesEtalon data;
+    QStringList zagolovok = line_text[0].split("\t",Qt::SkipEmptyParts);
+    QStringList min_axis = line_text[1].split("\t",Qt::SkipEmptyParts);
+    data_etalon_.reserve(2);
+    QList<QPointF> points_bar;
+    QList<QPointF> points_temp;
+    QList<QPointF> points_rect_bar;
+    QList<QPointF> points_rect_temp;
+    int index = line_text.size()-5;
+    words = line_text[index].split("\t",Qt::SkipEmptyParts);
+    axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0].trimmed()+ " " +words[1].trimmed())));
+    axis_x_->setMin(QDateTime::fromMSecsSinceEpoch(TextToInt(min_axis[0].trimmed()+ " " +min_axis[1].trimmed())));
+    qint64 time;
+    double temp;
+    double bar;
+    bool first_write_rect = false;
+    bool ok_bar;
+    bool ok_temp;
+    double max_y_temp = 0;
+    double max_y_bar = 0 ;
+    for(int i = 1;i < index; ++i){
+        prog_->setValue(i);
+        QCoreApplication::processEvents();
+        words = line_text[i].split("\t",Qt::SkipEmptyParts);
+        time = TextToIntEtalon(words[0].trimmed()+ " " + words[1].trimmed());
+        if(zagolovok[1] == "ЛТ300"){
+            temp = words[2].replace(',','.').toDouble(&ok_temp);
+            bar = words[3].replace(',','.').toDouble(&ok_bar);
+        } else {
+            temp = words[3].replace(',','.').toDouble(&ok_temp);
+            bar = words[2].replace(',','.').toDouble(&ok_bar);
+        }
+        if(!ok_temp){
+            temp = 0;
+        }
+        if(!ok_bar){
+            bar = 0;
+        }
+        if(max_y_bar < bar){
+            max_y_bar = bar;
+        }
+        if(max_y_temp < temp){
+            max_y_temp = temp;
+        }
+        points_temp.push_back(QPointF(time,temp));
+        points_bar.push_back(QPointF(time,bar));
+        if(first_write_rect){
+            QPointF point_b = points_bar.back();
+            QPointF point_t = points_temp.back();
+            points_rect_bar.push_back(QPointF(time,point_b.y()));
+            points_rect_temp.push_back(QPointF(time,point_t.y()));
+        }
+        first_write_rect = true;
+        points_rect_bar.push_back(QPointF(time,bar));
+        points_rect_temp.push_back(QPointF(time,temp));
+    }
+    prog_->hide();
+
+    if(zagolovok[1] == "ЛТ300"){
+        CreateSeriesEtalon(zagolovok[1]);
+        CreateSeriesEtalon(zagolovok[2]);
+        data_etalon_[0].series->replace(points_rect_temp);
+        data_etalon_[0].points_rectangle_view = points_rect_temp;
+        data_etalon_[0].points_triangle_view = points_temp;
+        data_etalon_[0].axis_y_->setRange(0,max_y_temp);
+        data_etalon_[1].series->replace(points_rect_bar);
+        data_etalon_[1].points_rectangle_view = points_rect_bar;
+        data_etalon_[1].points_triangle_view = points_bar;
+        data_etalon_[1].axis_y_->setRange(0,max_y_bar);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
+        data_base_.AddListAxis(data_etalon_[0].axis_y_);
+        data_base_.AddListAxis(data_etalon_[1].axis_y_);
+    } else{
+        CreateSeriesEtalon(zagolovok[2]);
+        CreateSeriesEtalon(zagolovok[1]);
+        data_etalon_[1].series->replace(points_rect_temp);
+        data_etalon_[1].points_rectangle_view = points_rect_temp;
+        data_etalon_[1].points_triangle_view = points_temp;
+        data_etalon_[1].axis_y_->setRange(0,max_y_bar);
+        data_etalon_[0].series->replace(points_rect_bar);
+        data_etalon_[0].points_rectangle_view = points_rect_bar;
+        data_etalon_[0].points_triangle_view = points_bar;
+        data_etalon_[0].axis_y_->setRange(0,max_y_temp);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
+        data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
+        data_base_.AddListAxis(data_etalon_[1].axis_y_);
+        data_base_.AddListAxis(data_etalon_[0].axis_y_);
+    }
+     axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(points_bar.front().x()),QDateTime::fromMSecsSinceEpoch(points_bar.back().x()));
+}
 
 DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count_now){
     QFile file(path);
@@ -390,6 +497,10 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
         points_bar.push_back(QPointF(data.time,data.value_2));
         error_flag_2_ = true;
     }
+}
+qint64 DowlandFile::TextToIntEtalon(QString word){
+    qint64 time = QDateTime::fromString(word, "yyyy.MM.dd hh:mm:ss").toMSecsSinceEpoch();
+    return time;
 }
 qint64 DowlandFile::TextToInt(QString word){
     qint64 time = QDateTime::fromString(word, "dd.MM.yyyy hh:mm:ss").toMSecsSinceEpoch();

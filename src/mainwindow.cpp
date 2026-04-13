@@ -223,7 +223,7 @@ void MainWindow::ActoinWinSaC(){
 void MainWindow::LoadDocumentEtalon(){
     if(!first_open_etalon_){
         QString path = QApplication::applicationDirPath();
-        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml2);;(*.sml);;(*.smv)");
+        QString path_doc = QFileDialog::getOpenFileName(this, "Открытие файла", path ,"(*.sml2);;(*.sml);;(*.txt);;(*.smv)");
         QFileInfo file_info(path_doc);
         save_path_ = file_info.absolutePath();
         first_open_doc_ = true;
@@ -236,6 +236,10 @@ void MainWindow::LoadDocumentEtalon(){
         }
         if(path_doc.endsWith(".sml", Qt::CaseInsensitive)){
             dow_file_.LoadDocEtalon(path_doc);
+            chart_view_->PanelLegendEtalon();
+        }
+        if(path_doc.endsWith(".txt", Qt::CaseInsensitive)){
+            dow_file_.LoadTXTEtalon(path_doc);
             chart_view_->PanelLegendEtalon();
         }
         if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
