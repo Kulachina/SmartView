@@ -3,12 +3,12 @@
  <ApplicationVersion>1.0.0</ApplicationVersion>
  <Checksum>true</Checksum>
  <PackageUpdate>
-  <Name>0.9.0</Name>
+  <Name>0.9.1</Name>
   <DisplayName>SmartView</DisplayName>
   <Description>Программа для просмотра показаний с приборов.</Description>
-  <Version>0.9.0</Version>
+  <Version>0.9.1</Version>
   <Default>true</Default>
-  <ReleaseDate>2026-04-13</ReleaseDate>
+  <ReleaseDate>2026-05-21</ReleaseDate>
   <Essential>true</Essential>
   <ReplaceFiles>true</ReplaceFiles>
   <Script>installscript.qs</Script>

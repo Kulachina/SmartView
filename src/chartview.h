@@ -83,6 +83,7 @@ private:
     QList<QPointer<QLineSeries>> active_series_;
     QPointer<QScatterSeries> active_check_series_;
     QPoint last_pos_mouse_;
+    QPointer<QLabel> point_time_;
     QRect hit_area_;
     QRubberBand band_;
     QDateTime axis_min_,

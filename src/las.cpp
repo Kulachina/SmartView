@@ -141,6 +141,10 @@ void Las::CreateCanal(QString name){
     acm.series->setName(name);
     acm.label = new QLabel();
     acm.label_delta = new QLabel();
+    acm.label_data = new QLabel();
+    acm.label_name_canal = new QLabel(acm.name_canal);
+    //acm.name_sensor = name_sensor;
+    acm.label_name_sensor = new QLabel();
     data_.vec_canal.push_back(acm);
 }
 void Las::SetNameSensor(const QStringList& words){

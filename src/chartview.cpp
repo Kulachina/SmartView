@@ -202,8 +202,8 @@ void ChartView::PanelLegendEtalon(){
     hbox_check_all->addWidget(check_delta);
     hbox_check_all->setAlignment(Qt::AlignLeft);
     vbox_legend_->addLayout(hbox_check_all);
-    QPointer<QLabel> point = time;
-    map_data_label_["time"] = point;  
+    point_time_ = time;
+    map_data_label_["time"] = point_time_;
 }
 void ChartView::CreateLegend(QString name, QList<QLineSeries*> series){
     for(QLineSeries* s : series){
@@ -241,6 +241,11 @@ void ChartView::CreateMapLabel(DataSeriesSensor& data){
             map_data_label_[acm[i].series->name()] = point;
         }
     }
+    for(auto data : data_base_.GetDataSerEtalon()){
+        QPointer<QLabel> point = data.data_sensor;
+        map_data_label_[data.series->name()] = point;
+    }
+    map_data_label_["time"] = point_time_;
 }
 void ChartView::ReBuildMapLbelndSeries(){
     map_data_label_.clear();
