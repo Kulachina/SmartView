@@ -1037,9 +1037,13 @@ void MainWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* 
     }
     int index_temp = 0;
     for( int y = 1 ; y <= s_et_temp_->value();++y){
-        QStandardItem *it_b = new QStandardItem(QString::number(vec_temp[index_temp]));
+        double temp_i = 0;
+        if(vec_temp.size() > index_temp){
+            temp_i = vec_temp[index_temp];
+        }
+        QStandardItem *it_b = new QStandardItem(QString::number(temp_i));
         it_b->setTextAlignment(Qt::AlignCenter);
-        QStandardItem *it = new QStandardItem(QString::number(vec_temp[index_temp]));
+        QStandardItem *it = new QStandardItem(QString::number(temp_i));
         it->setTextAlignment(Qt::AlignCenter);
         if(model_bar){
         model_bar->setItem(0,y,it);
