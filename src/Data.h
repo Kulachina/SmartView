@@ -30,6 +30,7 @@ struct Canal{
     QVector<QPair<double,double>> vec_max_min_unit;
     QPointer<QCheckBox> check_box;
     QStandardItemModel* model;
+    QString first_name_canal;
     QString name_canal;
     QString new_name_canal;
     QString name_sensor;

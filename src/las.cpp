@@ -131,7 +131,7 @@ void Las::CreateCanal(QString name){
     acm.axis_y_->setTitleText(name);
     acm.axis_y_->setTickCount(21);
     acm.label_data = new QLabel();
-    acm.name_canal = name;
+    acm.first_name_canal = name;
     acm.name_canal = name.left(index);
     acm.name_unit = name.right(index);
     QPen pen;

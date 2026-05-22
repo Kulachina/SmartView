@@ -1627,7 +1627,7 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                 QListWidgetItem *item = new QListWidgetItem(canal_list_);
                 QWidget *w = new QWidget;
                 QHBoxLayout *hbox = new QHBoxLayout(w);
-                QCheckBox* check = new QCheckBox(can_ref.name_canal);
+                QCheckBox* check = new QCheckBox(can_ref.first_name_canal);
                 can_ref.check_active_canal = check;
                 QComboBox* combo_color = new QComboBox;
                 QComboBox* combo_name = new QComboBox;
@@ -1755,7 +1755,6 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                 });
                 connect(check_ACP, &QCheckBox::checkStateChanged, w,[can_ptr = &can_ref,check_ACP,combo_unit,combo_error,combo_accept,combo_duration_min,combo_duration_max,check](){
                     if(check_ACP->isChecked() && can_ptr->select_box){
-                        check->setText(can_ptr->name_canal);
                         combo_unit->setCurrentText("-");
                         can_ptr->name_unit = "-";
                         combo_unit->setEnabled(false);
@@ -1765,7 +1764,6 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                         combo_duration_min->setEnabled(false);
                         combo_duration_max->setEnabled(false);
                     } else {
-                        check->setText(can_ptr->name_canal);
                         combo_unit->setEnabled(true);
                         can_ptr->check_ACP = false;
                         combo_error->setEnabled(true);
@@ -1781,7 +1779,6 @@ void MainWindow::WindowSensorAndCanal(QVector<DataSeriesSensor>& vec_data){
                 connect(combo_name, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref, check](const QString &text){
                         can_ptr->new_name_canal =  can_ptr->name_canal;
                         can_ptr->name_canal =  text;
-                        check->setText(text);
                 });
                 connect(combo_unit, &QComboBox::currentTextChanged, w, [can_ptr = &can_ref](const QString &text){
                         can_ptr->name_unit = text;

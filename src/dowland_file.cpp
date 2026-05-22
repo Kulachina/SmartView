@@ -352,6 +352,7 @@ void DowlandFile::CreateSeriesACM(DataSeriesSensor& data){
 void DowlandFile::CreateACM(DataSeriesSensor& data, QString name_canal, QString name_sensor, QString name_unit){
     Canal acm;
     acm.label_data = new QLabel();
+    acm.first_name_canal = name_canal;
     acm.name_canal = name_canal;
     acm.label_name_canal = new QLabel(name_canal);
     acm.name_unit = name_unit;
