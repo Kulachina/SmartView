@@ -1,4 +1,5 @@
 #include "error_table.h"
+#include "util.h"
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QPushButton>
@@ -146,7 +147,7 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
                 break;
             }
             qint64 t = static_cast<qint64>(point.x());
-            qint64 res = ((t + 500) / 1000) * 1000;
+            qint64 res = RoundToSec(t);
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
             QDateTime dt = vec[count];
             dt = dt.addMSecs(-dt.time().msec());
@@ -183,7 +184,7 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
                 break;
             }
             qint64 t = static_cast<qint64>(point.x());
-            qint64 res = ((t + 500) / 1000) * 1000;
+            qint64 res = RoundToSec(t);
             QDateTime time = QDateTime::fromMSecsSinceEpoch(res);
             QDateTime dt = vec[count];
             dt = dt.addMSecs(-dt.time().msec());

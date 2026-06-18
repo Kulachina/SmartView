@@ -51,6 +51,8 @@ public:
     void ZeroZoom();
     void SetCanal(Canal& acm);
     void ReBuildMapLbelndSeries();
+signals:
+    void AddCheckPointRequested(QTime time);   // правый клик по графику -> «Добавить КТ»
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

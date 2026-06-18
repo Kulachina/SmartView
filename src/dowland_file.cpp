@@ -410,8 +410,6 @@ void DowlandFile::CreateSeriesEtalon(QString word){
     doc.point_series->attachAxis(axis_x_);
     doc.series->attachAxis(axis_x_);
     data_etalon_.push_back(doc);
-    //data_base_.AddDataSerEtalon(data_etalon_.back());
-    //data_base_.AddListAxis(data_etalon_.back().axis_y_);
 }
 void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
     QVector<Canal>& vec_canal = data.vec_canal;

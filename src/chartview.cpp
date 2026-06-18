@@ -1,4 +1,6 @@
 #include "chartview.h"
+#include "util.h"
+#include <QMenu>
 
 ChartView::ChartView(QChartView *parent, DataBase& data_base)
     :QChartView(parent),
@@ -289,11 +291,11 @@ void ChartView::MoveSeries(QLineSeries* series, qreal dx){
 }
 void ChartView::MoveCheckPoint(qreal point, qreal dx){
     qint64 t = static_cast<qint64>(point + dx);
-    qint64 res = ((t + 500) / 1000) * 1000;
+    qint64 res = RoundToSec(t);
     QList<QPointF> points_temp = data_base_.GetDataSerEtalon()[0].series->points();
     QList<QPointF> points_bar = data_base_.GetDataSerEtalon()[1].series->points();
     for(int i =0 ; i < points_temp.size();++i){
-        qint64 point_t = ((static_cast<qint64>(points_temp[i].x()) + 500) / 1000) * 1000;
+        qint64 point_t = RoundToSec(static_cast<qint64>(points_temp[i].x()));
         if( point_t == res){
             if(i < points_temp.size()){
                 data_base_.GetCheckPointTemp()[active_check_point_] = points_temp[i].y();
@@ -490,7 +492,18 @@ void ChartView::CalcDelta(){
 }
 void ChartView::mouseReleaseEvent(QMouseEvent *event){
     if(event->button() == Qt::RightButton){
+        bool was_drag = is_dragging_;
         is_dragging_ = false;
+        // Правый клик без перетаскивания по области графика -> контекстное меню «Добавить КТ».
+        if(!was_drag && load_etalon_ && chart_->plotArea().contains(event->pos())){
+            QMenu menu(this);
+            QAction* add_cp = menu.addAction("Добавить КТ");
+            if(menu.exec(event->globalPosition().toPoint()) == add_cp){
+                QPointF value = chart_->mapToValue(event->pos());
+                qint64 ms = RoundToSec(static_cast<qint64>(value.x()));
+                emit AddCheckPointRequested(QDateTime::fromMSecsSinceEpoch(ms).time());
+            }
+        }
     }
     if(event->button() == Qt::LeftButton){
         is_dragging_check_point_ = false;
