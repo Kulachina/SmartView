@@ -80,11 +80,18 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+/dist/
+
+# Артефакты сборки установщика (не коммитим)
+installer/packages/*/data/
+SmartView-*-setup.exe
 
 # Серверные секреты/данные лицензий — не коммитим
 server/state.json
+server/keys.txt
 server/function.zip
 server/node_modules/
 private.pem
 private.b64
 public.pem
+server/instr_from_server.txt

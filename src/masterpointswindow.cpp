@@ -334,10 +334,21 @@ void MasterPointsWindow::FilingTableLAS(QStandardItemModel* model){
     } else {
         step_temp = 2;
     }
+    double temp_i = 0;
     for( int y = 1 ; y <= s_et_temp_las_->value()* step_temp;y += step_temp){
-        QStandardItem *it_b = new QStandardItem(QString::number(vec_temp[index_temp]));
+        if(vec_temp.size() < index_temp){
+            model->removeRow(y);
+            model->removeRow(y+1);
+            if(flag_termocompens_){
+                model->removeRow(y+2);
+            }
+        }
+        if(vec_temp.size() > index_temp){
+            temp_i = vec_temp[index_temp];
+        }
+        QStandardItem *it_b = new QStandardItem(QString::number(temp_i));
         it_b->setTextAlignment(Qt::AlignCenter);
-        QStandardItem *it = new QStandardItem(QString::number(vec_temp[index_temp]));
+        QStandardItem *it = new QStandardItem(QString::number(temp_i));
         it->setTextAlignment(Qt::AlignCenter);
         if(model){
             model->setItem(y,0,it);
@@ -777,8 +788,8 @@ void MasterPointsWindow::FilingTable(QStandardItemModel* model_temp,QStandardIte
         }
     }
     int index_temp = 0;
+    double temp_i = 0;
     for( int y = 1 ; y <= s_et_temp_->value();++y){
-        double temp_i = 0;
         if(vec_temp.size() > index_temp){
             temp_i = vec_temp[index_temp];
         }

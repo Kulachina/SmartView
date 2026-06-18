@@ -4,28 +4,34 @@
 #include <QObject>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
-#include <QXmlStreamReader>
 #include <QVersionNumber>
-#include <QFileInfo>
-#include <QProcess>
-#include <QCoreApplication>
-#define VERSION "0.9.1"
+#include <QString>
 
+#define VERSION "0.9.2"
+
+namespace Update {
+// Манифест версии в Object Storage (публичный объект). Заменишь на свой бакет.
+inline const QString kManifestUrl = QStringLiteral("https://storage.yandexcloud.net/smartview-updates/version.json");
+}
+
+// Автообновление: читает version.json с сервера, сравнивает версию и, если новее,
+// скачивает установщик и запускает его.
 class Updater : public QObject
 {
     Q_OBJECT
 public:
-    Updater();
-    void AutoCheck();
-    void ManualCheck();
+    explicit Updater(QObject* parent = nullptr);
+    void AutoCheck();     // тихая проверка при старте (молчит, если обновлений нет)
+    void ManualCheck();   // ручная проверка (сообщает и когда версия уже последняя)
+
 private:
-    void CheckVersion();
-    void CheckUpdate();
+    void FetchManifest(bool manual);
+    void OnManifest(const QByteArray& data, bool manual);
+    void StartDownload(const QString& url);
+    QNetworkAccessManager* manager_;
     QVersionNumber local_version_;
-    QVersionNumber net_version_;
     QString latest_version_;
-    QNetworkAccessManager *manager_;
-    bool error_connect_ = false;
+    QString download_url_;
 };
 
 #endif // UPDATER_H

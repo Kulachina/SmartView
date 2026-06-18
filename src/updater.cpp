@@ -1,80 +1,115 @@
 #include "updater.h"
 #include <QMessageBox>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QFile>
+#include <QDir>
+#include <QStandardPaths>
+#include <QProcess>
+#include <QCoreApplication>
+#include <QApplication>
+#include <QProgressDialog>
 
-Updater::Updater() {
+Updater::Updater(QObject* parent) : QObject(parent) {
     manager_ = new QNetworkAccessManager(this);
-    connect(manager_, &QNetworkAccessManager::finished, this,[this](QNetworkReply *reply){
-        if(reply->error() != QNetworkReply::NoError){
-            QMessageBox::warning(nullptr,"Ошибка", "Неудалось связатся с сервером");
-            error_connect_ = true;
-            reply->deleteLater();
-            return;
-        }
-        QByteArray data = reply->readAll();
-        QXmlStreamReader xml(data);
-        QString version;
-        while(!xml.atEnd()){
-            xml.readNext();
+    local_version_ = QVersionNumber::fromString(VERSION);
+}
 
-            if(xml.isStartElement() && xml.name() == "PackageUpdate"){
-                while(xml.readNextStartElement()){
-                    if(xml.name() == "Version"){
-                        version = xml.readElementText();
-                    } else if(xml.name() == "Default" ){
-                        if(xml.readElementText().trimmed().toLower() == "true"){
-                            latest_version_ = version;
-                            break;
-                        }
-                    } else{
-                        xml.skipCurrentElement();
-                    }
-                }
+void Updater::AutoCheck(){
+    FetchManifest(false);
+}
+
+void Updater::ManualCheck(){
+    FetchManifest(true);
+}
+
+void Updater::FetchManifest(bool manual){
+    QNetworkRequest req((QUrl(Update::kManifestUrl)));
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkReply* reply = manager_->get(req);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manual](){
+        const bool ok = (reply->error() == QNetworkReply::NoError);
+        const QByteArray data = reply->readAll();
+        reply->deleteLater();
+        if(!ok){
+            if(manual){
+                QMessageBox::warning(nullptr, "Обновление", "Не удалось связаться с сервером обновлений.");
             }
-        }
-        if(xml.hasError()){
-            QMessageBox::warning(nullptr,"Ошибка разбора XML:", xml.errorString());
-            reply->deleteLater();
             return;
         }
-        net_version_ = QVersionNumber::fromString(latest_version_);
-        local_version_ = QVersionNumber::fromString(VERSION);
-        if (local_version_ < net_version_){
-            int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version_ + "\n Установить сейчас?",QMessageBox::Yes,QMessageBox::No);
-            if(res == QMessageBox::Yes){
-                CheckUpdate();
-            }
-        }
-        reply->deleteLater();
+        OnManifest(data, manual);
     });
 }
-void Updater::CheckVersion(){
-    QUrl url("https://kulachina.github.io/SmartView/update/Updates.xml");
-    manager_->get(QNetworkRequest(url));
-}
 
-void Updater::CheckUpdate(){
-    QString updater = QCoreApplication::applicationDirPath() + "/SmartViewUpdater.exe";
-    if(!QFileInfo::exists(updater)){
+void Updater::OnManifest(const QByteArray& data, bool manual){
+    const QJsonObject obj = QJsonDocument::fromJson(data).object();
+    latest_version_ = obj.value("version").toString();
+    download_url_ = obj.value("url").toString();
+    const QString notes = obj.value("notes").toString();
+    const QVersionNumber net = QVersionNumber::fromString(latest_version_);
+    if(net.isNull() || download_url_.isEmpty()){
+        if(manual){
+            QMessageBox::warning(nullptr, "Обновление", "Некорректные данные о версии на сервере.");
+        }
         return;
     }
-    QProcess::startDetached(updater,QStringList() << "--updater");
-    qApp->exit(0);
-}
-void Updater::AutoCheck(){
-    CheckVersion();
-}
-void Updater::ManualCheck(){
-    if(error_connect_){
-       CheckVersion();
-    } else {
-        if (local_version_ < net_version_){
-            int res = QMessageBox::question(nullptr,"Обновление", "Доступна новая версия для скачивания "  + latest_version_ + "\n Установить сейчас?",QMessageBox::Yes,QMessageBox::No);
-            if(res == QMessageBox::Yes){
-                CheckUpdate();
-            }
-        } else {
-            QMessageBox::information(nullptr,"Обновление","Установлена последняя версия " + latest_version_);
+    if(local_version_ < net){
+        QString text = "Доступна новая версия " + latest_version_ + ".";
+        if(!notes.isEmpty()){
+            text += "\n\nЧто нового:\n" + notes;
         }
+        text += "\n\nОбновить сейчас?";
+        if(QMessageBox::question(nullptr, "Обновление", text, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes){
+            StartDownload(download_url_);
+        }
+    } else if(manual){
+        QMessageBox::information(nullptr, "Обновление", "Установлена последняя версия " + QString(VERSION) + ".");
     }
 }
 
+void Updater::StartDownload(const QString& url){
+    const QString path = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation)).filePath("SmartView-update-setup.exe");
+    QFile* file = new QFile(path);
+    if(!file->open(QIODevice::WriteOnly)){
+        QMessageBox::warning(nullptr, "Обновление", "Не удалось сохранить файл обновления.");
+        delete file;
+        return;
+    }
+    QNetworkRequest req((QUrl(url)));
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkReply* reply = manager_->get(req);
+
+    QProgressDialog* dlg = new QProgressDialog("Загрузка обновления…", "Отмена", 0, 100);
+    dlg->setWindowTitle("Обновление");
+    dlg->setWindowModality(Qt::ApplicationModal);
+    dlg->setMinimumDuration(0);
+
+    connect(reply, &QNetworkReply::readyRead, file, [reply, file](){
+        file->write(reply->readAll());
+    });
+    connect(reply, &QNetworkReply::downloadProgress, dlg, [dlg](qint64 received, qint64 total){
+        if(total > 0){
+            dlg->setValue(static_cast<int>(received * 100 / total));
+        }
+    });
+    connect(dlg, &QProgressDialog::canceled, reply, &QNetworkReply::abort);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, file, dlg, path](){
+        file->write(reply->readAll());
+        file->close();
+        const bool ok = (reply->error() == QNetworkReply::NoError);
+        reply->deleteLater();
+        file->deleteLater();
+        dlg->deleteLater();
+        if(!ok){
+            QFile::remove(path);
+            QMessageBox::warning(nullptr, "Обновление", "Загрузка обновления не завершена.");
+            return;
+        }
+        // Запустить установщик и закрыть приложение, чтобы он мог обновить файлы.
+        if(QProcess::startDetached(path, QStringList())){
+            qApp->exit(0);
+        } else {
+            QMessageBox::warning(nullptr, "Обновление", "Не удалось запустить установщик:\n" + path);
+        }
+    });
+}
