@@ -80,3 +80,11 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+
+# Серверные секреты/данные лицензий — не коммитим
+server/state.json
+server/function.zip
+server/node_modules/
+private.pem
+private.b64
+public.pem

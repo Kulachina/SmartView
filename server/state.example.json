@@ -1,0 +1,11 @@
+{
+  "licenses": {
+    "TEST-0001-AAAA-BBBB": {
+      "owner": "Тестовый пользователь",
+      "status": "active",
+      "max_devices": 1,
+      "expires": ""
+    }
+  },
+  "devices": {}
+}

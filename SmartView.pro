@@ -20,12 +20,16 @@ SOURCES += \
     src/dowland_file.cpp \
     src/error_table.cpp \
     src/las.cpp \
+    src/licensedialog.cpp \
+    src/licensemanager.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
     src/masterpointswindow.cpp \
     src/rangeswindow.cpp \
     src/sensorcanaleditor.cpp \
     src/serieswindow.cpp \
+    src/tnacl_random.c \
+    src/tweetnacl.c \
     src/updater.cpp \
     src/viewwindow.cpp
 
@@ -42,11 +46,14 @@ HEADERS += \
     src/dowland_file.h \
     src/error_table.h \
     src/las.h \
+    src/licensedialog.h \
+    src/licensemanager.h \
     src/mainwindow.h \
     src/masterpointswindow.h \
     src/rangeswindow.h \
     src/sensorcanaleditor.h \
     src/serieswindow.h \
+    src/tweetnacl.h \
     src/updater.h \
     src/util.h \
     src/viewwindow.h

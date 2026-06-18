@@ -1,0 +1,17 @@
+openapi: 3.0.0
+info:
+  title: SmartView License API
+  version: 1.0.0
+paths:
+  /activate:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4ergf33d9tlu6i2grds
+        service_account_id: ajeanf1a95q7heakrop9
+  /validate:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4ergf33d9tlu6i2grds
+        service_account_id: ajeanf1a95q7heakrop9
