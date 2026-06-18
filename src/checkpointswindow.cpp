@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QCheckBox>
 #include <QTableView>
 #include <QStandardItemModel>
 #include <QTimeEdit>
@@ -28,6 +29,11 @@ CheckPointsWindow::CheckPointsWindow(DataBase& data_base, ChartView* chart_view,
     hbox_new_point->addWidget(s_hour);
     vbox_new_point->addLayout(hbox_new_point);
     vbox_new_point->addWidget(btn_create);
+    QCheckBox* show_cb = new QCheckBox("Показывать на графике");
+    show_cb->setChecked(chart_view_->IsCheckPointsVisible());
+    connect(show_cb, &QCheckBox::toggled, this, [this](bool on){ chart_view_->SetCheckPointsVisible(on); });
+    connect(chart_view_, &ChartView::CheckPointsVisibilityChanged, show_cb, &QCheckBox::setChecked);
+    vbox_new_point->addWidget(show_cb);
     create_new_point->setLayout(vbox_new_point);
     connect(btn_create, &QPushButton::clicked,this, [=](){
         AddCheckPointAt(s_hour->time());
@@ -59,6 +65,21 @@ void CheckPointsWindow::AddCheckPointAt(QTime time_read){
     AddCheckPoint(time_read);
     chart_view_->ReBuildPointSeries();
     Refresh();
+}
+
+void CheckPointsWindow::DeleteCheckPointAtTime(QTime time){
+    QVector<QDateTime>& times = data_base_.GetCheckPoints();
+    for(int i = 0; i < times.size(); ++i){
+        if(times[i].time() == time){
+            data_base_.GetCheckPointTemp().removeAt(i);
+            data_base_.GetCheckPointBar().removeAt(i);
+            times.removeAt(i);
+            Refresh();
+            chart_view_->ReplaceCheckSeries();
+            chart_view_->ReBuildPointSeries();
+            break;
+        }
+    }
 }
 
 void CheckPointsWindow::AddCheckPoint(QTime time_read){

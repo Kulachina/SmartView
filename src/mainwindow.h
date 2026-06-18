@@ -12,6 +12,7 @@
 #include "updater.h"
 
 class CheckPointsWindow;
+class RangesWindow;
 class AxisWindow;
 class SeriesWindow;
 class ViewWindow;
@@ -41,6 +42,7 @@ public slots:
     void WindowSeries();
     void WindowMasterPoint();
     void WindowCheckPoints();
+    void WindowRanges();
     void WindowDeleteSensor();
     void WindowView();
     void WindowTableError();
@@ -60,6 +62,7 @@ private:
     QVector<DataSeriesSensor> data_sensor_;
     QVector<DataSeriesSensor> all_data_sensor_;
     CheckPointsWindow* check_points_window_;
+    RangesWindow* ranges_window_;
     AxisWindow* axis_window_;
     SeriesWindow* series_window_;
     ViewWindow* view_window_;
@@ -77,7 +80,8 @@ private:
             *window_axis_,
             *action_series_,
             *delete_sensor_,
-            *change_canal_;
+            *change_canal_,
+            *select_range_;
     bool first_open_etalon_ = false;
 };
 #endif // MAINWINDOW_H

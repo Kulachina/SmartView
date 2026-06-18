@@ -88,5 +88,14 @@ struct NameChart{
     QString name_unit;//2
     QString name_sensor;//4+5
 };
+// Контрольный диапазон: отрезок [t_start, t_end] и средние значения эталонных
+// кривых на нём (аналог контрольной точки, но усреднённый по отрезку).
+struct CheckRange{
+    QDateTime t_start;
+    QDateTime t_end;
+    QDateTime t_mid;
+    double avg_temp = 0;
+    double avg_bar = 0;
+};
 
 #endif // DATA_H

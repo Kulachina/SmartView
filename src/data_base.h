@@ -20,6 +20,7 @@ public:
     QVector<double>& GetCheckPointBar();
     QVector<DataSeriesSensor>& GetDataSerACM();
     QVector<DataSeriesEtalon>& GetDataSerEtalon();
+    QVector<CheckRange>& GetCheckRanges();
     QList<QPointer<QValueAxis>>& GetListAxis();
     void SetDefaultAxisX(QDateTime max, QDateTime min);
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();
@@ -30,6 +31,7 @@ public:
 private:
     QVector<DataSeriesSensor> data_acm_;
     QVector<DataSeriesEtalon> data_etalon_;
+    QVector<CheckRange> check_ranges_;
     QVector<QDateTime> check_points_;
     QVector<qint64> check_points64_;
     QVector<double> check_point_bar;

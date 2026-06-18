@@ -1,6 +1,9 @@
 #include "chartview.h"
 #include "util.h"
 #include <QMenu>
+#include <QPainter>
+#include <QPaintEvent>
+#include <algorithm>
 
 ChartView::ChartView(QChartView *parent, DataBase& data_base)
     :QChartView(parent),
@@ -282,6 +285,9 @@ void ChartView::ToogledFlagLineInMouse(){
         line_from_mouse_min_ = axis_temp_etalon_->min();
     }
 }
+void ChartView::ToogledFlagSelectRange(){
+    select_range_ = !select_range_;
+}
 void ChartView::MoveSeries(QLineSeries* series, qreal dx){
     QList<QPointF> points = series->points();
     for(QPointF& p : points){
@@ -494,14 +500,48 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     if(event->button() == Qt::RightButton){
         bool was_drag = is_dragging_;
         is_dragging_ = false;
-        // Правый клик без перетаскивания по области графика -> контекстное меню «Добавить КТ».
+        // Правый клик без перетаскивания по области графика -> контекстное меню КТ.
         if(!was_drag && load_etalon_ && chart_->plotArea().contains(event->pos())){
+            // Проверяем, попал ли курсор по маркеру контрольной точки.
+            bool over_cp = false;
+            QTime cp_time;
+            for(QAbstractSeries* abstract_series : chart_->series()){
+                if(abstract_series->name() == "check_series"){
+                    QScatterSeries* series_check = qobject_cast<QScatterSeries*>(abstract_series);
+                    for(const QPointF& p : series_check->points()){
+                        QPoint screen_pos = chart_->mapToPosition(p, series_check).toPoint();
+                        if(QRect(screen_pos - QPoint(5,5), QSize(10,10)).contains(event->pos())){
+                            over_cp = true;
+                            cp_time = QDateTime::fromMSecsSinceEpoch(RoundToSec(static_cast<qint64>(p.x()))).time();
+                            break;
+                        }
+                    }
+                }
+                if(over_cp){
+                    break;
+                }
+            }
             QMenu menu(this);
             QAction* add_cp = menu.addAction("Добавить КТ");
-            if(menu.exec(event->globalPosition().toPoint()) == add_cp){
+            QAction* del_cp = over_cp ? menu.addAction("Удалить КТ") : nullptr;
+            menu.addSeparator();
+            QAction* show_cp = menu.addAction("Показывать КТ");
+            show_cp->setCheckable(true);
+            show_cp->setChecked(show_check_points_);
+            QAction* show_rg = menu.addAction("Показывать диапазоны");
+            show_rg->setCheckable(true);
+            show_rg->setChecked(show_ranges_);
+            QAction* chosen = menu.exec(event->globalPosition().toPoint());
+            if(chosen && chosen == add_cp){
                 QPointF value = chart_->mapToValue(event->pos());
                 qint64 ms = RoundToSec(static_cast<qint64>(value.x()));
                 emit AddCheckPointRequested(QDateTime::fromMSecsSinceEpoch(ms).time());
+            } else if(del_cp && chosen == del_cp){
+                emit DeleteCheckPointRequested(cp_time);
+            } else if(chosen == show_cp){
+                SetCheckPointsVisible(show_cp->isChecked());
+            } else if(chosen == show_rg){
+                SetRangesVisible(show_rg->isChecked());
             }
         }
     }
@@ -515,7 +555,16 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
     if(event->button() == Qt::LeftButton && band_.isVisible()){
         band_.hide();
-        if(last_pos_mouse_.x() > event->pos().x()){
+        if(select_range_){
+            // Режим выделения диапазона: вместо зума отдаём отрезок [t1,t2].
+            qint64 ms1 = RoundToSec(static_cast<qint64>(chart_->mapToValue(last_pos_mouse_).x()));
+            qint64 ms2 = RoundToSec(static_cast<qint64>(chart_->mapToValue(event->pos()).x()));
+            QTime t1 = QDateTime::fromMSecsSinceEpoch(ms1).time();
+            QTime t2 = QDateTime::fromMSecsSinceEpoch(ms2).time();
+            if(t1 != t2){
+                emit AddRangeRequested(t1, t2);
+            }
+        } else if(last_pos_mouse_.x() > event->pos().x()){
             ResetZoom();
         } else {
             QRectF plot_area = chart_->plotArea();
@@ -531,6 +580,52 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
     }
 
     chart()->update();
+}
+void ChartView::paintEvent(QPaintEvent *event){
+    QChartView::paintEvent(event);
+    if(!show_ranges_){
+        return;
+    }
+    QVector<CheckRange>& ranges = data_base_.GetCheckRanges();
+    if(ranges.isEmpty() || data_base_.GetDataSerEtalon().size() < 2){
+        return;
+    }
+    QLineSeries* s_temp = data_base_.GetDataSerEtalon()[0].series;
+    QLineSeries* s_bar = data_base_.GetDataSerEtalon()[1].series;
+    if(!s_temp || !s_bar){
+        return;
+    }
+    const QRectF plot = chart_->plotArea();
+    QPainter painter(viewport());
+    painter.setRenderHint(QPainter::Antialiasing);
+    // y кривой в точке x (по ближайшей точке серии) — для размещения подписи над кривой.
+    auto yAt = [](QLineSeries* s, double x_ms) -> double {
+        const QList<QPointF> pts = s->points();
+        if(pts.isEmpty()){ return 0; }
+        double best_y = pts.first().y();
+        double best_dx = qAbs(pts.first().x() - x_ms);
+        for(const QPointF& p : pts){
+            double dx = qAbs(p.x() - x_ms);
+            if(dx < best_dx){ best_dx = dx; best_y = p.y(); }
+        }
+        return best_y;
+    };
+    const QColor fill(144, 238, 144, 80);   // светло-зелёный полупрозрачный
+    for(const CheckRange& r : ranges){
+        double x1 = chart_->mapToPosition(QPointF(r.t_start.toMSecsSinceEpoch(), 0), s_temp).x();
+        double x2 = chart_->mapToPosition(QPointF(r.t_end.toMSecsSinceEpoch(), 0), s_temp).x();
+        if(x1 > x2){ std::swap(x1, x2); }
+        QRectF band(QPointF(x1, plot.top()), QPointF(x2, plot.bottom()));
+        band = band.intersected(plot);
+        if(band.width() <= 0){ continue; }
+        painter.fillRect(band, fill);
+        const double xmid = r.t_mid.toMSecsSinceEpoch();
+        painter.setPen(Qt::darkGreen);
+        QPointF p_temp = chart_->mapToPosition(QPointF(xmid, yAt(s_temp, xmid)), s_temp);
+        painter.drawText(QPointF(p_temp.x() + 2, p_temp.y() - 6), QString::number(r.avg_temp, 'f', 2));
+        QPointF p_bar = chart_->mapToPosition(QPointF(xmid, yAt(s_bar, xmid)), s_bar);
+        painter.drawText(QPointF(p_bar.x() + 2, p_bar.y() - 6), QString::number(r.avg_bar, 'f', 2));
+    }
 }
 void ChartView::SaveZoom(){
     QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
@@ -716,6 +811,29 @@ void ChartView::ReBuildPointSeries(){
             data_base_.GetCheckPointBar()[i] = points_bar[i].y();
         }
     }
+}
+void ChartView::RefreshOverlay(){
+    viewport()->update();
+}
+void ChartView::SetCheckPointsVisible(bool visible){
+    if(show_check_points_ == visible){
+        return;
+    }
+    show_check_points_ = visible;
+    for(QAbstractSeries* s : chart_->series()){
+        if(s->name() == "check_series"){
+            s->setVisible(visible);
+        }
+    }
+    emit CheckPointsVisibilityChanged(visible);
+}
+void ChartView::SetRangesVisible(bool visible){
+    if(show_ranges_ == visible){
+        return;
+    }
+    show_ranges_ = visible;
+    viewport()->update();
+    emit RangesVisibilityChanged(visible);
 }
 void  ChartView::AutoZoom(){
     if(auto_zoom_){

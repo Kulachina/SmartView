@@ -12,6 +12,9 @@ QVector<DataSeriesSensor>& DataBase::GetDataSerACM(){
 QVector<DataSeriesEtalon>& DataBase::GetDataSerEtalon(){
     return data_etalon_;
 }
+QVector<CheckRange>& DataBase::GetCheckRanges(){
+    return check_ranges_;
+}
 void DataBase::AddDataSerEtalon(DataSeriesEtalon data){
     data_etalon_.push_back(data);
 }
@@ -92,6 +95,7 @@ void DataBase::ClearAll(){
     check_points_.clear();
     check_points_temp.clear();
     check_point_bar.clear();
+    check_ranges_.clear();
     map_data_sensor_.clear();
     data_etalon_.clear();
     list_axis_y_.clear();

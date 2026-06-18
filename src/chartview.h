@@ -40,6 +40,7 @@ public:
     void ToogledFlagShiftSeries();
     void ToogledFlagShiftCheckPoint();
     void ToogledFlagLineInMouse();
+    void ToogledFlagSelectRange();
     QValueAxis* GetAxisBar();
     QValueAxis* GetAxisTemp();
     void ZoomOn();
@@ -51,12 +52,22 @@ public:
     void ZeroZoom();
     void SetCanal(Canal& acm);
     void ReBuildMapLbelndSeries();
+    void RefreshOverlay();   // перерисовать оверлей диапазонов поверх графика
+    void SetCheckPointsVisible(bool visible);   // показать/скрыть маркеры КТ
+    void SetRangesVisible(bool visible);        // показать/скрыть области диапазонов
+    bool IsCheckPointsVisible() const { return show_check_points_; }
+    bool IsRangesVisible() const { return show_ranges_; }
 signals:
-    void AddCheckPointRequested(QTime time);   // правый клик по графику -> «Добавить КТ»
+    void AddCheckPointRequested(QTime time);      // правый клик по графику -> «Добавить КТ»
+    void DeleteCheckPointRequested(QTime time);   // правый клик по маркеру КТ -> «Удалить КТ»
+    void AddRangeRequested(QTime t1, QTime t2);   // выделение отрезка мышью -> диапазон
+    void CheckPointsVisibilityChanged(bool visible);
+    void RangesVisibilityChanged(bool visible);
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 private:
     void ChangeCanalColor(Canal& acm);
     void CalcDelta();
@@ -97,6 +108,9 @@ private:
         is_dragging_check_point_ = false,
         shift_series_ = false,
         shift_check_point_ = false,
+        select_range_ = false,
+        show_check_points_ = true,
+        show_ranges_ = true,
         change_cursor_ = false,
         data_in_time_ = false,
         calc_delta_ = false,

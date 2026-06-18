@@ -9,6 +9,7 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QRadioButton>
 #include <QComboBox>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
@@ -30,7 +31,77 @@ MasterPointsWindow::MasterPointsWindow(DataBase& data_base, CreateRaport& create
     QPointer<QWidget> widget_las = CreateTabMasterLAS();
     tab_master->addTab(widget_acm,"GST");
     tab_master->addTab(widget_las,"LAS");
+    QGroupBox* group_source = new QGroupBox("Источник данных");
+    QHBoxLayout* hbox_source = new QHBoxLayout();
+    hbox_source->setAlignment(Qt::AlignLeft);
+    QRadioButton* rad_cp = new QRadioButton("Контрольные точки");
+    QRadioButton* rad_ranges = new QRadioButton("Контрольные диапазоны");
+    rad_cp->setChecked(true);
+    connect(rad_ranges, &QRadioButton::toggled, this, [this](bool on){ use_ranges_ = on; });
+    hbox_source->addWidget(rad_cp);
+    hbox_source->addWidget(rad_ranges);
+    group_source->setLayout(hbox_source);
+    vbox_master->addWidget(group_source);
     vbox_master->addWidget(tab_master);
+}
+
+QVector<double> MasterPointsWindow::ActiveTemp(){
+    if(use_ranges_){
+        QVector<double> v;
+        for(const CheckRange& r : data_base_.GetCheckRanges()){
+            v.push_back(r.avg_temp);
+        }
+        return v;
+    }
+    return data_base_.GetCheckPointTemp();
+}
+
+QVector<double> MasterPointsWindow::ActiveBar(){
+    if(use_ranges_){
+        QVector<double> v;
+        for(const CheckRange& r : data_base_.GetCheckRanges()){
+            v.push_back(r.avg_bar);
+        }
+        return v;
+    }
+    return data_base_.GetCheckPointBar();
+}
+
+double MasterPointsWindow::AverageSeriesOverRange(QLineSeries* series, const CheckRange& range){
+    if(!series){
+        return 0;
+    }
+    qint64 a = range.t_start.toMSecsSinceEpoch();
+    qint64 b = range.t_end.toMSecsSinceEpoch();
+    double sum = 0;
+    int count = 0;
+    for(const QPointF& p : series->points()){
+        qint64 ms = RoundToSec(static_cast<qint64>(p.x()));
+        if(ms >= a && ms <= b){
+            sum += p.y();
+            count++;
+        }
+    }
+    return count ? sum / count : 0;
+}
+
+void MasterPointsWindow::FillGridFromRanges(QLineSeries* series, QStandardItemModel* model){
+    if(!series || !model){
+        return;
+    }
+    int etalon_bar = s_et_bar_->value();
+    int row = 1;
+    int column = 1;
+    for(const CheckRange& r : data_base_.GetCheckRanges()){
+        QStandardItem *it = new QStandardItem(QString::number(AverageSeriesOverRange(series, r)));
+        it->setTextAlignment(Qt::AlignCenter);
+        model->setItem(row, column, it);
+        row++;
+        if(row > etalon_bar){
+            row = 1;
+            column++;
+        }
+    }
 }
 
 void MasterPointsWindow::Open(){
@@ -235,8 +306,8 @@ void MasterPointsWindow::CreateInContentLAS(){
 }
 
 void MasterPointsWindow::FilingTableLAS(QStandardItemModel* model){
-    QVector<double> vec_temp = data_base_.GetCheckPointTemp();
-    QVector<double> vec_bar = data_base_.GetCheckPointBar();
+    QVector<double> vec_temp = ActiveTemp();
+    QVector<double> vec_bar = ActiveBar();
     if(model){
         model->setColumnCount(s_et_temp_las_->value()+1);
         model->setRowCount(s_et_bar_las_->value()+1);
@@ -316,6 +387,45 @@ void MasterPointsWindow::AnalisingSeriesLAS(const DataSeriesSensor& data){
         if(a.name_canal.contains(name_canal_las_2_,Qt::CaseInsensitive) && flag_termocompens_){
             series_term = a.series;
         }
+    }
+    if(use_ranges_){
+        QVector<CheckRange>& ranges = data_base_.GetCheckRanges();
+        int etalon_bar_r = s_et_bar_las_->value();
+        int step_row_r = flag_termocompens_ ? 3 : 2;
+        int row_r = 2;
+        int column_r = 2;
+        for(const CheckRange& r : ranges){
+            if(model){
+                QStandardItem *it_etlon = new QStandardItem(QString::number(r.avg_bar));
+                it_etlon->setTextAlignment(Qt::AlignCenter);
+                model->setItem(row_r-1, column_r, it_etlon);
+                QStandardItem *it = new QStandardItem(QString::number(AverageSeriesOverRange(series, r)));
+                it->setTextAlignment(Qt::AlignCenter);
+                model->setItem(row_r, column_r, it);
+            }
+            column_r++;
+            if(column_r > etalon_bar_r+1){
+                row_r += step_row_r;
+                column_r = 2;
+            }
+        }
+        if(series_term){
+            row_r = 3;
+            column_r = 2;
+            for(const CheckRange& r : ranges){
+                if(model){
+                    QStandardItem *it = new QStandardItem(QString::number(AverageSeriesOverRange(series_term, r)));
+                    it->setTextAlignment(Qt::AlignCenter);
+                    model->setItem(row_r, column_r, it);
+                }
+                column_r++;
+                if(column_r > etalon_bar_r+1){
+                    row_r += step_row_r;
+                    column_r = 2;
+                }
+            }
+        }
+        return;
     }
     int count = 0;
     int etalon_bar = s_et_bar_las_->value();
@@ -635,8 +745,8 @@ void MasterPointsWindow::CreateInContentACM(){
 }
 
 void MasterPointsWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
-    QVector<double> vec_temp = data_base_.GetCheckPointTemp();
-    QVector<double> vec_bar = data_base_.GetCheckPointBar();
+    QVector<double> vec_temp = ActiveTemp();
+    QVector<double> vec_bar = ActiveBar();
     if(model_temp){
         model_temp->setColumnCount(s_et_temp_->value()+1);
         model_temp->setRowCount(s_et_bar_->value()+1);
@@ -705,6 +815,25 @@ void MasterPointsWindow::FillFromOneTable(){
                 model->setItem(0,1,new QStandardItem("Время"));
                 model->setItem(0,2,new QStandardItem("Значение"));
                 model->setItem(0,3,new QStandardItem("Эталон"));
+            }
+            if(use_ranges_){
+                QVector<CheckRange>& ranges = data_base_.GetCheckRanges();
+                int row = 1;
+                for(int i = 0; i < ranges.size(); ++i){
+                    if(model){
+                        QStandardItem *it = new QStandardItem(QString::number(i));
+                        it->setTextAlignment(Qt::AlignCenter);
+                        model->setItem(row,0,it);
+                        model->setItem(row,1,new QStandardItem(ranges[i].t_mid.time().toString("hh:mm:ss")));
+                        model->setItem(row,2,new QStandardItem(QString::number(AverageSeriesOverRange(series, ranges[i]))));
+                        model->setItem(row,3,new QStandardItem(QString::number(ranges[i].avg_temp)));
+                    }
+                    row++;
+                    if(row == s_et_temp_->value()){
+                        break;
+                    }
+                }
+                continue;
             }
             const QVector<QDateTime>& vec = data_base_.GetCheckPoints();
             const int n = vec.size();
@@ -798,6 +927,11 @@ void MasterPointsWindow::AnalisingSeries(const DataSeriesSensor& data){
             series_temp = a.series;
             model_temp = a.model;
         }
+    }
+    if(use_ranges_){
+        FillGridFromRanges(series_bar, model_bar);
+        FillGridFromRanges(series_temp, model_temp);
+        return;
     }
     const QVector<QDateTime>& vec = data_base_.GetCheckPoints();
     const int n = vec.size();

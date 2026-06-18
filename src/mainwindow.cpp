@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "canalutils.h"
 #include "checkpointswindow.h"
+#include "rangeswindow.h"
 #include "axiswindow.h"
 #include "serieswindow.h"
 #include "viewwindow.h"
@@ -67,12 +68,15 @@ MainWindow::MainWindow(QMainWindow *parent)
     connect(view, &QAction::triggered, this,&MainWindow::WindowView);
     QAction *check_point = new QAction("Контрольные точки");
     connect(check_point, &QAction::triggered, this,&MainWindow::WindowCheckPoints);
+    QAction *check_range = new QAction("Контрольные диапазоны");
+    connect(check_range, &QAction::triggered, this,&MainWindow::WindowRanges);
     QAction *error_delta = new QAction("Таблица погрешностей");
     connect(error_delta, &QAction::triggered, this,&MainWindow::WindowTableError);
     menu->addAction(file);
     menu->addAction(report);
     menu->addAction(view);
     menu->addAction(check_point);
+    menu->addAction(check_range);
     menu->addAction(master_point);
     menu->addAction(error_delta);
     chart_view_ = new ChartView(nullptr, data_base_);
@@ -110,6 +114,10 @@ MainWindow::MainWindow(QMainWindow *parent)
     shift_check_point_->setCheckable(true);
     shift_check_point_->setEnabled(false);
     connect(shift_check_point_, &QAction::triggered,this, &MainWindow::ShiftCheckPoint);
+    select_range_ = new QAction("Выделение диапазона");
+    select_range_->setCheckable(true);
+    select_range_->setEnabled(false);
+    connect(select_range_, &QAction::triggered, this, [this](){ chart_view_->ToogledFlagSelectRange(); });
     QAction *load_doc = new QAction("Открыть Эталон",tool_bar);
     connect(load_doc, &QAction::triggered, this,&MainWindow::LoadDocumentEtalon);
     change_canal_ = new QAction("Редактировать каналы",tool_bar);
@@ -124,6 +132,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     tool_bar->addAction(toogled_legend_);
     tool_bar->addAction(shift_series_);
     tool_bar->addAction(shift_check_point_);
+    tool_bar->addAction(select_range_);
     tool_bar->addAction(data_in_time_);
     tool_bar->addAction(delete_sensor_);
 
@@ -134,6 +143,11 @@ MainWindow::MainWindow(QMainWindow *parent)
     check_points_window_ = new CheckPointsWindow(data_base_, chart_view_);
     connect(chart_view_, &ChartView::AddCheckPointRequested,
             check_points_window_, &CheckPointsWindow::AddCheckPointAt);
+    connect(chart_view_, &ChartView::DeleteCheckPointRequested,
+            check_points_window_, &CheckPointsWindow::DeleteCheckPointAtTime);
+    ranges_window_ = new RangesWindow(data_base_, chart_view_);
+    connect(chart_view_, &ChartView::AddRangeRequested,
+            ranges_window_, &RangesWindow::AddRangeAt);
     axis_window_ = new AxisWindow(data_base_);
     series_window_ = new SeriesWindow(data_base_);
     view_window_ = new ViewWindow(data_base_, chart_view_);
@@ -196,6 +210,7 @@ void MainWindow::LoadDocumentEtalon(){
         delete_sensor_->setEnabled(true);
         shift_check_point_->setEnabled(true);
         change_canal_->setEnabled(true);
+        select_range_->setEnabled(true);
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
@@ -282,6 +297,10 @@ void MainWindow::DeleteAllSens(){
 void MainWindow::WindowCheckPoints(){
     check_points_window_->Refresh();
     check_points_window_->show();
+}
+void MainWindow::WindowRanges(){
+    ranges_window_->Refresh();
+    ranges_window_->show();
 }
 void MainWindow::WindowView(){
     view_window_->show();

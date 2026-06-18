@@ -13,6 +13,7 @@ class QDoubleSpinBox;
 class QCheckBox;
 class QStandardItem;
 class QStandardItemModel;
+class QLineSeries;
 
 // Окно «Мастер точек»: таблицы интерполяции для GST/LAS и генерация отчётов.
 class MasterPointsWindow : public QWidget {
@@ -37,6 +38,11 @@ private:
     void CreateAllDoc();
     void CreateAllDocLAS();
     DataSeriesSensor* FindSensorData(const QString& name);
+    // Источник калибровочных значений: КТ или средние по диапазонам.
+    QVector<double> ActiveTemp();   // эталонные температуры активного источника
+    QVector<double> ActiveBar();    // эталонные давления активного источника
+    double AverageSeriesOverRange(QLineSeries* series, const CheckRange& range);
+    void FillGridFromRanges(QLineSeries* series, QStandardItemModel* model);
 
     DataBase& data_base_;
     CreateRaport& create_raport_;
@@ -59,6 +65,7 @@ private:
     QStringList chanels_ = {"GK-ГК","Q-Расход","Т-Температура","E-Термокомпенсация","Р-Давление","VLG-Влагомер","REZ-Резистивиметр","PL-Плотность флюида"};
     bool change_all_tables_ = false;
     bool flag_termocompens_ = false;
+    bool use_ranges_ = false;   // строить таблицы по диапазонам, а не по КТ
 };
 
 #endif // MASTERPOINTSWINDOW_H

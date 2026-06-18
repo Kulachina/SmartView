@@ -20,6 +20,8 @@ public slots:
     // Добавить КТ по времени, перестроить серию точек и таблицу.
     // Вызывается из окна (кнопка) и из ChartView (правый клик по графику).
     void AddCheckPointAt(QTime time_read);
+    // Удалить КТ с заданным временем (правый клик по маркеру на графике).
+    void DeleteCheckPointAtTime(QTime time);
 
 private:
     void AddCheckPoint(QTime time_read);

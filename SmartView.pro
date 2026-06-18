@@ -23,6 +23,7 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/masterpointswindow.cpp \
+    src/rangeswindow.cpp \
     src/sensorcanaleditor.cpp \
     src/serieswindow.cpp \
     src/updater.cpp \
@@ -43,6 +44,7 @@ HEADERS += \
     src/las.h \
     src/mainwindow.h \
     src/masterpointswindow.h \
+    src/rangeswindow.h \
     src/sensorcanaleditor.h \
     src/serieswindow.h \
     src/updater.h \
