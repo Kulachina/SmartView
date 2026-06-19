@@ -355,7 +355,11 @@ void ChartView::mousePressEvent(QMouseEvent *event){
                     if(QRect(screen_pos - QPoint(5,5),QSize(10,10)).contains(event->pos())){
                         if(!map_series_[series->name()].isEmpty()){
                             active_series_ = map_series_[series->name()];
+                        } else {
+                            active_series_.clear();
+                            active_series_ << series;
                         }
+                        drag_ref_series_ = series;
                         is_dragging_series_ = true;
                         last_pos_mouse_ = event->pos();
                         return;
@@ -409,9 +413,9 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
         last_pos_mouse_ = event->pos();
     }
     if(is_dragging_series_){
-        if(!active_series_.isEmpty()){
-            QPointF last = chart_->mapToValue(last_pos_mouse_,active_series_[0]);
-            QPointF now = chart_->mapToValue(event->pos(),active_series_[0]);
+        if(!active_series_.isEmpty() && drag_ref_series_){
+            QPointF last = chart_->mapToValue(last_pos_mouse_,drag_ref_series_);
+            QPointF now = chart_->mapToValue(event->pos(),drag_ref_series_);
             qreal dx = now.x() - last.x();
             for(QLineSeries* series : active_series_){
                 MoveSeries(series, dx);

@@ -94,6 +94,7 @@ private:
     QMap<QString,QList<QPointer<QLineSeries>>> map_series_;
     QMap<QString,QPointer<QLabel>> map_data_label_;
     QList<QPointer<QLineSeries>> active_series_;
+    QPointer<QLineSeries> drag_ref_series_;   // кликнутая (прикреплённая) серия — опора для mapToValue
     QPointer<QScatterSeries> active_check_series_;
     QPoint last_pos_mouse_;
     QPointer<QLabel> point_time_;
