@@ -9,8 +9,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
-ErrorTable::ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent)
-    : QWidget(parent), data_base_(data_base),create_raport_(create_raport)
+ErrorTable::ErrorTable(DataBase& data_base, QWidget *parent)
+    : QWidget(parent), data_base_(data_base)
 
 {
     QVBoxLayout *vbox = new QVBoxLayout();

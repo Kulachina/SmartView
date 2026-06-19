@@ -21,6 +21,10 @@ public:
     QVector<DataSeriesSensor>& GetDataSerACM();
     QVector<DataSeriesEtalon>& GetDataSerEtalon();
     QVector<CheckRange>& GetCheckRanges();
+    // Калибровочные эталонные значения активного источника: КТ (use_ranges=false)
+    // или средние по диапазонам (use_ranges=true).
+    QVector<double> CalibrationTemp(bool use_ranges);
+    QVector<double> CalibrationBar(bool use_ranges);
     QList<QPointer<QValueAxis>>& GetListAxis();
     void SetDefaultAxisX(QDateTime max, QDateTime min);
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();

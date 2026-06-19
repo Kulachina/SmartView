@@ -38,9 +38,6 @@ private:
     void CreateAllDoc();
     void CreateAllDocLAS();
     DataSeriesSensor* FindSensorData(const QString& name);
-    // Источник калибровочных значений: КТ или средние по диапазонам.
-    QVector<double> ActiveTemp();   // эталонные температуры активного источника
-    QVector<double> ActiveBar();    // эталонные давления активного источника
     double AverageSeriesOverRange(QLineSeries* series, const CheckRange& range);
     void FillGridFromRanges(QLineSeries* series, QStandardItemModel* model);
 

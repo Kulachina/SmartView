@@ -45,28 +45,6 @@ MasterPointsWindow::MasterPointsWindow(DataBase& data_base, CreateRaport& create
     vbox_master->addWidget(tab_master);
 }
 
-QVector<double> MasterPointsWindow::ActiveTemp(){
-    if(use_ranges_){
-        QVector<double> v;
-        for(const CheckRange& r : data_base_.GetCheckRanges()){
-            v.push_back(r.avg_temp);
-        }
-        return v;
-    }
-    return data_base_.GetCheckPointTemp();
-}
-
-QVector<double> MasterPointsWindow::ActiveBar(){
-    if(use_ranges_){
-        QVector<double> v;
-        for(const CheckRange& r : data_base_.GetCheckRanges()){
-            v.push_back(r.avg_bar);
-        }
-        return v;
-    }
-    return data_base_.GetCheckPointBar();
-}
-
 double MasterPointsWindow::AverageSeriesOverRange(QLineSeries* series, const CheckRange& range){
     if(!series){
         return 0;
@@ -306,8 +284,8 @@ void MasterPointsWindow::CreateInContentLAS(){
 }
 
 void MasterPointsWindow::FilingTableLAS(QStandardItemModel* model){
-    QVector<double> vec_temp = ActiveTemp();
-    QVector<double> vec_bar = ActiveBar();
+    QVector<double> vec_temp = data_base_.CalibrationTemp(use_ranges_);
+    QVector<double> vec_bar = data_base_.CalibrationBar(use_ranges_);
     if(model){
         model->setColumnCount(s_et_temp_las_->value()+1);
         model->setRowCount(s_et_bar_las_->value()+1);
@@ -756,8 +734,8 @@ void MasterPointsWindow::CreateInContentACM(){
 }
 
 void MasterPointsWindow::FilingTable(QStandardItemModel* model_temp,QStandardItemModel* model_bar){
-    QVector<double> vec_temp = ActiveTemp();
-    QVector<double> vec_bar = ActiveBar();
+    QVector<double> vec_temp = data_base_.CalibrationTemp(use_ranges_);
+    QVector<double> vec_bar = data_base_.CalibrationBar(use_ranges_);
     if(model_temp){
         model_temp->setColumnCount(s_et_temp_->value()+1);
         model_temp->setRowCount(s_et_bar_->value()+1);

@@ -25,7 +25,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     data_base_(),
     dow_file_(data_base_),
     create_raport_(data_base_),
-    error_table_(data_base_,create_raport_,nullptr),
+    error_table_(data_base_,nullptr),
     update_()
 {
     update_.AutoCheck();

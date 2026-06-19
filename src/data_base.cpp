@@ -15,6 +15,26 @@ QVector<DataSeriesEtalon>& DataBase::GetDataSerEtalon(){
 QVector<CheckRange>& DataBase::GetCheckRanges(){
     return check_ranges_;
 }
+QVector<double> DataBase::CalibrationTemp(bool use_ranges){
+    if(use_ranges){
+        QVector<double> v;
+        for(const CheckRange& r : check_ranges_){
+            v.push_back(r.avg_temp);
+        }
+        return v;
+    }
+    return check_points_temp;
+}
+QVector<double> DataBase::CalibrationBar(bool use_ranges){
+    if(use_ranges){
+        QVector<double> v;
+        for(const CheckRange& r : check_ranges_){
+            v.push_back(r.avg_bar);
+        }
+        return v;
+    }
+    return check_point_bar;
+}
 void DataBase::AddDataSerEtalon(DataSeriesEtalon data){
     data_etalon_.push_back(data);
 }

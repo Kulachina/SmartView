@@ -5,14 +5,13 @@
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <QTableWidget>
-#include "createraport.h"
 #include "data_base.h"
 
 class ErrorTable : public QWidget
 {
     Q_OBJECT
 public:
-    ErrorTable(DataBase& data_base, CreateRaport& create_raport, QWidget *parent);
+    ErrorTable(DataBase& data_base, QWidget *parent);
     void FillTable();
 private:
     double CalcError(int type, double etalon, double data, int duration);
@@ -22,7 +21,6 @@ private:
     void AnalisingSeries(DataSeriesSensor& data,QTableWidget *table);
     void DeleteTable();
     DataBase& data_base_;
-    CreateRaport& create_raport_;
     QTabWidget *tab_;
     QVector<QTableWidget*> ptr_table;
 
