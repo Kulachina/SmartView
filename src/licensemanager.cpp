@@ -60,14 +60,16 @@ QString LicenseManager::TokenPath() const {
     return dir + "/license.dat";
 }
 
-bool LicenseManager::SaveLicense(const QString& token, const QString& fingerprint, const QString& expires){
+bool LicenseManager::SaveLicense(const QString& token, const QString& fingerprint, const QString& expires, const QString& organization){
     const QString path = TokenPath();
     QDir().mkpath(QFileInfo(path).absolutePath());
     QJsonObject obj;
     obj["token"] = token;
     obj["fingerprint"] = fingerprint;
     obj["expires"] = expires;
+    obj["organization"] = organization;
     obj["last_validated"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+    obj["max_seen"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     QFile f(path);
     if(!f.open(QIODevice::WriteOnly)){
         return false;
@@ -75,6 +77,16 @@ bool LicenseManager::SaveLicense(const QString& token, const QString& fingerprin
     f.write(QJsonDocument(obj).toJson(QJsonDocument::Compact));
     f.close();
     return true;
+}
+
+QString LicenseManager::Organization() const {
+    QFile f(TokenPath());
+    if(!f.open(QIODevice::ReadOnly)){
+        return QString();
+    }
+    const QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+    f.close();
+    return obj.value("organization").toString();
 }
 
 LicenseManager::Status LicenseManager::CheckAtStartup(){
@@ -97,23 +109,32 @@ LicenseManager::Status LicenseManager::CheckAtStartup(){
     if(payload.value("fp").toString() != MachineFingerprint()){
         return Status::NeedsActivation;
     }
+    const QDateTime now = QDateTime::currentDateTimeUtc();
     // Срок действия (из подписанного payload).
     const qint64 exp = payload.value("exp").toInteger();
-    if(exp > 0 && QDateTime::fromSecsSinceEpoch(exp, Qt::UTC) < QDateTime::currentDateTimeUtc()){
+    if(exp > 0 && QDateTime::fromSecsSinceEpoch(exp, Qt::UTC) < now){
         return Status::Expired;
     }
-    // Онлайн-проверка (heartbeat): сервер проверяет подпись токена, статус ключа и отзыв.
+    // Анти-откат часов: системное время раньше максимально виденного => часы перевели назад.
+    const QDateTime max_seen = QDateTime::fromString(obj.value("max_seen").toString(), Qt::ISODate);
+    const bool rolled_back = max_seen.isValid() && now.addSecs(License::kRollbackToleranceSecs) < max_seen;
+    // Онлайн-проверка (heartbeat): сервер проверяет подпись токена, статус ключа, отзыв и срок.
     const NetCheck nc = ValidateOnline(token);
     if(nc == NetCheck::Invalid){
         return Status::NeedsActivation;   // ключ отозван или токен недействителен
     }
     if(nc == NetCheck::Valid){
-        TouchLastValidated();
+        TouchLastValidated();   // подтверждено сервером — и двигаем max_seen вперёд
         return Status::Valid;
     }
-    // Сети нет — разрешаем работать в пределах офлайн-грейса.
+    // Сети нет.
+    if(rolled_back){
+        return Status::Error;   // часы отмотаны назад, подтвердить онлайн нельзя — не доверяем
+    }
+    // Разрешаем работать в пределах офлайн-грейса.
     const QDateTime last = QDateTime::fromString(obj.value("last_validated").toString(), Qt::ISODate);
-    if(last.isValid() && last.secsTo(QDateTime::currentDateTimeUtc()) < qint64(License::kGraceDays) * 86400){
+    if(last.isValid() && last.secsTo(now) < qint64(License::kGraceDays) * 86400){
+        RatchetMaxSeen();
         return Status::Valid;
     }
     return Status::Error;   // давно не было связи — нужно выйти в сеть
@@ -151,14 +172,39 @@ void LicenseManager::TouchLastValidated(){
     }
     QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
     f.close();
-    obj["last_validated"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+    const QDateTime now = QDateTime::currentDateTimeUtc();
+    obj["last_validated"] = now.toString(Qt::ISODate);
+    const QDateTime stored = QDateTime::fromString(obj.value("max_seen").toString(), Qt::ISODate);
+    if(!stored.isValid() || now > stored){
+        obj["max_seen"] = now.toString(Qt::ISODate);
+    }
     if(f.open(QIODevice::WriteOnly)){
         f.write(QJsonDocument(obj).toJson(QJsonDocument::Compact));
         f.close();
     }
 }
 
-LicenseManager::Result LicenseManager::Activate(const QString& key){
+// Сдвигает сохранённое «максимально виденное время» вперёд (никогда не уменьшает).
+void LicenseManager::RatchetMaxSeen(){
+    QFile f(TokenPath());
+    if(!f.open(QIODevice::ReadOnly)){
+        return;
+    }
+    QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+    f.close();
+    const QDateTime now = QDateTime::currentDateTimeUtc();
+    const QDateTime stored = QDateTime::fromString(obj.value("max_seen").toString(), Qt::ISODate);
+    if(stored.isValid() && now <= stored){
+        return;   // часы не продвинулись — ничего не пишем
+    }
+    obj["max_seen"] = now.toString(Qt::ISODate);
+    if(f.open(QIODevice::WriteOnly)){
+        f.write(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+        f.close();
+    }
+}
+
+LicenseManager::Result LicenseManager::Activate(const QString& key, const QString& organization){
     Result r;
     if(License::kServerUrl.isEmpty()){
         r.message = "Сервер активации ещё не настроен (URL не задан).";
@@ -167,6 +213,7 @@ LicenseManager::Result LicenseManager::Activate(const QString& key){
     QJsonObject body;
     body["key"] = key.trimmed();
     body["fingerprint"] = MachineFingerprint();
+    body["organization"] = organization.trimmed();
     body["version"] = License::kAppVersion;
 
     QNetworkAccessManager mgr;
@@ -189,7 +236,7 @@ LicenseManager::Result LicenseManager::Activate(const QString& key){
         r.message = resp.value("error").toString("Активация отклонена сервером.");
         return r;
     }
-    if(!SaveLicense(token, MachineFingerprint(), resp.value("expires").toString())){
+    if(!SaveLicense(token, MachineFingerprint(), resp.value("expires").toString(), organization.trimmed())){
         r.message = "Не удалось сохранить лицензию на диск.";
         return r;
     }

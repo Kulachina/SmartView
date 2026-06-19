@@ -37,9 +37,12 @@ async function writeState(state) {
         Body: JSON.stringify(state, null, 2), ContentType: 'application/json',
     }));
 }
-function signToken(key, fp) {
+function signToken(key, fp, expiresIso) {
     const iat = Math.floor(Date.now() / 1000);
-    const exp = iat + TOKEN_DAYS * 86400;
+    // Срок токена = срок ключа (expires). Бессрочный ключ -> очень долгий токен.
+    const exp = expiresIso
+        ? Math.floor(new Date(expiresIso).getTime() / 1000)
+        : iat + 3650 * 86400;
     const payload = JSON.stringify({ key_id: key, fp, iat, exp });
     const sig = crypto.sign(null, Buffer.from(payload), getPriv());   // Ed25519
     return { token: b64u(payload) + '.' + b64u(sig), expires: new Date(exp * 1000).toISOString() };
@@ -54,6 +57,7 @@ exports.handler = async (event) => {
     if (path.endsWith('/activate')) {
         const key = (body.key || '').trim();
         const fp = body.fingerprint || '';
+        const org = (body.organization || '').trim();
         if (!key || !fp) return reply(400, { error: 'key/fingerprint required' });
         const state = await readState();
         const lic = (state.licenses || {})[key];
@@ -63,8 +67,12 @@ exports.handler = async (event) => {
         const list = state.devices[key] || [];
         const known = list.includes(fp);
         if (!known && list.length >= (lic.max_devices || 1)) return reply(403, { error: 'Превышен лимит устройств' });
-        if (!known) { list.push(fp); state.devices[key] = list; await writeState(state); }
-        return reply(200, Object.assign(signToken(key, fp), { owner: lic.owner || '' }));
+        if (!known) list.push(fp);
+        state.devices[key] = list;
+        if (org) lic.organization = org;                       // организация, введённая при активации
+        lic.last_activated = new Date().toISOString();
+        await writeState(state);
+        return reply(200, Object.assign(signToken(key, fp, lic.expires), { owner: lic.owner || '', organization: lic.organization || '' }));
     }
 
     if (path.endsWith('/validate')) {
@@ -87,6 +95,10 @@ exports.handler = async (event) => {
         const state = await readState();
         const lic = (state.licenses || {})[payload.key_id];
         const list = (state.devices || {})[payload.key_id] || [];
+        // Текущий срок ключа из state.json (если дату поменяли после активации).
+        if (lic && lic.expires && new Date(lic.expires) < new Date()) {
+            return reply(200, { valid: false, reason: 'expired' });
+        }
         const ok = lic && lic.status === 'active' && list.includes(fp);
         return reply(200, { valid: !!ok, reason: ok ? '' : 'revoked or unbound' });
     }

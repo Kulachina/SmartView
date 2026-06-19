@@ -18,6 +18,7 @@ private:
     void OnActivate();
     LicenseManager* manager_;
     QLineEdit* key_edit_;
+    QLineEdit* org_edit_;
     QLabel* status_;
 };
 

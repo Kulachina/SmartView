@@ -3,6 +3,7 @@
 #include "licensedialog.h"
 #include <QTimer>
 #include <QApplication>
+#include <QMessageBox>
 
 int main(int argc, char *argv[])
 {
@@ -15,7 +16,19 @@ int main(int argc, char *argv[])
     // (сервер ещё не настроен). После публикации сервера задайте kServerUrl и kEnforce = true.
     if(License::kEnforce){
         LicenseManager lm;
-        if(lm.CheckAtStartup() != LicenseManager::Status::Valid){
+        const LicenseManager::Status st = lm.CheckAtStartup();
+        if(st == LicenseManager::Status::Error){
+            // Давно не было связи с сервером — без проверки не запускаем.
+            QMessageBox::warning(nullptr, "Лицензия",
+                "Не удалось проверить лицензию: нет связи с сервером.\n"
+                "Подключитесь к интернету и запустите программу снова.");
+            return 0;
+        }
+        if(st != LicenseManager::Status::Valid){
+            if(st == LicenseManager::Status::Expired){
+                QMessageBox::warning(nullptr, "Лицензия",
+                    "Срок действия лицензии истёк.\nОбратитесь к поставщику ПО.");
+            }
             LicenseDialog dlg(&lm);
             if(dlg.exec() != QDialog::Accepted){
                 return 0;   // без действующей лицензии не запускаемся

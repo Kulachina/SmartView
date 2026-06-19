@@ -13,6 +13,8 @@ inline constexpr bool kEnforce = true;
 inline const QString kAppVersion = QStringLiteral("1.0");
 // Сколько дней разрешено работать офлайн без успешной онлайн-проверки.
 inline constexpr int kGraceDays = 7;
+// Допуск (сек) на «честный» сдвиг часов назад (NTP и т.п.); больше — считаем откатом.
+inline constexpr int kRollbackToleranceSecs = 3600;
 }
 
 // Клиентская часть лицензирования: отпечаток машины, онлайн-активация ключа,
@@ -29,14 +31,17 @@ public:
     // Офлайн-проверка сохранённого токена при старте.
     Status CheckAtStartup();
     // Онлайн-активация ключа на сервере (блокирующая, для модального диалога).
-    Result Activate(const QString& key);
+    Result Activate(const QString& key, const QString& organization);
+    // Сохранённое название организации (из license.dat); пусто, если нет лицензии.
+    QString Organization() const;
 
 private:
     enum class NetCheck { Valid, Invalid, Offline };
     QString TokenPath() const;
-    bool SaveLicense(const QString& token, const QString& fingerprint, const QString& expires);
+    bool SaveLicense(const QString& token, const QString& fingerprint, const QString& expires, const QString& organization);
     NetCheck ValidateOnline(const QString& token);   // heartbeat /validate
     void TouchLastValidated();                        // обновить отметку успешной проверки
+    void RatchetMaxSeen();                            // запомнить максимально виденное время (анти-откат)
 };
 
 #endif // LICENSEMANAGER_H

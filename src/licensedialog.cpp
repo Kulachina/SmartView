@@ -13,6 +13,10 @@ LicenseDialog::LicenseDialog(LicenseManager* manager, QWidget* parent)
     setWindowTitle("Активация лицензии");
     setModal(true);
     QVBoxLayout* v = new QVBoxLayout(this);
+    v->addWidget(new QLabel("Название организации:"));
+    org_edit_ = new QLineEdit();
+    org_edit_->setPlaceholderText("ООО «Ромашка»");
+    v->addWidget(org_edit_);
     v->addWidget(new QLabel("Введите лицензионный ключ:"));
     key_edit_ = new QLineEdit();
     key_edit_->setPlaceholderText("XXXX-XXXX-XXXX-XXXX");
@@ -42,10 +46,15 @@ LicenseDialog::LicenseDialog(LicenseManager* manager, QWidget* parent)
 }
 
 void LicenseDialog::OnActivate(){
+    if(org_edit_->text().trimmed().isEmpty()){
+        status_->setStyleSheet("color: red;");
+        status_->setText("Укажите название организации.");
+        return;
+    }
     status_->setStyleSheet("color: gray;");
     status_->setText("Активация…");
     QApplication::processEvents();
-    const LicenseManager::Result r = manager_->Activate(key_edit_->text());
+    const LicenseManager::Result r = manager_->Activate(key_edit_->text(), org_edit_->text());
     if(r.ok){
         accept();
     } else {
