@@ -85,6 +85,12 @@ CMakeLists.txt.user*
 # Артефакты сборки установщика (не коммитим)
 installer/packages/*/data/
 SmartView-*-setup.exe
+SmartView-*-setup.rar
+
+# Каталоги сборки и тестовые данные
+server/build-release/
+/Test/
+/test/
 
 # Серверные секреты/данные лицензий — не коммитим
 server/state.json

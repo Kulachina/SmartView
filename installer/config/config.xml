@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>SmartView</Name>
+    <Version>0.9.4</Version>
+    <Title>Установка SmartView</Title>
+    <Publisher>Kulachina</Publisher>
+    <StartMenuDir>SmartView</StartMenuDir>
+    <!-- Установка в профиль пользователя — не требует прав администратора. -->
+    <TargetDir>@HomeDir@/SmartView</TargetDir>
+    <MaintenanceToolName>SmartViewUpdater</MaintenanceToolName>
+    <AllowSpaceInPath>true</AllowSpaceInPath>
+</Installer>
