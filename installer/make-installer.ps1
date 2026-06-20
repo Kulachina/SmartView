@@ -39,6 +39,9 @@ if (-not (Test-Path $Ifw)) { throw "Не найден binarycreator: $Ifw (ук�
 if (Test-Path $data) { Remove-Item $data -Recurse -Force }
 New-Item -ItemType Directory $data | Out-Null
 Copy-Item "$DistDir\*" $data -Recurse
+# иконка для ярлыков (рядом с программой)
+$ico = Join-Path (Split-Path $here -Parent) "resources\SmartView.ico"
+if (Test-Path $ico) { Copy-Item $ico $data }
 
 # 3) собрать офлайн-установщик
 $out = Join-Path (Split-Path $here -Parent) "SmartView-$Version-setup.exe"

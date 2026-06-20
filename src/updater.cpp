@@ -9,6 +9,7 @@
 #include <QCoreApplication>
 #include <QApplication>
 #include <QProgressDialog>
+#include <QTextStream>
 
 Updater::Updater(QObject* parent) : QObject(parent) {
     manager_ = new QNetworkAccessManager(this);
@@ -105,7 +106,27 @@ void Updater::StartDownload(const QString& url){
             QMessageBox::warning(nullptr, "Обновление", "Загрузка обновления не завершена.");
             return;
         }
-        // Запустить установщик и закрыть приложение, чтобы он мог обновить файлы.
+        // Если приложение установлено (каталог .../SmartView) — через .bat сначала удаляем
+        // старую версию, чтобы установщик поставил новую в тот же каталог без ошибки
+        // «уже установлено». Закрываем приложение, чтобы освободить файлы.
+        const QString appDir = QCoreApplication::applicationDirPath();
+        if(appDir.endsWith("SmartView", Qt::CaseInsensitive)){
+            const QString batPath = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation)).filePath("smartview-update.bat");
+            QFile bat(batPath);
+            if(bat.open(QIODevice::WriteOnly | QIODevice::Text)){
+                QTextStream ts(&bat);
+                ts << "@echo off\r\n";
+                ts << "chcp 65001 >nul\r\n";
+                ts << "ping -n 3 127.0.0.1 >nul\r\n";                                  // дать программе закрыться
+                ts << "rmdir /S /Q \"" << QDir::toNativeSeparators(appDir) << "\"\r\n"; // удалить старую версию
+                ts << "start \"\" \"" << QDir::toNativeSeparators(path) << "\"\r\n";    // запустить новый установщик
+                bat.close();
+                QProcess::startDetached("cmd.exe", QStringList() << "/C" << batPath);
+                qApp->exit(0);
+                return;
+            }
+        }
+        // Запасной путь (portable/dev или не удалось создать .bat): просто запустить установщик.
         if(QProcess::startDetached(path, QStringList())){
             qApp->exit(0);
         } else {

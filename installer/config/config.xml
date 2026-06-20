@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Installer>
     <Name>SmartView</Name>
-    <Version>0.9.4</Version>
+    <Version>0.9.5</Version>
     <Title>Установка SmartView</Title>
     <Publisher>Kulachina</Publisher>
     <StartMenuDir>SmartView</StartMenuDir>

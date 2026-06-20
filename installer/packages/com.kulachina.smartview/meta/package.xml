@@ -2,7 +2,7 @@
 <Package>
     <DisplayName>SmartView</DisplayName>
     <Description>Программа SmartView</Description>
-    <Version>0.9.4</Version>
+    <Version>0.9.5</Version>
     <ReleaseDate>2026-06-18</ReleaseDate>
     <Default>true</Default>
     <Essential>true</Essential>
