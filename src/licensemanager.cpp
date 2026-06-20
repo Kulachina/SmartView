@@ -15,6 +15,7 @@ extern "C" {
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QEventLoop>
+#include <QTimer>
 
 // Публичный ключ Ed25519 (32 байта) — пара к приватному ключу сервера.
 static const unsigned char kPublicKey[32] = {
@@ -153,12 +154,20 @@ LicenseManager::NetCheck LicenseManager::ValidateOnline(const QString& token){
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QNetworkReply* reply = mgr.post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
     QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timer.start(License::kNetTimeoutMs);
     loop.exec();
+    if(!timer.isActive()){      // сработал таймаут — обрываем зависший запрос
+        reply->abort();
+    }
+    timer.stop();
 
     if(reply->error() != QNetworkReply::NoError){
         reply->deleteLater();
-        return NetCheck::Offline;   // нет связи — решит грейс
+        return NetCheck::Offline;   // нет связи / таймаут — решит грейс
     }
     const QJsonObject resp = QJsonDocument::fromJson(reply->readAll()).object();
     reply->deleteLater();
@@ -221,8 +230,16 @@ LicenseManager::Result LicenseManager::Activate(const QString& key, const QStrin
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QNetworkReply* reply = mgr.post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
     QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timer.start(License::kNetTimeoutMs);
     loop.exec();
+    if(!timer.isActive()){      // сработал таймаут — обрываем зависший запрос
+        reply->abort();
+    }
+    timer.stop();
 
     if(reply->error() != QNetworkReply::NoError){
         r.message = "Сеть/сервер недоступны: " + reply->errorString();

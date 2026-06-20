@@ -38,6 +38,9 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
         prog_->setValue(i);
         QCoreApplication::processEvents();
         words = all[i].split(" ",Qt::SkipEmptyParts);
+        if(words.isEmpty()){
+            continue;
+        }
         if(words[0] == "DATE."){
             SetStartDate(words);
         }
@@ -86,10 +89,14 @@ void Las::SelectCurve(QStringList& words){
 }
 
 void Las::LogData(const QStringList& words){
+    QVector<Canal>& vec_canal = data_.vec_canal;
+    // Строка данных короче ожидаемого (битый файл) — пропускаем, чтобы не выйти за границы.
+    if(index_time_ >= words.size() || words.size() < vec_canal.size()){
+        return;
+    }
     if(words[index_time_] == "-999.250"){
         return;
     }
-    QVector<Canal>& vec_canal = data_.vec_canal;
     int index = words[index_time_].indexOf('.');
     QString word = words[index_time_].left(index);
 
@@ -148,10 +155,16 @@ void Las::CreateCanal(QString name){
     data_.vec_canal.push_back(acm);
 }
 void Las::SetNameSensor(const QStringList& words){
+    if(words.size() < 2){
+        return;
+    }
     int index = words[1].indexOf(':');
     data_.name_sensor = words[1].left(index);
 }
 void Las::SetNumSensor(const QStringList& words){
+    if(words.size() < 2){
+        return;
+    }
     int index = words[1].indexOf(':');
     data_.number_sensor = words[1].left(index);
 }

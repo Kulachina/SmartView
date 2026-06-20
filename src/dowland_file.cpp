@@ -34,6 +34,10 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name, int count_f
     DataSeriesSensor data;
     CreateSeriesACM(data);
     int i = line_text.size()-2;
+    if(i < 0 || line_text[i].split("\t",Qt::SkipEmptyParts).size() < 2){
+        prog_->hide();
+        return {};
+    }
     words = line_text[i].split("\t",Qt::SkipEmptyParts);
     qint64 time = TextToInt(words[0].trimmed()+ " " +words[1].trimmed());
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(time));
@@ -73,6 +77,11 @@ void DowlandFile::LoadTXTEtalon(QString path){
     prog_->setRange(0,size);
     prog_->setValue(0);
     prog_->show();
+    if(line_text.size() < 6){
+        prog_->hide();
+        QMessageBox::critical(nullptr, "Ошибка", "Файл эталона повреждён или неполный.");
+        return;
+    }
     DataSeriesEtalon data;
     QStringList zagolovok = line_text[0].split("\t",Qt::SkipEmptyParts);
     QStringList min_axis = line_text[1].split("\t",Qt::SkipEmptyParts);
@@ -97,6 +106,9 @@ void DowlandFile::LoadTXTEtalon(QString path){
         prog_->setValue(i);
         QCoreApplication::processEvents();
         words = line_text[i].split("\t",Qt::SkipEmptyParts);
+        if(words.size() < 4){
+            continue;   // битая строка эталона — пропускаем
+        }
         time = TextToIntEtalon(words[0].trimmed()+ " " + words[1].trimmed());
         if(zagolovok[1] == "ЛТ300"){
             temp = words[2].replace(',','.').toDouble(&ok_temp);
@@ -189,6 +201,10 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count
     DataSeriesSensor data;
     CreateSeriesACM(data);
     int index = line_text.size()-2;
+    if(index < 0 || line_text[index].split(" ",Qt::SkipEmptyParts).size() < 2){
+        prog_->hide();
+        return {};
+    }
     words = line_text[index].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0].trimmed()+ " " +words[1].trimmed())));
     for(int i = index_data_;i < line_text.size()-1; ++i){
@@ -265,6 +281,9 @@ void DowlandFile::LoadDocEtalon_2v(QString path){
         data_base_.AddListAxis(data_etalon_[1].axis_y_);
         data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
         data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
+    }
+    if(points.isEmpty()){
+        return;   // повреждённый/неполный .sml2
     }
     axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(points.front().x()),QDateTime::fromMSecsSinceEpoch(points.back().x()));
     data_base_.SetDefaultAxisX(axis_x_->max(),axis_x_->min());
@@ -413,6 +432,10 @@ void DowlandFile::CreateSeriesEtalon(QString word){
 }
 void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
     QVector<Canal>& vec_canal = data.vec_canal;
+    // Нужны время (2 поля) + по столбцу на канал; короче — битая строка, пропускаем.
+    if(words.size() < vec_canal.size() + 2){
+        return;
+    }
     qint64 time = TextToInt(words[0].trimmed()+ " " + words[1].trimmed());
     for(int i =0; i < vec_canal.size();++i){
         words[i+2].replace(',','.');

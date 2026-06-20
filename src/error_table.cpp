@@ -90,14 +90,14 @@ void ErrorTable::AnalisingSeries(DataSeriesSensor& data,QTableWidget *table){
     QVector<double> vol_temp;
     QVector<double> del_bar;
     QVector<double> vol_bar;
-    int type_er_bar;
-    int type_er_temp;
-    double accept_min_bar;
-    double accept_max_bar;
-    double accept_min_temp;
-    double accept_max_temp;
-    int duration_temp;
-    int duration_bar;
+    int type_er_bar = 0;
+    int type_er_temp = 0;
+    double accept_min_bar = 0;
+    double accept_max_bar = 0;
+    double accept_min_temp = 0;
+    double accept_max_temp = 0;
+    int duration_temp = 0;
+    int duration_bar = 0;
     double delta;
     double value;
     for(Canal& a :acm){

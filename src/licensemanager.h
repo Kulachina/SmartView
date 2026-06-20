@@ -15,6 +15,8 @@ inline const QString kAppVersion = QStringLiteral("1.0");
 inline constexpr int kGraceDays = 7;
 // Допуск (сек) на «честный» сдвиг часов назад (NTP и т.п.); больше — считаем откатом.
 inline constexpr int kRollbackToleranceSecs = 3600;
+// Таймаут сетевых запросов (мс): чтобы приложение не зависало при недоступном сервере.
+inline constexpr int kNetTimeoutMs = 10000;
 }
 
 // Клиентская часть лицензирования: отпечаток машины, онлайн-активация ключа,
