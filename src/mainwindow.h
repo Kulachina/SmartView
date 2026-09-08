@@ -48,6 +48,7 @@ public slots:
     void WindowTableError();
     void SaveAllSV();
     void CheckUpdate();
+    void ExportProtocolTemplate();   // выгрузить пустой шаблон протокола калибровки (.xlsx)
 private:
     void ActoinWinSaC();
     void closeEvent(QCloseEvent *event) override;

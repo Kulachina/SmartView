@@ -18,6 +18,7 @@
 #include <QApplication>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QFile>
 #include <QCloseEvent>
 
 MainWindow::MainWindow(QMainWindow *parent)
@@ -62,6 +63,11 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *close = new QAction("Выход");
     menu_file->addAction(close);
     QAction *report = new QAction("Отчеты");
+    QMenu *menu_report = new QMenu();
+    report->setMenu(menu_report);
+    QAction *export_protocol = new QAction("Протокол калибровки (шаблон)");
+    connect(export_protocol, &QAction::triggered, this, &MainWindow::ExportProtocolTemplate);
+    menu_report->addAction(export_protocol);
     QAction *master_point = new QAction("Мастер точек");
     connect(master_point, &QAction::triggered, this,&MainWindow::WindowMasterPoint);
     QAction *view = new QAction("Вид");
@@ -319,4 +325,25 @@ void MainWindow::SaveAllSV(){
 }
 void MainWindow::CheckUpdate(){
     update_.ManualCheck();
+}
+void MainWindow::ExportProtocolTemplate(){
+    // Пустой шаблон протокола калибровки лежит в ресурсах (:/protocol_template.xlsx).
+    // Наполнение данными делается отдельно; здесь только выгрузка чистого шаблона.
+    const QString dir = QApplication::applicationDirPath();
+    QString path = QFileDialog::getSaveFileName(
+        this, "Сохранить шаблон протокола",
+        dir + "/Протокол калибровки.xlsx", "Книга Excel (*.xlsx)");
+    if(path.isEmpty()){
+        return;
+    }
+    if(!path.endsWith(".xlsx", Qt::CaseInsensitive)){
+        path += ".xlsx";
+    }
+    QFile::remove(path);   // QFile::copy не перезаписывает существующий файл
+    if(!QFile::copy(":/protocol_template.xlsx", path)){
+        QMessageBox::warning(this, "Ошибка", "Не удалось сохранить шаблон протокола.");
+        return;
+    }
+    QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner
+                                | QFile::ReadUser  | QFile::WriteUser);   // ресурс копируется read-only
 }

@@ -2,5 +2,6 @@
 <qresource prefix="/">
         <file>SmartView.png</file>
 		<file>SmartView.ico</file>
+		<file>protocol_template.xlsx</file>
     </qresource>
 </RCC>
