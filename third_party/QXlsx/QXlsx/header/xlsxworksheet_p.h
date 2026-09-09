@@ -266,6 +266,16 @@ public:
     QString PMleft;
     QString PMright;
 
+    // SmartView: ручные разрывы страниц по строкам (<rowBreaks>/<brk>). Апстрим
+    // их не читал и не писал, из-за чего разрыв, заданный в шаблоне, пропадал
+    // при сохранении и шапка протокола склеивалась с результатами калибровки.
+    struct RowBreak {
+        int  id  = 0;      // строка, ПОСЛЕ которой рвём (1-based, как в файле)
+        int  max = 16383;  // до какой колонки тянется разрыв
+        bool man = true;   // ручной, а не автоматический
+    };
+    QList<RowBreak> rowBreaks;
+
     // header footer, liufeijin
     QString MoodFooter;
     QString ModdHeader;

@@ -186,6 +186,15 @@ public:
     void setWhiteSpaceVisible(bool visible);
     bool setStartPage(int spagen); // add by liufeijin20181028
 
+    // SmartView: колонтитулы. Апстрим их читал и записывал, но задать из кода
+    // было нечем. Строка — в нотации Excel: &L/&C/&R — левая/центральная/правая
+    // секция, &P — номер страницы, &N — всего страниц, &"шрифт,начертание"
+    // и &<размер> — оформление.
+    void setOddHeader(const QString &header);
+    void setOddFooter(const QString &footer);
+    QString oddHeader() const;
+    QString oddFooter() const;
+
     QVector<CellLocation> getFullCells(int *maxRow, int *maxCol) const;
 
 private:

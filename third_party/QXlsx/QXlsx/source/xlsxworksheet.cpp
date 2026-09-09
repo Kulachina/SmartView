@@ -1334,6 +1334,12 @@ void Worksheet::saveToXmlFile(QIODevice *device) const
     writer.writeEndElement(); // sheetViews
 
     writer.writeStartElement(QStringLiteral("sheetFormatPr"));
+    // SmartView: апстрим ЧИТАЛ defaultColWidth, но не записывал обратно. Колонки
+    // без явного <col> получали дефолтные 8.43 знака вместо узких колонок бланка,
+    // лист становился вдвое шире и не влезал по ширине на страницу.
+    if (d->sheetFormatProps.defaultColWidth > 0.0)
+        writer.writeAttribute(QStringLiteral("defaultColWidth"),
+                              QString::number(d->sheetFormatProps.defaultColWidth, 'g', 15));
     writer.writeAttribute(QStringLiteral("defaultRowHeight"),
                           QString::number(d->sheetFormatProps.defaultRowHeight));
     writer.writeAttribute(QStringLiteral("customHeight"),
@@ -1407,10 +1413,14 @@ void Worksheet::saveToXmlFile(QIODevice *device) const
     }
 
     // dev57
-    if (!d->Prid.isEmpty()) {
+    // SmartView: пишем pageSetup, если задан ЛЮБОЙ параметр печати, а не только r:id,
+    // и НЕ выводим сам r:id: часть printerSettings при сохранении не пишется, а
+    // отношения листа перенумеровываются, поэтому ссылка становится битой (указывает
+    // на drawing) и Excel просит восстановить книгу. Без r:id масштаб/ориентация/формат
+    // листа сохраняются корректно.
+    if (!d->Prid.isEmpty() || !d->Pscale.isEmpty() || !d->Porientation.isEmpty()
+        || !d->PpaperSize.isEmpty() || !d->Pcopies.isEmpty()) {
         writer.writeStartElement(QStringLiteral("pageSetup")); // pageSetup
-
-        writer.writeAttribute(QStringLiteral("r:id"), d->Prid);
 
         if (!d->PverticalDpi.isEmpty()) {
             writer.writeAttribute(QStringLiteral("verticalDpi"), d->PverticalDpi);
@@ -1469,11 +1479,55 @@ void Worksheet::saveToXmlFile(QIODevice *device) const
         writer.writeEndElement(); // headerFooter
     }
 
+    // SmartView: ручные разрывы страниц по строкам — после headerFooter,
+    // как того требует порядок элементов CT_Worksheet.
+    if (!d->rowBreaks.isEmpty()) {
+        writer.writeStartElement(QStringLiteral("rowBreaks"));
+        writer.writeAttribute(QStringLiteral("count"), QString::number(d->rowBreaks.size()));
+        int manual = 0;
+        for (const WorksheetPrivate::RowBreak &brk : d->rowBreaks)
+            manual += brk.man ? 1 : 0;
+        writer.writeAttribute(QStringLiteral("manualBreakCount"), QString::number(manual));
+        for (const WorksheetPrivate::RowBreak &brk : d->rowBreaks) {
+            writer.writeEmptyElement(QStringLiteral("brk"));
+            writer.writeAttribute(QStringLiteral("id"), QString::number(brk.id));
+            writer.writeAttribute(QStringLiteral("max"), QString::number(brk.max));
+            if (brk.man)
+                writer.writeAttribute(QStringLiteral("man"), QStringLiteral("1"));
+        }
+        writer.writeEndElement(); // rowBreaks
+    }
+
     d->saveXmlHyperlinks(writer);
     d->saveXmlDrawings(writer);
 
     writer.writeEndElement(); // worksheet
     writer.writeEndDocument();
+}
+
+// SmartView: колонтитулы (см. xlsxworksheet.h).
+void Worksheet::setOddHeader(const QString &header)
+{
+    Q_D(Worksheet);
+    d->ModdHeader = header;
+}
+
+void Worksheet::setOddFooter(const QString &footer)
+{
+    Q_D(Worksheet);
+    d->MoodFooter = footer;
+}
+
+QString Worksheet::oddHeader() const
+{
+    Q_D(const Worksheet);
+    return d->ModdHeader;
+}
+
+QString Worksheet::oddFooter() const
+{
+    Q_D(const Worksheet);
+    return d->MoodFooter;
 }
 
 //{{ liufeijin
@@ -1661,7 +1715,11 @@ void WorksheetPrivate::saveXmlCellData(QXmlStreamWriter &writer,
 
         // Legacy mode: write date as text (old behavior)
         if (workbook && workbook->writeDatesAsText()) {
-            writer.writeTextElement(QStringLiteral("v"), cell->value().toString());
+            // SmartView: пустую ячейку с «датным» форматом (в шаблоне такие есть)
+            // апстрим сохранял как <v></v> при t="n" — пустая строка не число,
+            // и Excel считает книгу повреждённой. Нет значения — нет и элемента v.
+            if (cell->value().isValid())
+                writer.writeTextElement(QStringLiteral("v"), cell->value().toString());
         } else {
             if (cell->value().isValid()) {
                 double serial = 0.0;
@@ -2809,6 +2867,20 @@ bool Worksheet::loadFromXmlFile(QIODevice *device)
 
                     if (reader.name() == QLatin1String("oddFooter"))
                         d->MoodFooter = reader.readElementText();
+                }
+            } else if (reader.name() == QLatin1String("rowBreaks")) {
+                // SmartView: ручные разрывы страниц по строкам
+                while (reader.readNextStartElement()) {
+                    if (reader.name() != QLatin1String("brk"))
+                        continue;
+                    const QXmlStreamAttributes a = reader.attributes();
+                    WorksheetPrivate::RowBreak brk;
+                    brk.id  = a.value(QLatin1String("id")).toInt();
+                    brk.man = a.value(QLatin1String("man")) == QLatin1String("1");
+                    if (a.hasAttribute(QLatin1String("max")))
+                        brk.max = a.value(QLatin1String("max")).toInt();
+                    if (brk.id > 0)
+                        d->rowBreaks.append(brk);
                 }
             } else if (reader.name() == QLatin1String("drawing")) {
                 QString rId  = reader.attributes().value(QStringLiteral("r:id")).toString();

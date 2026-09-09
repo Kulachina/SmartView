@@ -423,9 +423,9 @@ bool DocumentPrivate::savePackage(QIODevice *device) const
                           workbook->sharedStrings()->saveToXmlData());
     }
 
-    // save calc chain [dev16]
-    contentTypes->addCalcChain();
-    zipWriter.addFile(QStringLiteral("xl/calcChain.xml"), workbook->styles()->saveToXmlData());
+    // SmartView: calcChain НЕ пишем. Апстрим писал в xl/calcChain.xml содержимое
+    // styles.xml (копипаста), из-за чего Excel считал книгу повреждённой и просил
+    // восстановление. Часть calcChain — необязательный кэш формул, Excel строит её сам.
 
     // save styles xml file
     contentTypes->addStyles();
