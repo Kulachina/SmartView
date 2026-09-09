@@ -517,7 +517,7 @@ QWidget* MasterPointsWindow::CreateTabMasterACM(){
     connect(btn_saveas,&QPushButton::clicked, this,&MasterPointsWindow::CreateAllDoc);
     QPushButton *btn_table = new QPushButton("Заполнить данные");
     connect(btn_table, &QPushButton::clicked,this, [&](){
-        if(ch_sel_1_table_las_->isChecked()){
+        if(ch_sel_1_table_->isChecked()){
             FillFromOneTable();
         } else {
             FillAllTables();
