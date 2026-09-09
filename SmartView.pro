@@ -47,6 +47,7 @@ HEADERS += \
     src/las.h \
     src/mainwindow.h \
     src/masterpointswindow.h \
+    src/protocoldata.h \
     src/rangeswindow.h \
     src/sensorcanaleditor.h \
     src/serieswindow.h \
