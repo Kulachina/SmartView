@@ -37,11 +37,11 @@ struct Canal{
     QString name_unit;
     QString color_series_RGB;
     QString color_series_;
-    int type_error;
+    int type_error = 0;          // 0 — не задан, 1 абс., 2 отн., 3 прив.
     int duration_error_min = 0;
     int duration_error_max = 0;
-    double accept_min;
-    double accept_max;
+    double accept_min = 0;
+    double accept_max = 0;
     double unit_min = 0;
     double unit_max = 0;
     bool first_unit = true;
@@ -82,6 +82,7 @@ struct DataSeriesEtalon{
            *data_sensor;
     QVector<QPointF> points_triangle_view;
     QVector<QPointF> points_rectangle_view;
+    QVector<double> condition;
 };
 struct NameChart{
     QString name_canal;//1

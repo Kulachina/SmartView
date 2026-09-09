@@ -10,6 +10,7 @@
 #include "error_table.h"
 #include "las.h"
 #include "updater.h"
+#include "protocolwriter.h"
 
 class CheckPointsWindow;
 class RangesWindow;
@@ -70,6 +71,7 @@ private:
     MasterPointsWindow* master_window_;
     DeleteSensorWindow* delete_window_;
     SensorCanalEditor* sensor_editor_;
+    ProtocolWriter* protokol_writer_;
     DocumentLoader* loader_;
     QAction *load_doc_2_,
             *load_doc_3_,

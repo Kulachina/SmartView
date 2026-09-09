@@ -255,6 +255,7 @@ void DowlandFile::LoadDocEtalon_2v(QString path){
         data_etalon_.back().point_series->replace(check_points);
         data_etalon_.back().axis_y_->setRange(min,max + max * 0.1);
     }
+    ReadConditions(in);   // необязательный хвост: в старых .sml2 его нет
     if(data_etalon_[0].name_series == "ДМ5002М"){
         data_base_.GetDataSerEtalon().push_back(data_etalon_[1]);
         data_base_.GetDataSerEtalon().push_back(data_etalon_[0]);
@@ -285,6 +286,42 @@ void DowlandFile::CreateVecCheckPoints(QString name, QVector<QPointF> list){
         data_base_.GetCheckPointBar() = vec;
     }
 }
+// Хвост .sml2 с условиями проведения калибровки. Формат (той же кодировкой и
+// порядком байт, что и весь файл, — QDataStream по умолчанию, BigEndian):
+//
+//     "COND"            4 сырых байта, метка
+//     quint32           версия хвоста, сейчас 1
+//     QVector<double>   [температура °C, влажность %, давление мм.рт.ст]
+//
+// Хвост пишется ПОСЛЕДНИМ, после обоих блоков серий. Поэтому старые файлы
+// безопасны: у них поток кончается раньше, readRawData не наберёт 4 байта и мы
+// выходим. Метка отсекает случай, когда в конце оказалось что-то чужое, а
+// проверка status() — обрыв на середине хвоста. В любом из этих случаев
+// условия остаются пустыми, а сам файл считается загруженным нормально.
+void DowlandFile::ReadConditions(QDataStream& in) {
+    char magic[4];
+    if (in.readRawData(magic, sizeof(magic)) != sizeof(magic)) {
+        in.resetStatus();          // старый файл: данные кончились
+        return;
+    }
+    if (strncmp(magic, "COND", 4) != 0) {
+        return;                    // хвост не наш — не трогаем
+    }
+    quint32 version = 0;
+    QVector<double> values;
+    in >> version >> values;
+    if (in.status() != QDataStream::Ok) {
+        in.resetStatus();          // хвост оборван — читаем как «условий нет»
+        return;
+    }
+    if (version == 1 && values.size() == 3) {
+        data_base_.GetConditions() = values;
+    } else {
+        qWarning() << "Условия калибровки: неизвестный формат хвоста, версия"
+                   << version << "значений" << values.size();
+    }
+}
+
 void DowlandFile::LoadDocEtalon(QString path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {

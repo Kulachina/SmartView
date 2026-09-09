@@ -43,6 +43,9 @@ public:
     void CheckFlag();
     void LoadDocEtalon(QString path);
     void LoadDocEtalon_2v(QString path);
+    // Читает необязательный хвост «Условия проведения калибровки» из .sml2.
+    // Старые файлы его не содержат — тогда просто ничего не делает.
+    void ReadConditions(QDataStream& in);
     void LoadTXTEtalon(QString path);
     QVector<DataSeriesEtalon>& GetDataSeriesEtalon();
     QDateTime GetAxisTime();

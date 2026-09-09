@@ -21,6 +21,10 @@ public:
     QVector<DataSeriesSensor>& GetDataSerACM();
     QVector<DataSeriesEtalon>& GetDataSerEtalon();
     QVector<CheckRange>& GetCheckRanges();
+    // Условия проведения калибровки из файла эталона: [температура окружающей
+    // среды °C, относительная влажность %, атмосферное давление мм.рт.ст].
+    // Пустой вектор — в файле условий не было (старые .sml2).
+    QVector<double>& GetConditions();
     QList<QPointer<QValueAxis>>& GetListAxis();
     void SetDefaultAxisX(QDateTime max, QDateTime min);
     std::pair<QDateTime,QDateTime> GetDefaultAxisX();
@@ -36,6 +40,7 @@ private:
     QVector<qint64> check_points64_;
     QVector<double> check_point_bar;
     QVector<double> check_points_temp;
+    QVector<double> conditions_;
     QList<QPointer<QLabel>> vector_name_sensor_;
     QList<QPointer<QLabel>> vector_name_;
     QList<QPointer<QValueAxis>> list_axis_y_;

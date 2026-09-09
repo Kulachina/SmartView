@@ -1,21 +1,650 @@
 #include "protocolwriter.h"
+#include "util.h"
+#include "xlsxcell.h"
+#include "xlsxcellrange.h"
 #include "xlsxdocument.h"
+#include "xlsxformat.h"
+#include "xlsxworksheet.h"
+#include <QApplication>
 #include <QBuffer>
 #include <QByteArray>
+#include <QDate>
 #include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QApplication>
+#include <QPushButton>
+#include <QVector>
 
 using namespace QXlsx;
 
-bool ProtocolWriter::Generate(const Protocol::Data& data, QWidget* parent) {
+ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
+    : QWidget(parent), data_base_(data_base)
+{
+    setWindowTitle("Настройка протокола");
+    QVBoxLayout *vbox = new QVBoxLayout(this);
+    QHBoxLayout *h_select_pribor = new QHBoxLayout();
+    QHBoxLayout *h_type_pribor = new QHBoxLayout();
+    QHBoxLayout *h_name_pribor = new QHBoxLayout();
+    QHBoxLayout *h_serial_number = new QHBoxLayout();
+    QHBoxLayout *h_client = new QHBoxLayout();
+    QHBoxLayout *h_instr_calib = new QHBoxLayout();
+    QHBoxLayout *h_canal_calib = new QHBoxLayout();
+    QHBoxLayout *h_canal_calib_bar = new QHBoxLayout();
+    QHBoxLayout *h_canal_calib_temp = new QHBoxLayout();
+    QHBoxLayout *h_btn = new QHBoxLayout();
+    QPushButton *btn = new QPushButton("Создать");
+    connect(btn, &QPushButton::clicked, this, [this]() {
+        if (Generate(CollectData(), this))
+            close();
+    });
+    QPushButton *btn_2 = new QPushButton("Отмена");
+    connect(btn_2,&QPushButton::clicked, this, &QWidget::close);
+    select_pribor_ = new QComboBox();
+    select_name_type_ = new QComboBox();
+    select_name_type_->addItem("Автономный цифровой манометр-термометр");
+    type_pribor_ = new QComboBox();
+    type_pribor_->addItems(type_pribors_);
+    series_number_  = new QLineEdit();
+    connect(select_pribor_, QOverload<int>::of(&QComboBox::activated),
+            this, [this](int index) {
+                const QString name = select_pribor_->itemText(index);
+                if (map_pribors_.contains(name)) {
+                    series_number_->setText(map_pribors_.value(name));
+                    series_number_->setReadOnly(true);
+                } else {
+                    series_number_->clear();
+                    series_number_->setReadOnly(false);
+                    series_number_->setFocus();
+                }
+            });
+    select_instr_ = new QComboBox();
+    select_instr_->addItems(instruments_);
+    list_client_ = new QComboBox();
+    list_client_->addItems(clients_);
+    canal_temp_ = new QCheckBox("Температура");
+    canal_bar_ = new QCheckBox("Давление");
+    bar_settings_widget_ = new QWidget();
+    QHBoxLayout *h_bar_settings = new QHBoxLayout(bar_settings_widget_);
+    h_bar_settings->setContentsMargins(20, 0, 0, 0);
+    bar_points_spin_ = new QSpinBox();
+    bar_points_spin_->setRange(1, 20);
+    bar_points_spin_->setValue(3);
+    bar_temp_points_spin_ = new QSpinBox();
+    bar_temp_points_spin_->setRange(1, 20);
+    bar_temp_points_spin_->setValue(1);
+    h_bar_settings->addWidget(new QLabel("Точек давления"));
+    h_bar_settings->addWidget(bar_points_spin_);
+    h_bar_settings->addWidget(new QLabel("Точек температуры"));
+    h_bar_settings->addWidget(bar_temp_points_spin_);
+    h_bar_settings->setAlignment(Qt::AlignLeft);
+    bar_settings_widget_->setVisible(false);
+    temp_settings_widget_ = new QWidget();
+    QHBoxLayout *h_temp_settings = new QHBoxLayout(temp_settings_widget_);
+    h_temp_settings->setContentsMargins(20, 0, 0, 0);
+    temp_points_spin_ = new QSpinBox();
+    temp_points_spin_->setRange(1, 20);
+    temp_points_spin_->setValue(1);
+    h_temp_settings->addWidget(new QLabel("Точек температуры"));
+    h_temp_settings->addWidget(temp_points_spin_);
+    h_temp_settings->setAlignment(Qt::AlignLeft);
+    temp_settings_widget_->setVisible(false);
+    connect(canal_bar_, &QCheckBox::toggled, bar_settings_widget_, &QWidget::setVisible);
+    connect(canal_temp_, &QCheckBox::toggled, temp_settings_widget_, &QWidget::setVisible);
+    h_select_pribor->addWidget(new QLabel("Выбор прибора"));
+    h_select_pribor->addWidget(select_pribor_);
+    h_select_pribor->setAlignment(Qt::AlignLeft);
+    h_name_pribor->addWidget(new QLabel("Наименование аппаратуры"));
+    h_name_pribor->addWidget(select_name_type_);
+    h_name_pribor->setAlignment(Qt::AlignLeft);
+    h_type_pribor->addWidget(new QLabel("Тип аппаратуры"));
+    h_type_pribor->addWidget(type_pribor_);
+    h_type_pribor->setAlignment(Qt::AlignLeft);
+    h_serial_number->addWidget(new QLabel("Заводской номер"));
+    h_serial_number->addWidget(series_number_);
+    h_serial_number->setAlignment(Qt::AlignLeft);
+    h_client->addWidget(new QLabel("Заказчик"));
+    h_client->addWidget(list_client_);
+    h_client->setAlignment(Qt::AlignLeft);
+    h_instr_calib->addWidget(new QLabel("Средства калибровки"));
+    h_instr_calib->addWidget(select_instr_);
+    h_instr_calib->setAlignment(Qt::AlignLeft);
+    h_canal_calib->addWidget(new QLabel("Выбор каналов для протокола"));
+    h_canal_calib->setAlignment(Qt::AlignLeft);
+    h_canal_calib_temp->addWidget(canal_temp_);
+    h_canal_calib_temp->addWidget(temp_settings_widget_);
+    h_canal_calib_temp->setAlignment(Qt::AlignLeft);
+    h_canal_calib_bar->addWidget(canal_bar_);
+    h_canal_calib_bar->addWidget(bar_settings_widget_);
+    h_canal_calib_bar->setAlignment(Qt::AlignLeft);
+    h_btn->addWidget(btn);
+    h_btn->addWidget(btn_2);
+    h_btn->setAlignment(Qt::AlignLeft);
+    vbox->addLayout(h_select_pribor);
+    vbox->addLayout(h_name_pribor);
+    vbox->addLayout(h_type_pribor);
+    vbox->addLayout(h_serial_number);
+    vbox->addLayout(h_client);
+    vbox->addLayout(h_instr_calib);
+    vbox->addLayout(h_canal_calib);
+    vbox->addLayout(h_canal_calib_temp);
+    vbox->addLayout(h_canal_calib_bar);
+    vbox->addLayout(h_btn);
+
+}
+void ProtocolWriter::GetSpisokPribors(){
+    pribors_.clear();
+    map_pribors_.clear();
+    if(!data_base_.GetDataSerACM().isEmpty()){
+        for(DataSeriesSensor a : data_base_.GetDataSerACM()){
+            pribors_.push_back(a.name_sensor);
+            map_pribors_[a.name_sensor] = TrimNameandNumber(a.name_sensor);
+        }
+        select_pribor_->addItems(pribors_);
+    }
+}
+QString ProtocolWriter::TrimNameandNumber(QString name){
+    static const QRegularExpression re(QStringLiteral("№\\s*(\\d+)"));
+    QRegularExpressionMatch match = re.match(name);
+    if (match.hasMatch())
+        return match.captured(1);
+    return "err";
+}
+
+
+// =====================================================================
+// Вёрстка результатной части протокола
+//
+// Всё ниже строки 60 строится кодом: набор каналов, число блоков давления и
+// число точек переменные, а QXlsx не умеет вставлять/удалять строки — значит
+// статической разметки в шаблоне там быть не может. Стили берём с листа-донора
+// «_proto», куда при перекройке шаблона переехали исходные строки бланка
+// (номера строк сохранены — отсюда «говорящие» константы ниже).
+// =====================================================================
+namespace {
+
+const QString kMainSheet  = QStringLiteral("Сертификат");   // сам протокол
+const QString kProtoSheet = QStringLiteral("_proto");       // скрытый донор стилей
+
+// Строки-образцы на листе «_proto».
+enum ProtoRow {
+    kRowResults   = 61,   // «Результаты калибровки:»
+    kRowCheck     = 63,   // «Внешний осмотр:» (подпись в A, значение в G)
+    kRowSection   = 67,   // «N. Канал измерения ...»
+    kRowSubTitle  = 69,   // «N.1 Результаты определения ...»
+    kRowPHead     = 71,   // шапка таблицы давления (блок из 9 колонок)
+    kRowPCaption  = 72,   // «Измерения при N °С»
+    kRowPData     = 74,   // строка данных давления
+    kRowPDataLast = 77,   // последняя строка блока — толстая нижняя граница
+    kRowLimit     = 79,   // «Предел допускаемой ...»
+    kRowTHead     = 85,   // шапка таблицы температуры (блок из 10 колонок)
+    kRowTFirst    = 86,   // первая строка данных температуры
+    kRowTData     = 87,   // последующие строки данных температуры
+    kRowVerdict   = 92,   // заключение (объединение на 3 строки)
+    kRowSignLine  = 96,   // линии подписи: ФИО и дата
+    kRowSignCapt  = 97,   // подписи под линиями: Подпись / ФИО / Дата
+};
+
+const int kFirstRow     = 61;   // первая строка ниже фиксированной шапки
+const int kLastCol      = 29;   // AC
+const int kPBlockWidth  = 9;    // блок давления: эталон(3) + прибор(3) + погрешность(3)
+const int kPBlocksInRow = 3;    // блоков давления по ширине листа
+const int kTBlockWidth  = 10;   // таблица температуры: 3 + 3 + 4
+
+// Форматы одной строки-образца: fmt[k] — формат колонки k+1.
+struct DonorRow {
+    QVector<QXlsx::Format> fmt;
+    double height = 0.0;
+};
+using Donors = QMap<int, DonorRow>;
+
+// Читает все нужные строки-образцы разом, чтобы дальше не переключать лист.
+Donors LoadDonors(QXlsx::Document& doc) {
+    static const QList<int> rows = {kRowResults, kRowCheck, kRowSection, kRowSubTitle,
+                                    kRowPHead, kRowPCaption, kRowPData, kRowPDataLast,
+                                    kRowLimit, kRowTHead, kRowTFirst, kRowTData,
+                                    kRowVerdict, kRowSignLine, kRowSignCapt};
+    Donors res;
+    doc.selectSheet(kProtoSheet);
+    for (int r : rows) {
+        DonorRow d;
+        d.height = doc.rowHeight(r);
+        d.fmt.resize(kLastCol);
+        for (int c = 1; c <= kLastCol; ++c) {
+            const auto cell = doc.cellAt(r, c);
+            if (cell)
+                d.fmt[c - 1] = cell->format();
+        }
+        res.insert(r, d);
+    }
+    doc.selectSheet(kMainSheet);
+    return res;
+}
+
+// Пишет value в (row, col) и растягивает стили образца на width колонок.
+// Формат берётся ПОКОЛОНОЧНО — так левая/средняя/правая границы ячеек совпадают
+// с бланком. Объединяем БЕЗ формата: QXlsx::mergeCells с валидным форматом
+// затирает им все ячейки диапазона и границы таблицы разъезжаются.
+void PutRun(QXlsx::Document& doc, const DonorRow& donor, int row, int col, int width,
+            const QVariant& value = QVariant(), int donor_col = 1) {
+    for (int k = 0; k < width; ++k)
+        doc.write(row, col + k, k == 0 ? value : QVariant(), donor.fmt.value(donor_col - 1 + k));
+    if (width > 1)
+        doc.mergeCells(QXlsx::CellRange(row, col, row, col + width - 1));
+    if (donor.height > 0.0)
+        doc.setRowHeight(row, donor.height);
+}
+
+// Одна ячейка со стилем образца, без объединения.
+void PutCell(QXlsx::Document& doc, const DonorRow& donor, int row, int col,
+             const QVariant& value, int donor_col) {
+    doc.write(row, col, value, donor.fmt.value(donor_col - 1));
+    if (donor.height > 0.0)
+        doc.setRowHeight(row, donor.height);
+}
+
+// Значение в ячейку уже свёрстанной шапки. Пустое не пишем, чтобы не затереть
+// текст, заданный прямо в шаблоне (место проведения, средства калибровки).
+// Формат не передаём: QXlsx в этом случае сохраняет стиль ячейки шаблона.
+void PutMeta(QXlsx::Document& doc, const QString& ref, const QString& value) {
+    if (!value.isEmpty())
+        doc.write(ref, value);
+}
+
+QString ErrName(Protocol::ErrType t) {          // для заголовка колонки
+    switch (t) {
+        case Protocol::ErrType::Absolute: return QStringLiteral("Абсолютная");
+        case Protocol::ErrType::Relative: return QStringLiteral("Относительная");
+        case Protocol::ErrType::Reduced:  return QStringLiteral("Приведенная");
+    }
+    return QString();
+}
+
+QString ErrNameGen(Protocol::ErrType t) {       // для строки «Предел допускаемой ...»
+    switch (t) {
+        case Protocol::ErrType::Absolute: return QStringLiteral("абсолютной");
+        case Protocol::ErrType::Relative: return QStringLiteral("относительной");
+        case Protocol::ErrType::Reduced:  return QStringLiteral("приведенной");
+    }
+    return QString();
+}
+
+// Число для текста (не для ячейки): без хвостовых нулей, с запятой как в бланке.
+QString Num(double v) {
+    return QString::number(v, 'g', 10).replace(QLatin1Char('.'), QLatin1Char(','));
+}
+
+QString ErrHeader(const Protocol::ChannelSpec& s) {
+    return QString("%1 погрешность, %2").arg(ErrName(s.error_type), s.error_unit);
+}
+
+QString LimitText(const QString& what, const Protocol::ChannelSpec& s) {
+    return QString("Предел допускаемой основной %1 погрешности измерения %2 ±%3 %4")
+        .arg(ErrNameGen(s.error_type), what, Num(s.error_limit), s.error_unit);
+}
+
+// Значение точки в ячейку: незаполненная точка (measured == false) даёт пустую
+// ячейку со стилем таблицы — протокол печатается как бланк под ручной ввод.
+QVariant PointCell(bool measured, double value) {
+    return measured ? QVariant(value) : QVariant();
+}
+
+// --- снятие показаний прибора в контрольных точках ---------------------------
+// Идём по серии канала и берём y там, где время совпало с очередной КТ.
+// Тот же механизм, что в MasterPointsWindow::AnalisingSeries: КТ — это
+// пересечение отмеченных моментов с графиком прибора, время сравнивается
+// округлённым до секунды. Эталон брать неоткуда не нужно: его значения в тех
+// же точках DataBase хранит параллельно самим КТ (AddCheckPoint).
+QVector<double> ReadCanalAtCheckPoints(QLineSeries* series,
+                                       const QVector<QDateTime>& check_points) {
+    QVector<double> res;
+    if (!series)
+        return res;
+    int next = 0;
+    for (const QPointF& point : series->points()) {
+        if (next >= check_points.size())
+            break;
+        const qint64 t  = RoundToSec(static_cast<qint64>(point.x()));
+        const qint64 cp = RoundToSec(check_points[next].toMSecsSinceEpoch());
+        if (t == cp) {
+            res.push_back(point.y());
+            ++next;
+        }
+    }
+    return res;
+}
+
+// --- характеристики канала из настроек прибора -------------------------------
+// Тип погрешности задаётся в окне «Приборы и каналы» (SensorCanalEditor):
+// 1 — абсолютная, 2 — относительная, 3 — приведённая; 0 — канал не настроен.
+Protocol::ErrType ErrTypeFromCanal(int type_error) {
+    switch (type_error) {
+        case 1:  return Protocol::ErrType::Absolute;
+        case 2:  return Protocol::ErrType::Relative;
+        default: return Protocol::ErrType::Reduced;   // 3
+    }
+}
+
+// В бланке единицы набраны со степенью, в списке окна каналов — плоско.
+QString PrettyUnit(QString unit) {
+    return unit.replace(QStringLiteral("см2"), QStringLiteral("см²"));
+}
+
+// Переносит настройки канала в характеристики протокола. Единица погрешности:
+// у абсолютной — единица канала, у относительной и приведённой — проценты.
+// Диапазон для приведённой считается так же, как в ErrorTable::AnalisingSeries:
+// duration_error_max - duration_error_min.
+void SpecFromCanal(const Canal& c, Protocol::ChannelSpec& s) {
+    s.unit        = PrettyUnit(c.name_unit);
+    s.error_type  = ErrTypeFromCanal(c.type_error);
+    s.error_limit = c.accept_max;
+    s.error_unit  = s.error_type == Protocol::ErrType::Absolute ? s.unit
+                                                                : QStringLiteral("%");
+    const double span = c.duration_error_max - c.duration_error_min;
+    s.span = span != 0.0 ? span : 1.0;
+}
+
+// --- верхний колонтитул -----------------------------------------------------
+// Нижний колонтитул (о запрете воспроизведения) статический и живёт прямо в
+// шаблоне. Верхний приходится собирать: в шаблоне остались номер и дата из
+// образца, а они у каждого протокола свои. Нотация Excel: &R — правая секция,
+// &P — номер страницы, &N — всего страниц.
+QString EscapeHeader(QString text) {
+    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));   // & — префикс кода
+}
+
+QString HeaderText(const Protocol::Data& d) {
+    QString title;
+    if (!d.number.isEmpty() && !d.date.isEmpty())
+        title = QString("Протокол № %1 от %2").arg(EscapeHeader(d.number), EscapeHeader(d.date));
+    else if (!d.number.isEmpty())
+        title = QString("Протокол № %1").arg(EscapeHeader(d.number));
+    else if (!d.date.isEmpty())
+        title = QString("Протокол от %1").arg(EscapeHeader(d.date));
+    if (!title.isEmpty())
+        title += QStringLiteral("        ");
+    return QStringLiteral("&R") + title + QStringLiteral("стр &P из &N");
+}
+
+// --- метаданные шапки (строки 1..60 шаблона) -------------------------------
+void WriteMeta(QXlsx::Document& doc, const Protocol::Data& d) {
+    PutMeta(doc, QStringLiteral("L9"),  d.number);
+    PutMeta(doc, QStringLiteral("P9"),  d.date);
+    PutMeta(doc, QStringLiteral("K11"), d.device_name);
+    PutMeta(doc, QStringLiteral("K13"), d.device_type);
+    PutMeta(doc, QStringLiteral("K15"), d.serial);
+    PutMeta(doc, QStringLiteral("K17"), d.customer);
+    PutMeta(doc, QStringLiteral("K19"), d.basis);
+    PutMeta(doc, QStringLiteral("K30"), d.period);
+    PutMeta(doc, QStringLiteral("T26"), d.ambient_temp);
+    PutMeta(doc, QStringLiteral("T27"), d.humidity);
+    PutMeta(doc, QStringLiteral("T28"), d.atm_pressure);
+
+    const QStringList place = d.location.split(QLatin1Char('\n'));
+    PutMeta(doc, QStringLiteral("K21"), place.value(0));
+    PutMeta(doc, QStringLiteral("K22"), place.value(1));
+
+    // Средства калибровки — G38/G40/G42/G44. Список задан целиком, поэтому
+    // сначала чистим все четыре строки шаблона, иначе останется смесь.
+    if (!d.calib_means.isEmpty()) {
+        for (int i = 0; i < 4; ++i)
+            doc.write(38 + i * 2, 7, QVariant());
+        for (int i = 0; i < d.calib_means.size() && i < 4; ++i)
+            doc.write(38 + i * 2, 7, d.calib_means[i]);
+    }
+}
+
+// --- «Результаты калибровки» + внешний осмотр и опробование ----------------
+int WriteResultsHead(QXlsx::Document& doc, const Donors& dn, const Protocol::Data& d, int row) {
+    PutRun(doc, dn[kRowResults], row, 1, kLastCol, QStringLiteral("Результаты калибровки:"));
+    row += 2;
+    PutCell(doc, dn[kRowCheck], row, 1, QStringLiteral("Внешний осмотр:"), 1);
+    PutCell(doc, dn[kRowCheck], row, 7, d.external_inspection, 7);
+    row += 2;
+    PutCell(doc, dn[kRowCheck], row, 1, QStringLiteral("Опробование:"), 1);
+    PutCell(doc, dn[kRowCheck], row, 7, d.trial, 7);
+    return row + 2;
+}
+
+// --- канал давления: блоки по kPBlocksInRow в ряд, ниже — следующий ряд -----
+int WritePressureChannel(QXlsx::Document& doc, const Donors& dn, const Protocol::Data& d,
+                         int row, int section) {
+    const Protocol::ChannelSpec& s = d.pressure_spec;
+    PutRun(doc, dn[kRowSection], row, 1, kLastCol,
+           QString("%1. Канал измерения давления").arg(section));
+    row += 2;
+    PutCell(doc, dn[kRowSubTitle], row, 1,
+            QString("%1.1 Результаты определения метрологических характеристик:").arg(section), 1);
+    row += 2;
+
+    for (int first = 0; first < d.pressure_blocks.size(); first += kPBlocksInRow) {
+        const int in_row = qMin(kPBlocksInRow, int(d.pressure_blocks.size()) - first);
+        int points = 0;
+        for (int b = 0; b < in_row; ++b)
+            points = qMax(points, int(d.pressure_blocks[first + b].points.size()));
+
+        for (int b = 0; b < in_row; ++b) {
+            const int c0 = 1 + b * kPBlockWidth;
+            const Protocol::PressureBlock& blk = d.pressure_blocks[first + b];
+            PutRun(doc, dn[kRowPHead], row, c0,     3, "Показания эталона, " + s.unit, 1);
+            PutRun(doc, dn[kRowPHead], row, c0 + 3, 3, "Показания прибора, " + s.unit, 4);
+            PutRun(doc, dn[kRowPHead], row, c0 + 6, 3, ErrHeader(s), 7);
+            // При пустом бланке температура блока ещё неизвестна — подпись
+            // остаётся пустой, её впишут от руки.
+            const QVariant caption = blk.temperature != 0.0
+                ? QVariant(QString("Измерения при %1 °С").arg(Num(blk.temperature)))
+                : QVariant();
+            PutRun(doc, dn[kRowPCaption], row + 1, c0, kPBlockWidth, caption);
+        }
+        row += 2;
+
+        for (int p = 0; p < points; ++p) {
+            const DonorRow& donor = dn[p + 1 == points ? kRowPDataLast : kRowPData];
+            for (int b = 0; b < in_row; ++b) {
+                const int c0 = 1 + b * kPBlockWidth;
+                const QVector<Protocol::Point>& pts = d.pressure_blocks[first + b].points;
+                const bool has = p < pts.size() && pts[p].measured;
+                PutRun(doc, donor, row, c0,     3, PointCell(has, has ? pts[p].reference : 0.0), 1);
+                PutRun(doc, donor, row, c0 + 3, 3, PointCell(has, has ? pts[p].device : 0.0), 4);
+                PutRun(doc, donor, row, c0 + 6, 3,
+                       PointCell(has, has ? Protocol::CalcError(s, pts[p]) : 0.0), 7);
+            }
+            ++row;
+        }
+        ++row;   // пустая строка между рядами блоков
+    }
+
+    PutCell(doc, dn[kRowLimit], row, 1, LimitText(QStringLiteral("давления"), s), 1);
+    return row + 2;
+}
+
+// --- канал температуры: одна таблица ---------------------------------------
+int WriteTemperatureChannel(QXlsx::Document& doc, const Donors& dn, const Protocol::Data& d,
+                            int row, int section) {
+    const Protocol::ChannelSpec& s = d.temperature_spec;
+    PutRun(doc, dn[kRowSection], row, 1, kLastCol,
+           QString("%1. Канал измерения температуры").arg(section));
+    row += 2;
+    PutCell(doc, dn[kRowSubTitle], row, 1,
+            QString("%1.1 Результаты определения метрологических характеристик:").arg(section), 1);
+    row += 2;
+
+    PutRun(doc, dn[kRowTHead], row, 1, 3, "Показания эталона, " + s.unit, 1);
+    PutRun(doc, dn[kRowTHead], row, 4, 3, "Показания прибора, " + s.unit, 4);
+    PutRun(doc, dn[kRowTHead], row, 7, kTBlockWidth - 6, ErrHeader(s), 7);
+    ++row;
+
+    for (int p = 0; p < d.temperature_points.size(); ++p) {
+        const DonorRow& donor = dn[p == 0 ? kRowTFirst : kRowTData];
+        const Protocol::Point& pt = d.temperature_points[p];
+        PutRun(doc, donor, row, 1, 3, PointCell(pt.measured, pt.reference), 1);
+        PutRun(doc, donor, row, 4, 3, PointCell(pt.measured, pt.device), 4);
+        PutRun(doc, donor, row, 7, kTBlockWidth - 6,
+               PointCell(pt.measured, Protocol::CalcError(s, pt)), 7);
+        ++row;
+    }
+    ++row;
+    PutCell(doc, dn[kRowLimit], row, 1, LimitText(QStringLiteral("температуры"), s), 1);
+    return row + 2;
+}
+
+// --- заключение -------------------------------------------------------------
+int WriteVerdict(QXlsx::Document& doc, const Donors& dn, const Protocol::Data& d, int row) {
+    // Пока измерений нет — место под заключение остаётся пустым.
+    QVariant text;
+    if (Protocol::HasMeasurements(d)) {
+        text = QString("По результатам калибровки аппаратура %1 зав.№ %2 соответствует заявленным техническим характеристикам. "
+                       "По результатам проведенных испытаний погрешности показаний по каналам измерения давления и "
+                       "температуры не превышают основную допускаемую погрешность.")
+                   .arg(d.device_type, d.serial);
+    }
+    const DonorRow& donor = dn[kRowVerdict];
+    for (int r = row; r < row + 3; ++r)
+        for (int c = 1; c <= kLastCol; ++c)
+            doc.write(r, c, (r == row && c == 1) ? text : QVariant(), donor.fmt.value(c - 1));
+    doc.mergeCells(QXlsx::CellRange(row, 1, row + 2, kLastCol));
+    return row + 4;
+}
+
+// --- подпись ----------------------------------------------------------------
+int WriteSignature(QXlsx::Document& doc, const Donors& dn, const Protocol::Data& d, int row) {
+    const DonorRow& line = dn[kRowSignLine];
+    PutCell(doc, line, row, 1, QStringLiteral("Лицо, ответственное за калибровку"), 1);
+    PutRun(doc, line, row, 11, 5, QVariant(), 11);        // K:O — место под подпись
+    PutRun(doc, line, row, 18, 7, d.responsible, 18);     // R:X — ФИО
+    PutRun(doc, line, row, 26, 4, d.date, 26);            // Z:AC — дата
+    ++row;
+    const DonorRow& capt = dn[kRowSignCapt];
+    PutCell(doc, capt, row, 13, QStringLiteral("Подпись"), 13);   // M
+    PutCell(doc, capt, row, 21, QStringLiteral("ФИО"), 21);       // U
+    PutRun (doc, capt, row, 26, 4, QStringLiteral("Дата"), 26);   // Z:AC
+    return row;
+}
+
+} // namespace
+
+Protocol::Data ProtocolWriter::CollectData() const {
+    Protocol::Data d;
+    d.date        = QDate::currentDate().toString(QStringLiteral("dd.MM.yyyy"));
+    d.device_name = select_name_type_->currentText();
+    d.device_type = type_pribor_->currentText();
+    d.serial      = series_number_->text();
+    d.customer    = list_client_->currentText();
+    d.calib_means = QStringList{select_instr_->currentText()};
+
+    // Условия проведения калибровки приходят хвостом файла эталона (.sml2).
+    // Старые файлы его не содержат — тогда ячейки шаблона остаются как есть.
+    const QVector<double>& cond = data_base_.GetConditions();
+    if (cond.size() == 3) {
+        d.ambient_temp = Num(cond[0]);   // температура окружающей среды, °C
+        d.humidity     = Num(cond[1]);   // относительная влажность воздуха, %
+        d.atm_pressure = Num(cond[2]);   // атмосферное давление, мм.рт.ст
+    }
+
+    // Значения по умолчанию — на случай, если каналы прибора ещё не настроены
+    // (type_error == 0): протокол всё равно должен получиться осмысленным.
+    d.pressure_spec.unit        = QStringLiteral("кгс/см²");
+    d.pressure_spec.error_type  = Protocol::ErrType::Reduced;
+    d.pressure_spec.error_limit = 0.15;
+    d.pressure_spec.error_unit  = QStringLiteral("%");
+    d.pressure_spec.span        = 1000.0;
+
+    d.temperature_spec.unit        = QStringLiteral("°С");
+    d.temperature_spec.error_type  = Protocol::ErrType::Absolute;
+    d.temperature_spec.error_limit = 1.5;
+    d.temperature_spec.error_unit  = QStringLiteral("°С");
+    d.temperature_spec.span        = 120.0;
+
+    // Прибор, выбранный в форме: из него берём и настройки каналов, и показания.
+    const DataSeriesSensor* sensor = nullptr;
+    for (const DataSeriesSensor& s : data_base_.GetDataSerACM()) {
+        if (s.name_sensor == select_pribor_->currentText()) {
+            sensor = &s;
+            break;
+        }
+    }
+
+    // Эталон — значения в контрольных точках, DataBase держит их параллельно
+    // самим КТ. Показания прибора снимаем с серий его каналов в те же моменты.
+    // Канал определяется по имени, как в ErrorTable и «Мастере точек».
+    const QVector<QDateTime>& cp      = data_base_.GetCheckPoints();
+    const QVector<double>&    cp_bar  = data_base_.GetCheckPointBar();
+    const QVector<double>&    cp_temp = data_base_.GetCheckPointTemp();
+    QVector<double> dev_bar, dev_temp;
+    if (sensor) {
+        for (const Canal& c : sensor->vec_canal) {
+            const bool is_bar =
+                c.name_canal.contains(QStringLiteral("Давление"), Qt::CaseInsensitive);
+            const bool is_temp =
+                c.name_canal.contains(QStringLiteral("Температура"), Qt::CaseInsensitive);
+            if (!is_bar && !is_temp)
+                continue;
+            // От spec зависят заголовок колонки погрешности, строка «Предел
+            // допускаемой ...», сам расчёт погрешности и заключение. Канал без
+            // настроек (type_error == 0) оставляет значение по умолчанию.
+            if (c.type_error >= 1 && c.type_error <= 3)
+                SpecFromCanal(c, is_bar ? d.pressure_spec : d.temperature_spec);
+            (is_bar ? dev_bar : dev_temp) = ReadCanalAtCheckPoints(c.series, cp);
+        }
+    }
+
+    // Галочки решают, какие разделы появятся в протоколе, счётчики — размер
+    // таблиц. КТ уложены по температурным ступеням: сначала все точки давления
+    // при первой температуре, потом при второй и т.д. — тот же порядок, что
+    // и в «Мастере точек» (там эталонные температуры берутся с шагом,
+    // равным числу точек давления). 5 температур x 5 давлений = 25 КТ.
+    const int points_per_block = bar_points_spin_->value();
+    if (canal_bar_->isChecked()) {
+        for (int b = 0; b < bar_temp_points_spin_->value(); ++b) {
+            const int base = b * points_per_block;
+            Protocol::PressureBlock blk;
+            blk.temperature = cp_temp.value(base, 0.0);   // подпись блока
+            for (int i = 0; i < points_per_block; ++i) {
+                const int k = base + i;
+                Protocol::Point p;
+                // Точек может не хватить: КТ ещё не расставлены или их меньше,
+                // чем клеток. Тогда ячейка остаётся пустой под ручной ввод.
+                p.measured = k < cp_bar.size() && k < dev_bar.size();
+                if (p.measured) {
+                    p.reference = cp_bar[k];
+                    p.device    = dev_bar[k];
+                }
+                blk.points.push_back(p);
+            }
+            d.pressure_blocks.push_back(blk);
+        }
+    }
+    if (canal_temp_->isChecked()) {
+        // По одной точке на температурную ступень: если снимался и канал
+        // давления, ступень — это каждая points_per_block-я КТ.
+        const int stride = canal_bar_->isChecked() ? qMax(1, points_per_block) : 1;
+        for (int i = 0; i < temp_points_spin_->value(); ++i) {
+            const int k = i * stride;
+            Protocol::Point p;
+            p.measured = k < cp_temp.size() && k < dev_temp.size();
+            if (p.measured) {
+                p.reference = cp_temp[k];
+                p.device    = dev_temp[k];
+            }
+            d.temperature_points.push_back(p);
+        }
+    }
+    return d;
+}
+
+bool ProtocolWriter::Generate(const Protocol::Data& data, QWidget* parent,
+                              const QString& save_path) {
+    if (data.pressure_blocks.isEmpty() && data.temperature_points.isEmpty()) {
+        QMessageBox::warning(parent, "Протокол",
+                             "Не выбран ни один канал — протокол был бы пустым.");
+        return false;
+    }
+
     // ----------------------------------------------------------------
     // 1. Открытие шаблона из ресурсов (:/protocol_template.xlsx).
     //    Грузим через QBuffer (байты ресурса), чтобы не зависеть от того,
     //    умеет ли zip-ридер открывать путь вида ":/...".
     // ----------------------------------------------------------------
-    QFile res(":/protocol_template.xlsx");
+    QFile res(QStringLiteral(":/protocol_template.xlsx"));
     if (!res.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(parent, "Ошибка", "Шаблон протокола не найден в ресурсах.");
         return false;
@@ -25,51 +654,64 @@ bool ProtocolWriter::Generate(const Protocol::Data& data, QWidget* parent) {
 
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::ReadOnly);
-    Document doc(&buffer);
+    QXlsx::Document doc(&buffer);
     if (!doc.load()) {
         QMessageBox::warning(parent, "Ошибка", "Не удалось открыть шаблон протокола.");
         return false;
     }
-    if (!doc.selectSheet("Сертификат")) {
+    if (!doc.selectSheet(kMainSheet)) {
         QMessageBox::warning(parent, "Ошибка", "В шаблоне нет листа «Сертификат».");
         return false;
     }
 
-    // ================================================================
-    // 2. ВПИСЫВАНИЕ ЯЧЕЕК ИЗ data — реализуется отдельно.
-    //    Лист «Сертификат» уже выбран, стили/лого/объединения сохранятся.
-    //
-    //    Запись значения (стиль ячейки сохраняется):
-    //        doc.write("L9",  data.number);        // № протокола
-    //        doc.write("P9",  data.date);          // дата
-    //        doc.write("K13", data.device_type);   // тип аппаратуры
-    //        doc.write("K15", data.serial);        // заводской номер
-    //        doc.write("K17", data.customer);      // заказчик
-    //
-    //    Таблицы давления/температуры — динамически (переменное число
-    //    блоков/точек): погрешность точки = Protocol::CalcError(spec, point);
-    //    заключение (A92) по Protocol::IsWithinLimits(data).
-    //    Для добавляемых строк копировать формат шаблонной строки и заново
-    //    объединять ячейки: doc.mergeCells("A78:C78", fmt).
-    // ================================================================
-    (void)data;   // убрать, когда появится вписывание
+    // ----------------------------------------------------------------
+    // 2. Вёрстка: шапка по фиксированным адресам, всё ниже — курсором.
+    //    Номер раздела считается на месте, поэтому при снятой галочке
+    //    «Давление» температура становится разделом 1, а не 2.
+    // ----------------------------------------------------------------
+    const Donors donors = LoadDonors(doc);
+    WriteMeta(doc, data);
+
+    int row = WriteResultsHead(doc, donors, data, kFirstRow);
+    int section = 1;
+    if (!data.pressure_blocks.isEmpty())
+        row = WritePressureChannel(doc, donors, data, row, section++);
+    if (!data.temperature_points.isEmpty())
+        row = WriteTemperatureChannel(doc, donors, data, row, section++);
+    row = WriteVerdict(doc, donors, data, row);
+    row = WriteSignature(doc, donors, data, row);
+
+    // Область печати — по фактической последней строке: в шаблоне она была
+    // фиксированной ($A$1:$AC$98) и обрезала бы длинный протокол.
+    doc.defineName(QStringLiteral("_xlnm.Print_Area"),
+                   QString("'%1'!$A$1:$AC$%2").arg(kMainSheet).arg(row),
+                   QString(), kMainSheet);
+
+    // Донор стилей в готовом протоколе не нужен: форматы уже скопированы в
+    // ячейки листа «Сертификат» и живут в общих стилях книги.
+    doc.deleteSheet(kProtoSheet);
+    doc.selectSheet(kMainSheet);
+
+    // Верхний колонтитул — с фактическим номером и датой протокола.
+    if (QXlsx::Worksheet* sheet = doc.currentWorksheet())
+        sheet->setOddHeader(HeaderText(data));
 
     // ----------------------------------------------------------------
     // 3. Куда сохранять: спрашиваем путь у пользователя.
     //    Имя по умолчанию — из номера протокола, рядом с программой.
     // ----------------------------------------------------------------
-    const QString suggested = QString("%1/Протокол %2.xlsx").arg(
-        QApplication::applicationDirPath(),
-        data.number.isEmpty() ? QStringLiteral("калибровки") : data.number);
-
-    QString path = QFileDialog::getSaveFileName(
-        parent, "Сохранить протокол", suggested, "Книга Excel (*.xlsx)");
+    QString path = save_path;
     if (path.isEmpty()) {
+        const QString suggested = QString("%1/Протокол %2.xlsx").arg(
+            QApplication::applicationDirPath(),
+            data.number.isEmpty() ? QStringLiteral("калибровки") : data.number);
+        path = QFileDialog::getSaveFileName(
+            parent, "Сохранить протокол", suggested, "Книга Excel (*.xlsx)");
+    }
+    if (path.isEmpty())
         return false;   // пользователь отменил сохранение
-    }
-    if (!path.endsWith(".xlsx", Qt::CaseInsensitive)) {
+    if (!path.endsWith(".xlsx", Qt::CaseInsensitive))
         path += ".xlsx";
-    }
 
     if (!doc.saveAs(path)) {
         QMessageBox::warning(parent, "Ошибка",

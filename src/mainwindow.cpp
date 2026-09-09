@@ -160,6 +160,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     master_window_ = new MasterPointsWindow(data_base_, create_raport_);
     delete_window_ = new DeleteSensorWindow(data_base_, all_data_sensor_);
     sensor_editor_ = new SensorCanalEditor(data_base_, chart_view_, data_sensor_, all_data_sensor_);
+    protokol_writer_ = new ProtocolWriter(data_base_);
     loader_ = new DocumentLoader(data_base_, dow_file_, las_, chart_view_, this);
 }
 MainWindow::~MainWindow()
@@ -327,23 +328,6 @@ void MainWindow::CheckUpdate(){
     update_.ManualCheck();
 }
 void MainWindow::ExportProtocolTemplate(){
-    // Пустой шаблон протокола калибровки лежит в ресурсах (:/protocol_template.xlsx).
-    // Наполнение данными делается отдельно; здесь только выгрузка чистого шаблона.
-    const QString dir = QApplication::applicationDirPath();
-    QString path = QFileDialog::getSaveFileName(
-        this, "Сохранить шаблон протокола",
-        dir + "/Протокол калибровки.xlsx", "Книга Excel (*.xlsx)");
-    if(path.isEmpty()){
-        return;
-    }
-    if(!path.endsWith(".xlsx", Qt::CaseInsensitive)){
-        path += ".xlsx";
-    }
-    QFile::remove(path);   // QFile::copy не перезаписывает существующий файл
-    if(!QFile::copy(":/protocol_template.xlsx", path)){
-        QMessageBox::warning(this, "Ошибка", "Не удалось сохранить шаблон протокола.");
-        return;
-    }
-    QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner
-                                | QFile::ReadUser  | QFile::WriteUser);   // ресурс копируется read-only
+    protokol_writer_->GetSpisokPribors();
+    protokol_writer_->show();
 }

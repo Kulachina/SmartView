@@ -17,6 +17,9 @@ enum class ErrType { Absolute, Relative, Reduced };
 struct Point {
     double reference = 0.0;   // показания эталона
     double device    = 0.0;   // показания прибора
+    bool   measured  = true;  // false — точка ещё не заполнена: в протокол
+                              // пишется пустая ячейка под ручное заполнение,
+                              // в заключении такая точка не учитывается
 };
 
 // Блок измерений давления при фиксированной температуре.
@@ -76,16 +79,31 @@ inline double CalcError(const ChannelSpec& s, const Point& p) {
     return 0.0;
 }
 
-// true, если все точки обоих каналов в пределах допускаемой погрешности.
+// true, если все заполненные точки обоих каналов в пределах допускаемой погрешности.
 inline bool IsWithinLimits(const Data& d) {
     for (const PressureBlock& b : d.pressure_blocks)
         for (const Point& p : b.points)
-            if (qAbs(CalcError(d.pressure_spec, p)) > d.pressure_spec.error_limit)
+            if (p.measured &&
+                qAbs(CalcError(d.pressure_spec, p)) > d.pressure_spec.error_limit)
                 return false;
     for (const Point& p : d.temperature_points)
-        if (qAbs(CalcError(d.temperature_spec, p)) > d.temperature_spec.error_limit)
+        if (p.measured &&
+            qAbs(CalcError(d.temperature_spec, p)) > d.temperature_spec.error_limit)
             return false;
     return true;
+}
+
+// true, если есть хотя бы одна заполненная точка. Если измерений нет вовсе,
+// протокол печатается как бланк и место под заключение остаётся пустым.
+inline bool HasMeasurements(const Data& d) {
+    for (const PressureBlock& b : d.pressure_blocks)
+        for (const Point& p : b.points)
+            if (p.measured)
+                return true;
+    for (const Point& p : d.temperature_points)
+        if (p.measured)
+            return true;
+    return false;
 }
 
 } // namespace Protocol

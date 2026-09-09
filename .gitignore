@@ -95,3 +95,6 @@ private.pem
 private.b64
 public.pem
 server/instr_from_server.txt
+
+# Временные файлы открытых книг Excel рядом с шаблоном протокола
+~$*

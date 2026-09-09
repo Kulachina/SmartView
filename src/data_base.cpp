@@ -65,6 +65,9 @@ QVector<double>& DataBase::GetCheckPointTemp(){
 QVector<double>& DataBase::GetCheckPointBar(){
     return check_point_bar;
 }
+QVector<double>& DataBase::GetConditions(){
+    return conditions_;
+}
 void DataBase::SetDefaultAxisX(QDateTime max, QDateTime min){
     axis_min_ = min;
     axis_max_ = max;
