@@ -10,12 +10,15 @@
 #include <QByteArray>
 #include <QDate>
 #include <QFile>
+#include <QFontMetrics>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QVector>
 
 using namespace QXlsx;
+
+
 
 ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     : QWidget(parent), data_base_(data_base)
@@ -45,6 +48,8 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     type_pribor_ = new QComboBox();
     type_pribor_->addItems(type_pribors_);
     series_number_  = new QLineEdit();
+    series_number_->setMaxLength(10);
+    series_number_->setAlignment(Qt::AlignLeft);
     connect(select_pribor_, QOverload<int>::of(&QComboBox::activated),
             this, [this](int index) {
                 const QString name = select_pribor_->itemText(index);
@@ -57,8 +62,15 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
                     series_number_->setFocus();
                 }
             });
-    select_instr_ = new QComboBox();
-    select_instr_->addItems(instruments_);
+    QVBoxLayout *v_instr_calib = new QVBoxLayout();
+    v_instr_calib->setContentsMargins(20, 0, 0, 0);
+    for (const QString& name : instruments_) {
+        QCheckBox* box = new QCheckBox(name);
+        instr_boxes_.push_back(box);
+        v_instr_calib->addWidget(box);
+    }
+    if (!instr_boxes_.isEmpty())
+        instr_boxes_.front()->setChecked(true);   // как раньше в списке — первый пункт
     list_client_ = new QComboBox();
     list_client_->addItems(clients_);
     canal_temp_ = new QCheckBox("Температура");
@@ -106,7 +118,6 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     h_client->addWidget(list_client_);
     h_client->setAlignment(Qt::AlignLeft);
     h_instr_calib->addWidget(new QLabel("Средства калибровки"));
-    h_instr_calib->addWidget(select_instr_);
     h_instr_calib->setAlignment(Qt::AlignLeft);
     h_canal_calib->addWidget(new QLabel("Выбор каналов для протокола"));
     h_canal_calib->setAlignment(Qt::AlignLeft);
@@ -125,6 +136,7 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     vbox->addLayout(h_serial_number);
     vbox->addLayout(h_client);
     vbox->addLayout(h_instr_calib);
+    vbox->addLayout(v_instr_calib);   // галочки — под подписью
     vbox->addLayout(h_canal_calib);
     vbox->addLayout(h_canal_calib_temp);
     vbox->addLayout(h_canal_calib_bar);
@@ -189,6 +201,9 @@ const int kLastCol      = 29;   // AC
 const int kPBlockWidth  = 9;    // блок давления: эталон(3) + прибор(3) + погрешность(3)
 const int kPBlocksInRow = 3;    // блоков давления по ширине листа
 const int kTBlockWidth  = 10;   // таблица температуры: 3 + 3 + 4
+const int kMeansRows    = 4;    // строк под средства калибровки в шапке бланка
+const int kMeansFirstRow = 38;  // первая из них — G38, дальше через строку
+const int kMeansCol     = 7;    // G
 
 // Форматы одной строки-образца: fmt[k] — формат колонки k+1.
 struct DonorRow {
@@ -383,13 +398,15 @@ void WriteMeta(QXlsx::Document& doc, const Protocol::Data& d) {
     PutMeta(doc, QStringLiteral("K21"), place.value(0));
     PutMeta(doc, QStringLiteral("K22"), place.value(1));
 
-    // Средства калибровки — G38/G40/G42/G44. Список задан целиком, поэтому
-    // сначала чистим все четыре строки шаблона, иначе останется смесь.
+    // Средства калибровки — G38/G40/G42/G44, через строку. Отмечено может быть
+    // сколько угодно пунктов, но в бланке под них kMeansRows строк: сначала
+    // чистим все, иначе от прошлого текста шаблона останется смесь.
     if (!d.calib_means.isEmpty()) {
-        for (int i = 0; i < 4; ++i)
-            doc.write(38 + i * 2, 7, QVariant());
-        for (int i = 0; i < d.calib_means.size() && i < 4; ++i)
-            doc.write(38 + i * 2, 7, d.calib_means[i]);
+        for (int i = 0; i < kMeansRows; ++i)
+            doc.write(kMeansFirstRow + i * 2, kMeansCol, QVariant());
+        const int count = qMin(int(d.calib_means.size()), kMeansRows);
+        for (int i = 0; i < count; ++i)
+            doc.write(kMeansFirstRow + i * 2, kMeansCol, d.calib_means[i]);
     }
 }
 
@@ -529,7 +546,10 @@ Protocol::Data ProtocolWriter::CollectData() const {
     d.device_type = type_pribor_->currentText();
     d.serial      = series_number_->text();
     d.customer    = list_client_->currentText();
-    d.calib_means = QStringList{select_instr_->currentText()};
+    for (QCheckBox* box : instr_boxes_) {
+        if (box->isChecked())
+            d.calib_means.push_back(box->text());
+    }
 
     // Условия проведения калибровки приходят хвостом файла эталона (.sml2).
     // Старые файлы его не содержат — тогда ячейки шаблона остаются как есть.

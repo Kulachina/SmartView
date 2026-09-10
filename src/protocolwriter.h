@@ -5,6 +5,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QList>
+#include <QVector>
 #include <QSpinBox>
 #include <QVariant>
 // Запись протокола калибровки в .xlsx на основе встроенного шаблона
@@ -43,7 +44,9 @@ private:
     QComboBox* select_name_type_;
     QComboBox* type_pribor_;
     QLineEdit* series_number_;
-    QComboBox* select_instr_;
+    // Средства калибровки: по чекбоксу на каждый пункт instruments_ —
+    // в протокол попадают все отмеченные (в бланке под них 4 строки).
+    QVector<QCheckBox*> instr_boxes_;
     QComboBox* list_client_;
     QCheckBox *canal_temp_;
     QCheckBox *canal_bar_;
