@@ -7,7 +7,7 @@
 #include <QVersionNumber>
 #include <QString>
 
-#define VERSION "0.9.2"
+#define VERSION "0.9.9"
 
 namespace Update {
 // Манифест версии в Object Storage (публичный объект). Заменишь на свой бакет.
