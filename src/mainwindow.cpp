@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QGridLayout>
+#include <QIcon>
 #include <QToolBar>
 #include <QAction>
 #include <QHBoxLayout>
@@ -22,6 +23,15 @@
 #include <QMessageBox>
 #include <QFile>
 #include <QCloseEvent>
+
+namespace {
+// Кнопка панели инструментов: иконка из ресурсов плюс подсказка при наведении.
+// Панель показывает только иконки, поэтому название действия живёт в подсказке.
+void SetToolButton(QAction *action, const QString &icon, const QString &tip){
+    action->setIcon(QIcon(":/icons/" + icon + ".svg"));
+    action->setToolTip(tip);
+}
+}
 
 MainWindow::MainWindow(QMainWindow *parent)
     : QMainWindow(parent),
@@ -136,17 +146,34 @@ MainWindow::MainWindow(QMainWindow *parent)
     change_canal_ = new QAction("Редактировать каналы",tool_bar);
     change_canal_->setEnabled(false);
     connect(change_canal_, &QAction::triggered, this,&MainWindow::ActoinWinSaC);
+    SetToolButton(load_doc, "open_etalon", "Открыть Эталон");
+    SetToolButton(load_doc_2_, "add_las", "Добавить прибор из LAS");
+    SetToolButton(load_doc_3_, "add_acm", "Добавить прибор АЦМ");
+    SetToolButton(load_doc_4_, "add_amt", "Добавить прибор АМТ");
+    SetToolButton(change_canal_, "edit_canals", "Редактировать каналы");
+    SetToolButton(window_axis_, "axes", "Окно осей");
+    SetToolButton(toogled_legend_, "legend_panel", "Скрыть/показать панель легенд");
+    SetToolButton(shift_series_, "shift_series", "Сдвиг кривых");
+    SetToolButton(shift_check_point_, "shift_checkpoint", "Сдвиг контрольных точек");
+    SetToolButton(select_range_, "select_range", "Выделение диапазона");
+    SetToolButton(data_in_time_, "data_in_point", "Данные в точке");
+    SetToolButton(delete_sensor_, "delete_sensor", "Удалить прибор");
+    tool_bar->setIconSize(QSize(24,24));
+    tool_bar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     tool_bar->addAction(load_doc);
     tool_bar->addAction(load_doc_2_);
     tool_bar->addAction(load_doc_3_);
     tool_bar->addAction(load_doc_4_);
+    tool_bar->addSeparator();
     tool_bar->addAction(change_canal_);
     tool_bar->addAction(window_axis_);
     tool_bar->addAction(toogled_legend_);
+    tool_bar->addSeparator();
     tool_bar->addAction(shift_series_);
     tool_bar->addAction(shift_check_point_);
     tool_bar->addAction(select_range_);
     tool_bar->addAction(data_in_time_);
+    tool_bar->addSeparator();
     tool_bar->addAction(delete_sensor_);
 
     addToolBar(tool_bar);

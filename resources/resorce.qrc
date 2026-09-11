@@ -3,5 +3,17 @@
         <file>SmartView.png</file>
 		<file>SmartView.ico</file>
 		<file>protocol_template.xlsx</file>
+		<file>icons/open_etalon.svg</file>
+		<file>icons/add_las.svg</file>
+		<file>icons/add_acm.svg</file>
+		<file>icons/add_amt.svg</file>
+		<file>icons/edit_canals.svg</file>
+		<file>icons/axes.svg</file>
+		<file>icons/legend_panel.svg</file>
+		<file>icons/shift_series.svg</file>
+		<file>icons/shift_checkpoint.svg</file>
+		<file>icons/select_range.svg</file>
+		<file>icons/data_in_point.svg</file>
+		<file>icons/delete_sensor.svg</file>
     </qresource>
 </RCC>
