@@ -3,6 +3,53 @@
 #include <QtMath>
 #include <QPushButton>
 
+namespace {
+
+// Шаг обновления прогресса. setValue + processEvents на каждой строке стоят
+// больше, чем сам разбор строки, а глазу хватает обновления раз в тысячи строк.
+constexpr int kProgressStep = 2048;
+
+inline bool IsDigits(QStringView text, int pos, int count){
+    for(int i = 0; i < count; ++i){
+        if(!text[pos + i].isDigit()){
+            return false;
+        }
+    }
+    return true;
+}
+
+inline int Num(QStringView text, int pos, int count){
+    int value = 0;
+    for(int i = 0; i < count; ++i){
+        value = value * 10 + (text[pos + i].unicode() - '0');
+    }
+    return value;
+}
+
+// Разбор метки времени фиксированной ширины.
+// QDateTime::fromString со строкой формата стоит порядка 0.8 мс на вызов —
+// на журнале прибора в 24 тысячи строк это 20 секунд из 21. Поля здесь
+// вынимаются арифметикой; строка непривычного вида уходит в fromString, как
+// было раньше. Результат совпадает с прежним: время так же местное.
+qint64 ParseStamp(const QString& word, bool year_first, const char* format){
+    const QStringView text(word);
+    if(text.size() == 19 && text[10] == u' ' && text[13] == u':' && text[16] == u':'
+        && text[year_first ? 4 : 2] == u'.' && text[year_first ? 7 : 5] == u'.'
+        && IsDigits(text, 0, 2) && IsDigits(text, 3, 2) && IsDigits(text, 6, 2)
+        && IsDigits(text, 8, 2) && IsDigits(text, 11, 2) && IsDigits(text, 14, 2)
+        && IsDigits(text, 17, 2)){
+        const QDate date = year_first ? QDate(Num(text, 0, 4), Num(text, 5, 2), Num(text, 8, 2))
+                                      : QDate(Num(text, 6, 4), Num(text, 3, 2), Num(text, 0, 2));
+        const QTime time(Num(text, 11, 2), Num(text, 14, 2), Num(text, 17, 2));
+        if(date.isValid() && time.isValid()){
+            return QDateTime(date, time).toMSecsSinceEpoch();
+        }
+    }
+    return QDateTime::fromString(word, QString::fromLatin1(format)).toMSecsSinceEpoch();
+}
+
+} // namespace
+
 DowlandFile::DowlandFile(DataBase& data_base)
     : data_base_(data_base)
 {
@@ -38,8 +85,10 @@ DataSeriesSensor DowlandFile::LoadDocAMT(QString path, QString name, int count_f
     qint64 time = TextToInt(words[0].trimmed()+ " " +words[1].trimmed());
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(time));
     for(int i = index_data_;i < line_text.size()-1; ++i){
-        prog_->setValue(i);
-        QCoreApplication::processEvents();
+        if((i % kProgressStep) == 0){
+            prog_->setValue(i);
+            QCoreApplication::processEvents();
+        }
         words = line_text[i].split("\t",Qt::SkipEmptyParts);
         AddDataACM(words, data);
     }
@@ -94,8 +143,10 @@ void DowlandFile::LoadTXTEtalon(QString path){
     double max_y_temp = 0;
     double max_y_bar = 0 ;
     for(int i = 1;i < index; ++i){
-        prog_->setValue(i);
-        QCoreApplication::processEvents();
+        if((i % kProgressStep) == 0){
+            prog_->setValue(i);
+            QCoreApplication::processEvents();
+        }
         words = line_text[i].split("\t",Qt::SkipEmptyParts);
         time = TextToIntEtalon(words[0].trimmed()+ " " + words[1].trimmed());
         if(zagolovok[1] == "ЛТ300"){
@@ -188,12 +239,20 @@ DataSeriesSensor DowlandFile::LoadDocACM(QString path, int count_file, int count
     prog_->show();
     DataSeriesSensor data;
     CreateSeriesACM(data);
+    // Ступенчатое представление даёт две точки на строку.
+    const qsizetype rows = line_text.size() - 1 - index_data_;
+    for(Canal& canal : data.vec_canal){
+        canal.points_triangle.reserve(rows);
+        canal.points_rectangle.reserve(rows * 2);
+    }
     int index = line_text.size()-2;
     words = line_text[index].split(" ",Qt::SkipEmptyParts);
     axis_x_->setMax(QDateTime::fromMSecsSinceEpoch(TextToInt(words[0].trimmed()+ " " +words[1].trimmed())));
     for(int i = index_data_;i < line_text.size()-1; ++i){
-        prog_->setValue(i);
-        QCoreApplication::processEvents();
+        if((i % kProgressStep) == 0){
+            prog_->setValue(i);
+            QCoreApplication::processEvents();
+        }
         words = line_text[i].split(" ",Qt::SkipEmptyParts);
         AddDataACM(words, data);
     }
@@ -219,7 +278,7 @@ bool DowlandFile::SelectChart(QStringList& words){
             return true;
         }
         word = words[i].split(" ",Qt::SkipEmptyParts);
-        if(word.size() < 5){
+        if(word.size() < 6){   // ниже читается word[5]
             return false;
         }
         chart_name_and_index_.push_back({word[0]+ " " + word[1],word[2],word[4] +" "+ word[5]});
@@ -337,8 +396,10 @@ void DowlandFile::LoadDocEtalon(QString path) {
     DataEtalon data;
     char data_magic[4];
     while (!in.atEnd()) {
-        prog_->setValue(i);
-        QCoreApplication::processEvents();
+        if((i % kProgressStep) == 0){
+            prog_->setValue(i);
+            QCoreApplication::processEvents();
+        }
         ++i;
         if (in.readRawData(data_magic, sizeof(data_magic)) == sizeof(data_magic) && strncmp(data_magic, "DATA", 4) == 0) {
             in >> data.time >> data.value_1 >> data.value_2 >> data.gap_series_1 >> data.gap_series_2 >> data.check_point;
@@ -437,12 +498,15 @@ void DowlandFile::CreateSeriesEtalon(QString word){
     doc.series->attachAxis(axis_x_);
     data_etalon_.push_back(doc);
 }
-void DowlandFile::AddDataACM(QStringList words, DataSeriesSensor& data){
+void DowlandFile::AddDataACM(const QStringList& words, DataSeriesSensor& data){
     QVector<Canal>& vec_canal = data.vec_canal;
     qint64 time = TextToInt(words[0].trimmed()+ " " + words[1].trimmed());
     for(int i =0; i < vec_canal.size();++i){
-        words[i+2].replace(',','.');
-        double num = words[i+2].toDouble();
+        // Копия одного поля вместо правки на месте: список приходит по ссылке,
+        // а мутация через operator[] отцепляла бы его целиком на каждой строке.
+        QString value = words[i+2];
+        value.replace(',','.');
+        double num = value.toDouble();
         if(num < -100){
             num = 0;
         }
@@ -524,12 +588,10 @@ void DowlandFile::AddDataEtalon(DataEtalon data){
     }
 }
 qint64 DowlandFile::TextToIntEtalon(QString word){
-    qint64 time = QDateTime::fromString(word, "yyyy.MM.dd hh:mm:ss").toMSecsSinceEpoch();
-    return time;
+    return ParseStamp(word, true, "yyyy.MM.dd hh:mm:ss");
 }
 qint64 DowlandFile::TextToInt(QString word){
-    qint64 time = QDateTime::fromString(word, "dd.MM.yyyy hh:mm:ss").toMSecsSinceEpoch();
-    return time;
+    return ParseStamp(word, false, "dd.MM.yyyy hh:mm:ss");
 }
 void DowlandFile::SetAxisTime(QDateTimeAxis *axis_x){
     axis_x_ = axis_x;

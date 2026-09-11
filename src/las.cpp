@@ -35,8 +35,10 @@ DataSeriesSensor& Las::DowlandLas(const QString path){
     prog_->setValue(0);
     prog_->show();
     for(int i = 0; i < size;++i){
-        prog_->setValue(i);
-        QCoreApplication::processEvents();
+        if((i % 2048) == 0){
+            prog_->setValue(i);
+            QCoreApplication::processEvents();
+        }
         words = all[i].split(" ",Qt::SkipEmptyParts);
         if(words[0] == "DATE."){
             SetStartDate(words);

@@ -38,7 +38,7 @@ public:
     void CreateSeriesACM(DataSeriesSensor& data);
     void CreateSeriesEtalon(QString word);
     void AddDataEtalon(DataEtalon data);
-    void AddDataACM(QStringList words,DataSeriesSensor& data);
+    void AddDataACM(const QStringList& words,DataSeriesSensor& data);
     void SetAxisTime(QDateTimeAxis* axis_x);
     void SetChartDoc(QChart* chart,QValueAxis* axis_temp,QValueAxis* axis_bar);
     void GapSeries(DataSeriesEtalon& doc);
