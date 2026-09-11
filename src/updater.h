@@ -6,8 +6,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QVersionNumber>
 #include <QString>
-
-#define VERSION "0.9.9"
+#include "version.h"
 
 namespace Update {
 // Манифест версии в Object Storage (публичный объект). Заменишь на свой бакет.

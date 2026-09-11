@@ -12,7 +12,7 @@
 
 Updater::Updater(QObject* parent) : QObject(parent) {
     manager_ = new QNetworkAccessManager(this);
-    local_version_ = QVersionNumber::fromString(VERSION);
+    local_version_ = QVersionNumber::fromString(APP_VERSION);
 }
 
 void Updater::AutoCheck(){
@@ -63,7 +63,7 @@ void Updater::OnManifest(const QByteArray& data, bool manual){
             StartDownload(download_url_);
         }
     } else if(manual){
-        QMessageBox::information(nullptr, "Обновление", "Установлена последняя версия " + QString(VERSION) + ".");
+        QMessageBox::information(nullptr, "Обновление", "Установлена последняя версия " + QString(APP_VERSION) + ".");
     }
 }
 

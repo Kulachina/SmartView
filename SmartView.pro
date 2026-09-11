@@ -12,6 +12,7 @@ include(third_party/QXlsx/QXlsx/QXlsx.pri)
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    src/aboutdialog.cpp \
     src/axiswindow.cpp \
     src/canalutils.cpp \
     src/chartoverview.cpp \
@@ -36,6 +37,8 @@ SOURCES += \
 
 HEADERS += \
     src/Data.h \
+    src/aboutdialog.h \
+    src/version.h \
     src/axiswindow.h \
     src/canalutils.h \
     src/chartoverview.h \

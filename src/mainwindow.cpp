@@ -10,6 +10,7 @@
 #include "deletesensorwindow.h"
 #include "sensorcanaleditor.h"
 #include "documentloader.h"
+#include "aboutdialog.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QGridLayout>
@@ -50,10 +51,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     connect(open, &QAction::triggered, this, &MainWindow::OpenDocument);
     menu_file->addAction(open);
     QAction *import = new QAction("Импорт");
-    QAction *update = new QAction("Проверить обновление");
     menu_file->addAction(import);
-    menu_file->addAction(update);
-    connect(update, &QAction::triggered,this, &MainWindow::CheckUpdate);
     QMenu *menu_import = new QMenu();
     import->setMenu(menu_import);
     QMenu *menu_sensor = new QMenu();
@@ -101,6 +99,16 @@ MainWindow::MainWindow(QMainWindow *parent)
     menu->addAction(check_range);
     menu->addAction(master_point);
     menu->addAction(error_delta);
+    QAction *help = new QAction("Справка");
+    QMenu *menu_help = new QMenu();
+    help->setMenu(menu_help);
+    QAction *about = new QAction("О программе");
+    connect(about, &QAction::triggered, this, &MainWindow::WindowAbout);
+    menu_help->addAction(about);
+    QAction *update = new QAction("Проверить обновление");
+    connect(update, &QAction::triggered, this, &MainWindow::CheckUpdate);
+    menu_help->addAction(update);
+    menu->addAction(help);
     chart_view_ = new ChartView(nullptr, data_base_);
     chart_overview_ = new ChartOverview(data_base_, chart_view_->GetAxisX());
     QToolBar *tool_bar = new QToolBar();
@@ -411,6 +419,9 @@ void MainWindow::SaveAllSV(){
 }
 void MainWindow::CheckUpdate(){
     update_.ManualCheck();
+}
+void MainWindow::WindowAbout(){
+    AboutDialog(this).exec();
 }
 void MainWindow::ExportProtocolTemplate(){
     protokol_writer_->GetSpisokPribors();
