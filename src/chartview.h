@@ -55,6 +55,9 @@ public:
     void RefreshOverlay();   // перерисовать оверлей диапазонов поверх графика
     void SetCheckPointsVisible(bool visible);   // показать/скрыть маркеры КТ
     void SetRangesVisible(bool visible);        // показать/скрыть области диапазонов
+    // Запомнить текущий зум в стеке отката (карта графика меняет ось времени
+    // мимо ZoomChart, а откат правой кнопкой должен работать и после неё).
+    void PushZoomState();
     bool IsCheckPointsVisible() const { return show_check_points_; }
     bool IsRangesVisible() const { return show_ranges_; }
 signals:
@@ -63,6 +66,8 @@ signals:
     void AddRangeRequested(QTime t1, QTime t2);   // выделение отрезка мышью -> диапазон
     void CheckPointsVisibilityChanged(bool visible);
     void RangesVisibilityChanged(bool visible);
+    void CursorTimeChanged(qint64 ms);   // курсор над областью графика -> метка на карте
+    void CursorLeftChart();
 protected slots:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;

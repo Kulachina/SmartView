@@ -14,6 +14,7 @@ include(third_party/QXlsx/QXlsx/QXlsx.pri)
 SOURCES += \
     src/axiswindow.cpp \
     src/canalutils.cpp \
+    src/chartoverview.cpp \
     src/chartview.cpp \
     src/checkpointswindow.cpp \
     src/createraport.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     src/Data.h \
     src/axiswindow.h \
     src/canalutils.h \
+    src/chartoverview.h \
     src/chartview.h \
     src/checkpointswindow.h \
     src/createraport.h \

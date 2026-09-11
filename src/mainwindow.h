@@ -12,6 +12,7 @@
 #include "updater.h"
 #include "protocolwriter.h"
 
+class ChartOverview;
 class CheckPointsWindow;
 class RangesWindow;
 class AxisWindow;
@@ -59,6 +60,7 @@ private:
     void EnableDocumentActions();
     DataBase data_base_;
     ChartView* chart_view_;
+    ChartOverview* chart_overview_;
     DowlandFile dow_file_;
     CreateRaport create_raport_;
     ErrorTable error_table_;

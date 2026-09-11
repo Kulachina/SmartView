@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "canalutils.h"
+#include "chartoverview.h"
 #include "checkpointswindow.h"
 #include "rangeswindow.h"
 #include "axiswindow.h"
@@ -11,6 +12,7 @@
 #include "documentloader.h"
 #include <QMenuBar>
 #include <QMenu>
+#include <QGridLayout>
 #include <QToolBar>
 #include <QAction>
 #include <QHBoxLayout>
@@ -69,7 +71,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     QAction *report = new QAction("Отчеты");
     QMenu *menu_report = new QMenu();
     report->setMenu(menu_report);
-    QAction *export_protocol = new QAction("Протокол калибровки (шаблон)");
+    QAction *export_protocol = new QAction("Протокол калибровки");
     connect(export_protocol, &QAction::triggered, this, &MainWindow::ExportProtocolTemplate);
     menu_report->addAction(export_protocol);
     QAction *master_point = new QAction("Мастер точек");
@@ -90,6 +92,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     menu->addAction(master_point);
     menu->addAction(error_delta);
     chart_view_ = new ChartView(nullptr, data_base_);
+    chart_overview_ = new ChartOverview(data_base_, chart_view_->GetAxisX());
     QToolBar *tool_bar = new QToolBar();
     load_doc_2_ = new QAction("+LAS",tool_bar);
     load_doc_2_->setEnabled(false);
@@ -148,6 +151,16 @@ MainWindow::MainWindow(QMainWindow *parent)
 
     addToolBar(tool_bar);
     SetWindow();
+    // Карта <-> ось времени основного графика. Обратная сторона — сигнал самой
+    // оси, поэтому любой зум (рамкой, откатом, загрузкой) карта видит сама.
+    connect(chart_view_->GetAxisX(), &QDateTimeAxis::rangeChanged,
+            chart_overview_, &ChartOverview::OnViewRangeChanged);
+    connect(chart_overview_, &ChartOverview::ZoomAboutToChange,
+            chart_view_, &ChartView::PushZoomState);
+    connect(chart_view_, &ChartView::CursorTimeChanged,
+            chart_overview_, &ChartOverview::SetCursorTime);
+    connect(chart_view_, &ChartView::CursorLeftChart,
+            chart_overview_, &ChartOverview::ClearCursorTime);
     dow_file_.SetChartDoc(chart_view_->GetChart(),chart_view_->GetAxisTemp(),chart_view_->GetAxisBar());
     dow_file_.SetAxisTime(chart_view_->GetAxisX());
     check_points_window_ = new CheckPointsWindow(data_base_, chart_view_);
@@ -172,11 +185,18 @@ MainWindow::~MainWindow()
 
 }
 void MainWindow::SetWindow(){
-    QHBoxLayout *hbox = new QHBoxLayout();
-    hbox->addWidget(chart_view_,8);
-    hbox->addWidget(chart_view_->GetWidgetLegend(),2);
+    // Карта графика — узкая полоса над графиком; панель легенд занимает правую
+    // колонку на всю высоту, как и раньше.
+    QGridLayout *grid = new QGridLayout();
+    grid->addWidget(chart_overview_,0,0);
+    grid->addWidget(chart_view_,1,0);
+    grid->addWidget(chart_view_->GetWidgetLegend(),0,1,2,1);
+    grid->setColumnStretch(0,8);
+    grid->setColumnStretch(1,2);
+    grid->setRowStretch(0,0);
+    grid->setRowStretch(1,1);
     QWidget *w = new QWidget();
-    w->setLayout(hbox);
+    w->setLayout(grid);
     setCentralWidget(w);
 }
 void MainWindow::LoadDocumentACM(){
@@ -211,20 +231,26 @@ void MainWindow::LoadDocumentEtalon(){
             return;
         }
         EnableDocumentActions();
+        chart_overview_->Rebuild();
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
         if(reply == QMessageBox::Yes){
             DeleteAllSens();
             loader_->LoadEtalonReplace();
+            chart_overview_->Rebuild();
         }
     }
 }
 void MainWindow::ToggledLegendPanel(){
-    if(chart_view_->GetWidgetLegend()->isVisible()){
-        chart_view_->GetWidgetLegend()->hide();
-    } else {
-        chart_view_->GetWidgetLegend()->show();
+    QWidget *legend = chart_view_->GetWidgetLegend();
+    const bool hide = legend->isVisible();
+    legend->setVisible(!hide);
+    // QGridLayout держит за колонкой её долю растяжения, даже когда
+    // единственный виджет в колонке скрыт: без обнуления график не займёт
+    // освободившееся место.
+    if(QGridLayout *grid = qobject_cast<QGridLayout*>(centralWidget()->layout())){
+        grid->setColumnStretch(1, hide ? 0 : 2);
     }
 }
 void MainWindow::ShiftSeries(){
@@ -294,6 +320,7 @@ void MainWindow::DeleteAllSens(){
     all_data_sensor_.clear();
     data_sensor_.clear();
     chart_view_->ClearPanelLegend();
+    chart_overview_->Clear();
     data_base_.ClearAll();
     dow_file_.ClearAll();
 }
@@ -336,6 +363,7 @@ void MainWindow::OpenDocument(){
         return;
     }
     EnableDocumentActions();
+    chart_overview_->Rebuild();
     first_open_etalon_ = true;
 }
 void MainWindow::SaveAllSV(){

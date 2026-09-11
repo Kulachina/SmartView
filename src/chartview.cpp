@@ -401,6 +401,13 @@ void ChartView::mousePressEvent(QMouseEvent *event){
     QChartView::mousePressEvent(event);
 }
 void ChartView::mouseMoveEvent(QMouseEvent *event){
+    if(load_etalon_){
+        if(chart_->plotArea().contains(event->pos())){
+            emit CursorTimeChanged(static_cast<qint64>(chart_->mapToValue(event->pos()).x()));
+        } else {
+            emit CursorLeftChart();
+        }
+    }
     if(event->buttons() & Qt::RightButton){
         move_ = false;
         is_dragging_ = true;
@@ -664,6 +671,13 @@ void ChartView::paintEvent(QPaintEvent *event){
         QPointF p_bar = chart_->mapToPosition(QPointF(xmid, yAt(s_bar, xmid)), s_bar);
         painter.drawText(QPointF(p_bar.x() + 2, p_bar.y() - 6), QString::number(r.avg_bar, 'f', 2));
     }
+}
+void ChartView::PushZoomState(){
+    // До загрузки эталона осей эталона ещё нет — сохранять нечего.
+    if(axis_bar_etalon_.isNull() || axis_temp_etalon_.isNull()){
+        return;
+    }
+    SaveZoom();
 }
 void ChartView::SaveZoom(){
     QVector<DataSeriesSensor>& data = data_base_.GetDataSerACM();
