@@ -96,9 +96,11 @@ void DataBase::AddDeltaVolData(QString name_sensor, QVector<double> delta_bar, Q
 }
 void DataBase::ClearAll(){
     check_points_.clear();
+    check_points64_.clear();
     check_points_temp.clear();
     check_point_bar.clear();
     check_ranges_.clear();
+    conditions_.clear();
     map_data_sensor_.clear();
     data_etalon_.clear();
     list_axis_y_.clear();

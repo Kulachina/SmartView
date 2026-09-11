@@ -286,18 +286,7 @@ void DowlandFile::CreateVecCheckPoints(QString name, QVector<QPointF> list){
         data_base_.GetCheckPointBar() = vec;
     }
 }
-// Хвост .sml2 с условиями проведения калибровки. Формат (той же кодировкой и
-// порядком байт, что и весь файл, — QDataStream по умолчанию, BigEndian):
-//
-//     "COND"            4 сырых байта, метка
-//     quint32           версия хвоста, сейчас 1
-//     QVector<double>   [температура °C, влажность %, давление мм.рт.ст]
-//
-// Хвост пишется ПОСЛЕДНИМ, после обоих блоков серий. Поэтому старые файлы
-// безопасны: у них поток кончается раньше, readRawData не наберёт 4 байта и мы
-// выходим. Метка отсекает случай, когда в конце оказалось что-то чужое, а
-// проверка status() — обрыв на середине хвоста. В любом из этих случаев
-// условия остаются пустыми, а сам файл считается загруженным нормально.
+
 void DowlandFile::ReadConditions(QDataStream& in) {
     char magic[4];
     if (in.readRawData(magic, sizeof(magic)) != sizeof(magic)) {
@@ -599,9 +588,10 @@ void DowlandFile::SetMinMaxY(double temp, double bar){
 }
 void DowlandFile::ClearAll(){
     data_etalon_.clear();
-    data_acm_.clear();
     p_bar_.clear();
     p_temp_.clear();
+    check_points_bar_.clear();
+    check_points_temp_.clear();
     bar_max_ = 0;
     bar_min_ = 0;
     temp_max_ = 0;
@@ -614,116 +604,189 @@ void DowlandFile::ClearAll(){
     gap_ = false;
     first_min_max_ = false;
 }
-void DowlandFile::LoadSVDoc(const QString path){
+
+// ---------------------------------------------------------------------------
+// Документ .smv
+//
+// Состав: эталон (имена серий, кривые в обоих представлениях, условия,
+// диапазоны осей, контрольные точки и контрольные диапазоны) и приборы
+// (все каналы со всеми настройками: погрешности, допуски, цвета, выбор).
+// В файл пишутся только данные; объекты Qt (серии, оси, метки) пересоздаются
+// при чтении.
+// ---------------------------------------------------------------------------
+void DowlandFile::LoadSVDoc(const QString path, QVector<DataSeriesSensor>& out_sensors){
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Не удалось открыть файл для чтения:" << path;
+        QMessageBox::warning(nullptr, "Ошибка", "Не удалось открыть файл для чтения:\n" + path);
         return;
     }
     QDataStream in(&file);
     in.setByteOrder(QDataStream::LittleEndian);
+    in.setVersion(QDataStream::Qt_6_0);
     LoadDataEt(in);
-    LoadDataACM(in);
-
+    LoadDataACM(in, out_sensors);
+    const bool ok = (in.status() == QDataStream::Ok);
     file.close();
+    if(!ok){
+        QMessageBox::warning(nullptr, "Ошибка",
+                             "Документ прочитан не полностью — файл повреждён "
+                             "или сохранён другой версией программы:\n" + path);
+    }
 }
-
 
 void DowlandFile::LoadDataEt(QDataStream& in){
-    quint32 size;
+    quint32 size = 0;
     in >> size;
-    DataSeriesEtalon data;
-    for(quint32 i = 0;i < size; ++i){
-        in >> data.name_series;
-        CreateSeriesEtalon(data.name_series);
-        in >> data_base_.GetDataSerEtalon()[i].points_triangle_view
-            >> data_base_.GetDataSerEtalon()[i].points_rectangle_view;
+    QVector<DataSeriesEtalon>& etalon = data_base_.GetDataSerEtalon();
+    for(quint32 i = 0;i < size && in.status() == QDataStream::Ok; ++i){
+        QString name_series;
+        in >> name_series;
+        CreateSeriesEtalon(name_series);
+        DataSeriesEtalon& doc = data_etalon_.back();
+        double y_min = 0,
+               y_max = 0;
+        in >> doc.points_triangle_view
+            >> doc.points_rectangle_view
+            >> doc.condition
+            >> y_min
+            >> y_max;
+        doc.series->replace(doc.points_rectangle_view);
+        // Диапазон оси восстанавливается как есть: запас в 10% уже заложен при
+        // первой загрузке эталона и повторно накручиваться не должен.
+        doc.axis_y_->setRange(y_min, y_max);
+        etalon.push_back(doc);
+        data_base_.AddListAxis(doc.axis_y_);
     }
-    qint64 min ;
-    qint64 max ;
-    double bar_max = 0,
-        bar_min = 0,
-        temp_max = 0,
-        temp_min = 0;
-    in >> bar_min
-        >> bar_max
-        >> temp_min
-        >> temp_max
-        >> min
+    qint64 min = 0,
+           max = 0;
+    QDateTime default_min,
+              default_max;
+    in >> min
         >> max
-        >> check_points_bar_
-        >> check_points_temp_
+        >> default_min
+        >> default_max
+        >> data_base_.GetCheckPoints()
         >> data_base_.GetCheckPointTemp()
         >> data_base_.GetCheckPointBar()
-        >> data_base_.GetCheckPoints64();
-    data_base_.CreatePointsDate();
+        >> data_base_.GetCheckRanges()
+        >> data_base_.GetConditions();
+    if(in.status() != QDataStream::Ok){
+        return;
+    }
+    RestoreCheckPoints();
     axis_x_->setRange(QDateTime::fromMSecsSinceEpoch(min),
                       QDateTime::fromMSecsSinceEpoch(max));
-    data_base_.GetDataSerEtalon()[1].axis_y_->setRange(bar_min,bar_max + bar_max * 0.1);
-    data_base_.GetDataSerEtalon()[0].axis_y_->setRange(temp_min,temp_max + temp_max * 0.1);
-    data_base_.GetDataSerEtalon()[0].point_series->replace(check_points_temp_);
-    data_base_.GetDataSerEtalon()[1].point_series->replace(check_points_bar_);
-    data_base_.GetDataSerEtalon()[1].series->replace(data_base_.GetDataSerEtalon()[1].points_rectangle_view);
-    data_base_.GetDataSerEtalon()[0].series->replace(data_base_.GetDataSerEtalon()[0].points_rectangle_view);
+    if(default_min.isValid() && default_max.isValid()){
+        data_base_.SetDefaultAxisX(default_max, default_min);
+    } else {
+        data_base_.SetDefaultAxisX(axis_x_->max(), axis_x_->min());
+    }
+    if(etalon.size() < 2){
+        return;
+    }
+
+    // Члены min/max нужны остальным путям загрузки эталона — держим их
+    // в согласии с только что прочитанным документом.
+    temp_min_ = etalon[0].axis_y_->min();
+    temp_max_ = etalon[0].axis_y_->max();
+    bar_min_ = etalon[1].axis_y_->min();
+    bar_max_ = etalon[1].axis_y_->max();
 }
 
-void DowlandFile::LoadDataACM(QDataStream& in){
-    quint32 size;
+void DowlandFile::LoadDataACM(QDataStream& in, QVector<DataSeriesSensor>& out_sensors){
+    quint32 size = 0;
     in >> size;
-    for(quint32 i = 0;i < size;++i){
+    for(quint32 i = 0;i < size && in.status() == QDataStream::Ok;++i){
         DataSeriesSensor data;
-        in >> data.name_sensor;
+        quint32 size_acm = 0;
+        in >> data.name_sensor
+            >> data.number_sensor
+            >> size_acm;
+        if(in.status() != QDataStream::Ok){
+            return;
+        }
         data.label_sensor = new QLabel(data.name_sensor);
-        quint32 size_acm;
-        in >> size_acm;
         data.vec_canal.resize(size_acm);
-        for(quint32 j = 0;j < size_acm;++j){
+        for(quint32 j = 0;j < size_acm && in.status() == QDataStream::Ok;++j){
             Canal& acm = data.vec_canal[j];
+            qint32 type_error = 0,
+                   duration_error_max = 0,
+                   duration_error_min = 0;
             in >> acm.name_canal
-                >> acm.name_canal
+                >> acm.first_name_canal
+                >> acm.new_name_canal
+                >> acm.name_sensor
                 >> acm.name_unit
+                >> acm.color_series_
+                >> acm.color_series_RGB
                 >> acm.unit_max
                 >> acm.unit_min
+                >> acm.accept_max
+                >> acm.accept_min
+                >> type_error
+                >> duration_error_max
+                >> duration_error_min
+                >> acm.select_box
+                >> acm.check_ACP
+                >> acm.first_unit
                 >> acm.check_points
                 >> acm.delta_points
                 >> acm.points_rectangle
                 >> acm.points_triangle;
-            acm.label_data = new QLabel();
-            acm.label_name_canal = new QLabel(acm.name_canal);
-            acm.label_name_sensor = new QLabel(data.name_sensor);
-            QPen pen;
-            pen.setWidth(1);
-            acm.series = new QLineSeries();
-            acm.series->setPen(pen);
-            acm.series->setName(data.name_sensor + acm.name_canal);
-            chart_->addSeries(acm.series);
-            acm.series->replace(acm.points_rectangle);
-            if(acm.name_canal.contains("Давление",Qt::CaseInsensitive)){
-                acm.series->attachAxis(axis_bar_);
-                acm.series->setColor("red");
-                acm.series->setObjectName("bar");
-            }
-            if(acm.name_canal.contains("Температура",Qt::CaseInsensitive)){
-                acm.series->attachAxis(axis_temp_);
-                acm.series->setColor("blue");
-                acm.series->setObjectName("temp");
-            }
-            acm.label = new QLabel();
-            acm.label_delta = new QLabel();
-            acm.series->attachAxis(axis_x_);
-            if(acm.name_canal.contains("Давление",Qt::CaseInsensitive)){
-                axis_bar_->setRange(acm.unit_min,acm.unit_max +acm.unit_max * 0.1);
-            }
-            if(acm.name_canal.contains("Температура",Qt::CaseInsensitive)){
-                axis_temp_->setRange(acm.unit_min,acm.unit_max +acm.unit_max * 0.1);
-            }
+            acm.type_error = type_error;
+            acm.duration_error_max = duration_error_max;
+            acm.duration_error_min = duration_error_min;
+            BuildCanalWidgets(acm);
         }
-        data_acm_.push_back(data);
-        data_base_.AddDataSerACM(data_acm_.back());
+        out_sensors.push_back(data);
     }
 }
 
-void DowlandFile::SaveSVDoc(const QString path){
+void DowlandFile::RestoreCheckPoints(){
+    const QVector<QDateTime>& times = data_base_.GetCheckPoints();
+    const QVector<double>& temp = data_base_.GetCheckPointTemp();
+    const QVector<double>& bar = data_base_.GetCheckPointBar();
+    // Легаси-зеркало времён: им пользуется только разбор эталона, но пусть
+    // не противоречит документу.
+    QVector<qint64>& times64 = data_base_.GetCheckPoints64();
+    times64.clear();
+    check_points_temp_.clear();
+    check_points_bar_.clear();
+    const qsizetype count = qMin(times.size(), qMin(temp.size(), bar.size()));
+    for(qsizetype i = 0;i < count;++i){
+        const qint64 t = times[i].toMSecsSinceEpoch();
+        times64.push_back(t);
+        check_points_temp_.push_back(QPointF(t, temp[i]));
+        check_points_bar_.push_back(QPointF(t, bar[i]));
+    }
+    QVector<DataSeriesEtalon>& etalon = data_base_.GetDataSerEtalon();
+    if(etalon.size() < 2){
+        return;
+    }
+    etalon[0].point_series->replace(check_points_temp_);
+    etalon[1].point_series->replace(check_points_bar_);
+}
+
+void DowlandFile::BuildCanalWidgets(Canal& canal){
+
+    // Канал ещё не в легенде: hbox и check_box создаёт ChartView::SetCanal.
+    canal.flag_setting_canal = false;
+    canal.label = new QLabel();
+    canal.label_data = new QLabel();
+    canal.label_delta = new QLabel();
+    canal.label_name_canal = new QLabel(canal.check_ACP ? "АЦП_" + canal.name_canal
+                                                        : canal.name_canal);
+    canal.label_name_sensor = new QLabel(canal.name_sensor);
+    canal.axis_y_ = new QValueAxis();
+    canal.axis_y_->setTickCount(21);
+    QPen pen;
+    pen.setWidth(1);
+    canal.series = new QLineSeries();
+    canal.series->setPen(pen);
+    canal.series->setName(canal.name_sensor + canal.name_canal);
+}
+
+void DowlandFile::SaveSVDoc(const QString path, const QVector<DataSeriesSensor>& sensors){
     if (path.isEmpty()) {
         return;
     }
@@ -734,42 +797,80 @@ void DowlandFile::SaveSVDoc(const QString path){
     }
     QDataStream out(&file);
     out.setByteOrder(QDataStream::LittleEndian);
+    out.setVersion(QDataStream::Qt_6_0);
     SaveDataEt(out);
-    SaveDataACM(out);
+    SaveDataACM(out, sensors);
+    const bool ok = (out.status() == QDataStream::Ok);
     file.close();
-}
-void DowlandFile::SaveDataEt(QDataStream& out){
-    out << static_cast<quint32>(data_base_.GetDataSerEtalon().size());
-    for(DataSeriesEtalon& data : data_base_.GetDataSerEtalon()){
-        out << data.name_series;
-           out << data.points_triangle_view
-            << data.points_rectangle_view;
+    if(!ok || file.error() != QFile::NoError){
+        QMessageBox::warning(nullptr, "Ошибка", "Документ записан не полностью:\n" + path);
     }
-    qint64 min = axis_x_->min().toMSecsSinceEpoch();
-    qint64 max = axis_x_->max().toMSecsSinceEpoch();
-    out << bar_min_
-        << bar_max_
-        << temp_min_
-        << temp_max_
-        << min
+}
+
+void DowlandFile::SaveDataEt(QDataStream& out){
+    QVector<DataSeriesEtalon>& etalon = data_base_.GetDataSerEtalon();
+    out << static_cast<quint32>(etalon.size());
+    for(DataSeriesEtalon& data : etalon){
+        double y_min = 0,
+               y_max = 0;
+        if(data.axis_y_){
+            y_min = data.axis_y_->min();
+            y_max = data.axis_y_->max();
+        }
+        out << data.name_series
+            << data.points_triangle_view
+            << data.points_rectangle_view
+            << data.condition
+            << y_min
+            << y_max;
+    }
+    qint64 min = 0,
+           max = 0;
+    if(axis_x_){
+        min = axis_x_->min().toMSecsSinceEpoch();
+        max = axis_x_->max().toMSecsSinceEpoch();
+    }
+    std::pair<QDateTime,QDateTime> default_axis = data_base_.GetDefaultAxisX();
+    // Контрольные точки: времена из GetCheckPoints() — их ведут окно «КТ» и
+    // перетаскивание маркера на графике. GetCheckPoints64() заполняется только
+    // при разборе эталона и после правок КТ устаревает, поэтому в документ не
+    // пишется. Серии маркеров не пишем тоже: они однозначно строятся из
+    // времён и значений (см. ChartView::ReplaceCheckSeries).
+    out << min
         << max
-        << check_points_bar_
-        << check_points_temp_
+        << default_axis.first
+        << default_axis.second
+        << data_base_.GetCheckPoints()
         << data_base_.GetCheckPointTemp()
         << data_base_.GetCheckPointBar()
-        << data_base_.GetCheckPoints64();
+        << data_base_.GetCheckRanges()
+        << data_base_.GetConditions();
 }
-void DowlandFile::SaveDataACM(QDataStream& out){
-    out << static_cast<quint32>(data_base_.GetDataSerACM().size());
-    for(DataSeriesSensor& data : data_base_.GetDataSerACM()){
-        out << data.name_sensor;
-        out << static_cast<quint32>(data.vec_canal.size());
-        for(Canal& acm : data.vec_canal){
+
+void DowlandFile::SaveDataACM(QDataStream& out, const QVector<DataSeriesSensor>& sensors){
+    out << static_cast<quint32>(sensors.size());
+    for(const DataSeriesSensor& data : sensors){
+        out << data.name_sensor
+            << data.number_sensor
+            << static_cast<quint32>(data.vec_canal.size());
+        for(const Canal& acm : data.vec_canal){
             out << acm.name_canal
-                << acm.name_canal
+                << acm.first_name_canal
+                << acm.new_name_canal
+                << acm.name_sensor
                 << acm.name_unit
+                << acm.color_series_
+                << acm.color_series_RGB
                 << acm.unit_max
                 << acm.unit_min
+                << acm.accept_max
+                << acm.accept_min
+                << static_cast<qint32>(acm.type_error)
+                << static_cast<qint32>(acm.duration_error_max)
+                << static_cast<qint32>(acm.duration_error_min)
+                << acm.select_box
+                << acm.check_ACP
+                << acm.first_unit
                 << acm.check_points
                 << acm.delta_points
                 << acm.points_rectangle
@@ -777,4 +878,3 @@ void DowlandFile::SaveDataACM(QDataStream& out){
         }
     }
 }
-

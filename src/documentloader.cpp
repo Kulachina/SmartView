@@ -12,11 +12,13 @@ DocumentLoader::DocumentLoader(DataBase& data_base,
                                DowlandFile& dow_file,
                                Las& las,
                                ChartView* chart_view,
+                               QVector<DataSeriesSensor>& all_sensors,
                                QWidget* dialog_parent)
     : data_base_(data_base),
       dow_file_(dow_file),
       las_(las),
       chart_view_(chart_view),
+      all_sensors_(all_sensors),
       dialog_parent_(dialog_parent){}
 
 QVector<DataSeriesSensor> DocumentLoader::LoadACM(){
@@ -117,11 +119,31 @@ void DocumentLoader::LoadEtalonFile(const QString& path_doc){
         chart_view_->PanelLegendEtalon();
     }
     if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
-        dow_file_.LoadSVDoc(path_doc);
+        const int first = all_sensors_.size();
+        dow_file_.LoadSVDoc(path_doc, all_sensors_);
         chart_view_->PanelLegendEtalon();
-        for(DataSeriesSensor& data : data_base_.GetDataSerACM())
-            chart_view_->PanelLegendACM(data);
+        // Тот же порядок, что и при добавлении прибора вручную: сперва легенда
+        // (она достраивает виджеты выбранных каналов), затем копия в модель —
+        // обе копии должны делить одни и те же серии и метки.
+        for(int i = first;i < all_sensors_.size();++i){
+            chart_view_->PanelLegendACM(all_sensors_[i]);
+            data_base_.AddDataSerACM(all_sensors_[i]);
+        }
     }
+}
+
+bool DocumentLoader::OpenDocument(){
+    QString path = save_path_.isEmpty() ? QApplication::applicationDirPath() : save_path_;
+    QString path_doc = QFileDialog::getOpenFileName(dialog_parent_, "Открыть документ", path, "Формат SmartView (*.smv)");
+    if(path_doc.isEmpty()){
+        return false;
+    }
+    QFileInfo file_info(path_doc);
+    save_path_ = file_info.absolutePath();
+    first_open_doc_ = true;
+    LoadEtalonFile(path_doc);
+    chart_view_->ZoomOn();
+    return true;
 }
 
 bool DocumentLoader::LoadEtalonInitial(){

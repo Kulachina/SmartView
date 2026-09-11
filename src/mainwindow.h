@@ -31,6 +31,7 @@ public:
     ~MainWindow();
     void SetWindow();
 public slots:
+    void OpenDocument();
     void LoadDocumentEtalon();
     void LoadDocumentACM();
     void LoadDocumentAMT();
@@ -54,6 +55,8 @@ private:
     void ActoinWinSaC();
     void closeEvent(QCloseEvent *event) override;
     void DeleteAllSens();
+    // Разблокировать действия, доступные только при открытом документе.
+    void EnableDocumentActions();
     DataBase data_base_;
     ChartView* chart_view_;
     DowlandFile dow_file_;

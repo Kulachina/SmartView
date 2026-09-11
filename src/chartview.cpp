@@ -775,6 +775,11 @@ void ChartView::ZoomOn(){
     load_etalon_ = true;
 }
 void ChartView::ClearPanelLegend(){
+    // Карты держат QPointer на удаляемые сейчас метки и серии: без сброса
+    // повторно открытый документ с теми же именами каналов не переустановит
+    // их (CreateMapLabel пропускает уже занятые ключи).
+    map_data_label_.clear();
+    map_series_.clear();
     while(QLayoutItem *item =vbox_legend_->itemAt(0)){
         if(QWidget *wid = item->widget()){
             delete wid;

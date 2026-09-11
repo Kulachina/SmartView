@@ -27,8 +27,12 @@ class DowlandFile
 public:
     DowlandFile(DataBase& data_base);
     void CreateACM(DataSeriesSensor& data, QString name, QString name_canal, QString name_unit);
-    void LoadSVDoc(const QString path);
-    void SaveSVDoc(const QString path);
+    // Документ .smv: весь эталон (кривые, КТ, диапазоны, условия) и все
+    // приборы со всеми каналами и их настройками.
+    // out_sensors — полный список приборов документа (в него дописываются
+    // загруженные), sensors — он же при сохранении.
+    void LoadSVDoc(const QString path, QVector<DataSeriesSensor>& out_sensors);
+    void SaveSVDoc(const QString path, const QVector<DataSeriesSensor>& sensors);
     DataSeriesSensor LoadDocACM(QString path, int count_file, int count_now);
     DataSeriesSensor LoadDocAMT(QString path, QString name, int count_file, int count_now);
     void CreateSeriesACM(DataSeriesSensor& data);
@@ -54,15 +58,20 @@ public:
 private:
     void CreateVecCheckPoints(QString name, QList<QPointF> list);
     void LoadDataEt(QDataStream& in);
-    void LoadDataACM(QDataStream& in);
+    void LoadDataACM(QDataStream& in, QVector<DataSeriesSensor>& out_sensors);
     void SaveDataEt(QDataStream& out);
-    void SaveDataACM(QDataStream& out);
+    void SaveDataACM(QDataStream& out, const QVector<DataSeriesSensor>& sensors);
+    // Восстанавливает производные от КТ данные: серии маркеров и
+    // check_points64_ — в документе лежат только времена и значения.
+    void RestoreCheckPoints();
+    // Пересоздаёт виджеты и серию канала, прочитанного из .smv
+    // (в файле хранятся только данные, не объекты Qt).
+    void BuildCanalWidgets(Canal& canal);
     void SetMinMaxY(double temp, double bar);
     qint64 TextToIntEtalon(QString time);
     qint64 TextToInt(QString time);
     DataBase& data_base_;
     QVector<DataSeriesEtalon> data_etalon_;
-    QVector<DataSeriesSensor> data_acm_;
     QVector<QPointF> p_bar_;
     QVector<QPointF> p_temp_;
     QVector<QPointF> check_points_bar_;

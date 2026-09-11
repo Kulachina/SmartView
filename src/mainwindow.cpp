@@ -34,6 +34,9 @@ MainWindow::MainWindow(QMainWindow *parent)
     QMenu *menu_file = new QMenu();
     QAction *file = new QAction("Файл");
     file->setMenu(menu_file);
+    QAction *open = new QAction("Открыть");
+    connect(open, &QAction::triggered, this, &MainWindow::OpenDocument);
+    menu_file->addAction(open);
     QAction *import = new QAction("Импорт");
     QAction *update = new QAction("Проверить обновление");
     menu_file->addAction(import);
@@ -161,7 +164,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     delete_window_ = new DeleteSensorWindow(data_base_, all_data_sensor_);
     sensor_editor_ = new SensorCanalEditor(data_base_, chart_view_, data_sensor_, all_data_sensor_);
     protokol_writer_ = new ProtocolWriter(data_base_);
-    loader_ = new DocumentLoader(data_base_, dow_file_, las_, chart_view_, this);
+    loader_ = new DocumentLoader(data_base_, dow_file_, las_, chart_view_, all_data_sensor_, this);
 }
 MainWindow::~MainWindow()
 {
@@ -206,18 +209,7 @@ void MainWindow::LoadDocumentEtalon(){
         if(!loader_->LoadEtalonInitial()){
             return;
         }
-        load_doc_2_->setEnabled(true);
-        load_doc_3_->setEnabled(true);
-        load_doc_4_->setEnabled(true);
-        toogled_legend_->setEnabled(true);
-        shift_series_->setEnabled(true);
-        data_in_time_->setEnabled(true);
-        window_axis_->setEnabled(true);
-        action_series_->setEnabled(true);
-        delete_sensor_->setEnabled(true);
-        shift_check_point_->setEnabled(true);
-        change_canal_->setEnabled(true);
-        select_range_->setEnabled(true);
+        EnableDocumentActions();
         first_open_etalon_ = true;
     } else {
         int reply = QMessageBox::question(this, "Новый Эталон", "Вы уверены что хоите открыть новый Эталон и потеряете текущий прогресс?",QMessageBox::Yes | QMessageBox::No);
@@ -297,6 +289,9 @@ void MainWindow::DeleteAllSens(){
         }
     }
     dat.clear();
+    // Копии тех же приборов: виджеты уже удалены выше, оставлять их нельзя.
+    all_data_sensor_.clear();
+    data_sensor_.clear();
     chart_view_->ClearPanelLegend();
     data_base_.ClearAll();
     dow_file_.ClearAll();
@@ -312,17 +307,51 @@ void MainWindow::WindowRanges(){
 void MainWindow::WindowView(){
     view_window_->show();
 }
+void MainWindow::EnableDocumentActions(){
+    load_doc_2_->setEnabled(true);
+    load_doc_3_->setEnabled(true);
+    load_doc_4_->setEnabled(true);
+    toogled_legend_->setEnabled(true);
+    shift_series_->setEnabled(true);
+    data_in_time_->setEnabled(true);
+    window_axis_->setEnabled(true);
+    action_series_->setEnabled(true);
+    delete_sensor_->setEnabled(true);
+    shift_check_point_->setEnabled(true);
+    change_canal_->setEnabled(true);
+    select_range_->setEnabled(true);
+}
+void MainWindow::OpenDocument(){
+    if(first_open_etalon_){
+        int reply = QMessageBox::question(this, "Открыть документ",
+                                          "Открыть другой документ? Текущий прогресс будет потерян.",
+                                          QMessageBox::Yes | QMessageBox::No);
+        if(reply != QMessageBox::Yes){
+            return;
+        }
+        DeleteAllSens();
+    }
+    if(!loader_->OpenDocument()){
+        return;
+    }
+    EnableDocumentActions();
+    first_open_etalon_ = true;
+}
 void MainWindow::SaveAllSV(){
+    if(data_base_.GetDataSerEtalon().isEmpty()){
+        QMessageBox::information(this, "Сохранение", "Документ пуст: сначала откройте эталон.");
+        return;
+    }
     chart_view_->ZeroZoom();
     QString path = QApplication::applicationDirPath();
-    QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить данных", path ,"Формат SmartView (*.smv);;Текстовый документ (*.txt)");
+    QString path_doc = QFileDialog::getSaveFileName(nullptr, "Сохранить данные", path ,"Формат SmartView (*.smv)");
     if(path_doc.isEmpty()){
         return;
     }
-    if(path_doc.endsWith(".smv", Qt::CaseInsensitive)){
-        dow_file_.SaveSVDoc(path_doc);
+    if(!path_doc.endsWith(".smv", Qt::CaseInsensitive)){
+        path_doc += ".smv";
     }
-
+    dow_file_.SaveSVDoc(path_doc, SnapshotSensors(all_data_sensor_, data_base_.GetDataSerACM()));
 }
 void MainWindow::CheckUpdate(){
     update_.ManualCheck();

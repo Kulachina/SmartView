@@ -12,24 +12,25 @@
 #include <QPointer>
 #include <QCheckBox>
 #include <QPair>
+#include <QDataStream>
 
 struct Canal{
-    QLineSeries* series;
-    QValueAxis *axis_y_;
-    QLabel* label;
-    QLabel* label_data;
-    QLabel* label_delta;
-    QLabel* label_name_canal;
-    QLabel* label_name_sensor;
-    QHBoxLayout* hbox;
-    QCheckBox* check_active_canal;
+    QLineSeries* series = nullptr;
+    QValueAxis *axis_y_ = nullptr;
+    QLabel* label = nullptr;
+    QLabel* label_data = nullptr;
+    QLabel* label_delta = nullptr;
+    QLabel* label_name_canal = nullptr;
+    QLabel* label_name_sensor = nullptr;
+    QHBoxLayout* hbox = nullptr;
+    QCheckBox* check_active_canal = nullptr;
     QVector<QPointF> points_triangle;
     QVector<QPointF> points_rectangle;
     QVector<double> check_points;
     QVector<double> delta_points;
     QVector<QPair<double,double>> vec_max_min_unit;
     QPointer<QCheckBox> check_box;
-    QStandardItemModel* model;
+    QStandardItemModel* model = nullptr;
     QString first_name_canal;
     QString name_canal;
     QString new_name_canal;
@@ -54,8 +55,8 @@ struct DataSeriesSensor{
     QString name_sensor;
     QString number_sensor;
     QVector<Canal> vec_canal;
-    QFrame *line;
-    QLabel *label_sensor;
+    QFrame *line = nullptr;
+    QLabel *label_sensor = nullptr;
 };
 struct DataEtalon{
     char magic[4];
@@ -74,12 +75,12 @@ struct DataHeaderEtalon{
 
 struct DataSeriesEtalon{
     QString name_series;
-    QLineSeries *series;
-    QValueAxis *axis_y_;
-    QScatterSeries *point_series;
+    QLineSeries *series = nullptr;
+    QValueAxis *axis_y_ = nullptr;
+    QScatterSeries *point_series = nullptr;
     QList<QLineSeries*> old_series;
-    QLabel *label_point,
-           *data_sensor;
+    QLabel *label_point = nullptr,
+           *data_sensor = nullptr;
     QVector<QPointF> points_triangle_view;
     QVector<QPointF> points_rectangle_view;
     QVector<double> condition;
@@ -98,5 +99,17 @@ struct CheckRange{
     double avg_temp = 0;
     double avg_bar = 0;
 };
+
+// Сериализация контрольного диапазона в документ .smv.
+inline QDataStream& operator<<(QDataStream& out, const CheckRange& range){
+    out << range.t_start << range.t_end << range.t_mid
+        << range.avg_temp << range.avg_bar;
+    return out;
+}
+inline QDataStream& operator>>(QDataStream& in, CheckRange& range){
+    in >> range.t_start >> range.t_end >> range.t_mid
+        >> range.avg_temp >> range.avg_bar;
+    return in;
+}
 
 #endif // DATA_H
