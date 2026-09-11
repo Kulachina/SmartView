@@ -11,6 +11,12 @@
 #include <QDate>
 #include <QFile>
 #include <QFontMetrics>
+#include <QFormLayout>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QVBoxLayout>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPushButton>
@@ -20,36 +26,33 @@ using namespace QXlsx;
 
 
 
+namespace {
+// «Заводской номер»: столько же знаков, сколько принимает бланк.
+constexpr int kSerialMaxLen = 10;
+}
+
 ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     : QWidget(parent), data_base_(data_base)
 {
     setWindowTitle("Настройка протокола");
-    QVBoxLayout *vbox = new QVBoxLayout(this);
-    QHBoxLayout *h_select_pribor = new QHBoxLayout();
-    QHBoxLayout *h_type_pribor = new QHBoxLayout();
-    QHBoxLayout *h_name_pribor = new QHBoxLayout();
-    QHBoxLayout *h_serial_number = new QHBoxLayout();
-    QHBoxLayout *h_client = new QHBoxLayout();
-    QHBoxLayout *h_instr_calib = new QHBoxLayout();
-    QHBoxLayout *h_canal_calib = new QHBoxLayout();
-    QHBoxLayout *h_canal_calib_bar = new QHBoxLayout();
-    QHBoxLayout *h_canal_calib_temp = new QHBoxLayout();
-    QHBoxLayout *h_btn = new QHBoxLayout();
-    QPushButton *btn = new QPushButton("Создать");
-    connect(btn, &QPushButton::clicked, this, [this]() {
-        if (Generate(CollectData(), this))
-            close();
-    });
-    QPushButton *btn_2 = new QPushButton("Отмена");
-    connect(btn_2,&QPushButton::clicked, this, &QWidget::close);
+
     select_pribor_ = new QComboBox();
     select_name_type_ = new QComboBox();
     select_name_type_->addItem("Автономный цифровой манометр-термометр");
     type_pribor_ = new QComboBox();
     type_pribor_->addItems(type_pribors_);
-    series_number_  = new QLineEdit();
-    series_number_->setMaxLength(10);
+    list_client_ = new QComboBox();
+    list_client_->addItems(clients_);
+    for(QComboBox* box : {select_pribor_, select_name_type_, type_pribor_, list_client_}){
+        box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    }
+    series_number_ = new QLineEdit();
+    series_number_->setMaxLength(kSerialMaxLen);
     series_number_->setAlignment(Qt::AlignLeft);
+    // Поле под десять цифр во всю ширину окна выглядит случайным — даём ему
+    // ширину по содержимому с небольшим запасом.
+    series_number_->setMaximumWidth(QFontMetrics(series_number_->font())
+                                        .horizontalAdvance(QString(kSerialMaxLen + 4, u'0')));
     connect(select_pribor_, QOverload<int>::of(&QComboBox::activated),
             this, [this](int index) {
                 const QString name = select_pribor_->itemText(index);
@@ -62,87 +65,93 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
                     series_number_->setFocus();
                 }
             });
-    QVBoxLayout *v_instr_calib = new QVBoxLayout();
-    v_instr_calib->setContentsMargins(20, 0, 0, 0);
+
+    // Форма держит подписи и поля в двух колонках: при отдельных строчных
+    // раскладках каждое поле начиналось со своего отступа, по длине подписи.
+    QFormLayout *form = new QFormLayout();
+    form->setLabelAlignment(Qt::AlignLeft);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    form->setRowWrapPolicy(QFormLayout::DontWrapRows);
+    form->addRow("Выбор прибора", select_pribor_);
+    form->addRow("Наименование аппаратуры", select_name_type_);
+    form->addRow("Тип аппаратуры", type_pribor_);
+    form->addRow("Заводской номер", series_number_);
+    form->addRow("Заказчик", list_client_);
+
+    QGroupBox *instr_group = new QGroupBox("Средства калибровки");
+    QVBoxLayout *instr_layout = new QVBoxLayout(instr_group);
     for (const QString& name : instruments_) {
         QCheckBox* box = new QCheckBox(name);
         instr_boxes_.push_back(box);
-        v_instr_calib->addWidget(box);
+        instr_layout->addWidget(box);
     }
     if (!instr_boxes_.isEmpty())
         instr_boxes_.front()->setChecked(true);   // как раньше в списке — первый пункт
-    list_client_ = new QComboBox();
-    list_client_->addItems(clients_);
+
     canal_temp_ = new QCheckBox("Температура");
     canal_bar_ = new QCheckBox("Давление");
-    bar_settings_widget_ = new QWidget();
-    QHBoxLayout *h_bar_settings = new QHBoxLayout(bar_settings_widget_);
-    h_bar_settings->setContentsMargins(20, 0, 0, 0);
-    bar_points_spin_ = new QSpinBox();
-    bar_points_spin_->setRange(1, 20);
-    bar_points_spin_->setValue(3);
-    bar_temp_points_spin_ = new QSpinBox();
-    bar_temp_points_spin_->setRange(1, 20);
-    bar_temp_points_spin_->setValue(1);
-    h_bar_settings->addWidget(new QLabel("Точек давления"));
-    h_bar_settings->addWidget(bar_points_spin_);
-    h_bar_settings->addWidget(new QLabel("Точек температуры"));
-    h_bar_settings->addWidget(bar_temp_points_spin_);
-    h_bar_settings->setAlignment(Qt::AlignLeft);
-    bar_settings_widget_->setVisible(false);
-    temp_settings_widget_ = new QWidget();
-    QHBoxLayout *h_temp_settings = new QHBoxLayout(temp_settings_widget_);
-    h_temp_settings->setContentsMargins(20, 0, 0, 0);
-    temp_points_spin_ = new QSpinBox();
-    temp_points_spin_->setRange(1, 20);
-    temp_points_spin_->setValue(1);
-    h_temp_settings->addWidget(new QLabel("Точек температуры"));
-    h_temp_settings->addWidget(temp_points_spin_);
-    h_temp_settings->setAlignment(Qt::AlignLeft);
-    temp_settings_widget_->setVisible(false);
-    connect(canal_bar_, &QCheckBox::toggled, bar_settings_widget_, &QWidget::setVisible);
-    connect(canal_temp_, &QCheckBox::toggled, temp_settings_widget_, &QWidget::setVisible);
-    h_select_pribor->addWidget(new QLabel("Выбор прибора"));
-    h_select_pribor->addWidget(select_pribor_);
-    h_select_pribor->setAlignment(Qt::AlignLeft);
-    h_name_pribor->addWidget(new QLabel("Наименование аппаратуры"));
-    h_name_pribor->addWidget(select_name_type_);
-    h_name_pribor->setAlignment(Qt::AlignLeft);
-    h_type_pribor->addWidget(new QLabel("Тип аппаратуры"));
-    h_type_pribor->addWidget(type_pribor_);
-    h_type_pribor->setAlignment(Qt::AlignLeft);
-    h_serial_number->addWidget(new QLabel("Заводской номер"));
-    h_serial_number->addWidget(series_number_);
-    h_serial_number->setAlignment(Qt::AlignLeft);
-    h_client->addWidget(new QLabel("Заказчик"));
-    h_client->addWidget(list_client_);
-    h_client->setAlignment(Qt::AlignLeft);
-    h_instr_calib->addWidget(new QLabel("Средства калибровки"));
-    h_instr_calib->setAlignment(Qt::AlignLeft);
-    h_canal_calib->addWidget(new QLabel("Выбор каналов для протокола"));
-    h_canal_calib->setAlignment(Qt::AlignLeft);
-    h_canal_calib_temp->addWidget(canal_temp_);
-    h_canal_calib_temp->addWidget(temp_settings_widget_);
-    h_canal_calib_temp->setAlignment(Qt::AlignLeft);
-    h_canal_calib_bar->addWidget(canal_bar_);
-    h_canal_calib_bar->addWidget(bar_settings_widget_);
-    h_canal_calib_bar->setAlignment(Qt::AlignLeft);
+    auto make_spin = [](int value){
+        QSpinBox* spin = new QSpinBox();
+        spin->setRange(1, 20);
+        spin->setValue(value);
+        spin->setMinimumWidth(60);
+        return spin;
+    };
+    temp_points_spin_ = make_spin(1);
+    bar_points_spin_ = make_spin(3);
+    bar_temp_points_spin_ = make_spin(1);
+    temp_points_label_ = new QLabel("Точек температуры");
+    bar_points_label_ = new QLabel("Точек давления");
+    bar_temp_points_label_ = new QLabel("Точек температуры");
+
+    // Сетка, а не вложенные строки: счётчики обоих каналов встают в одну
+    // колонку независимо от длины подписи слева.
+    QGroupBox *canal_group = new QGroupBox("Выбор каналов для протокола");
+    QGridLayout *canal_layout = new QGridLayout(canal_group);
+    canal_layout->addWidget(canal_temp_, 0, 0);
+    canal_layout->addWidget(temp_points_label_, 0, 1);
+    canal_layout->addWidget(temp_points_spin_, 0, 2);
+    canal_layout->addWidget(canal_bar_, 1, 0);
+    canal_layout->addWidget(bar_points_label_, 1, 1);
+    canal_layout->addWidget(bar_points_spin_, 1, 2);
+    canal_layout->addWidget(bar_temp_points_label_, 1, 3);
+    canal_layout->addWidget(bar_temp_points_spin_, 1, 4);
+    canal_layout->setColumnMinimumWidth(0, 140);
+    canal_layout->setColumnStretch(5, 1);
+    // Счётчики видны только у отмеченных каналов.
+    const QList<QWidget*> temp_extra = {temp_points_label_, temp_points_spin_};
+    for(QWidget* widget : temp_extra){
+        widget->setVisible(false);
+        connect(canal_temp_, &QCheckBox::toggled, widget, &QWidget::setVisible);
+    }
+    const QList<QWidget*> bar_extra = {bar_points_label_, bar_points_spin_,
+                                       bar_temp_points_label_, bar_temp_points_spin_};
+    for(QWidget* widget : bar_extra){
+        widget->setVisible(false);
+        connect(canal_bar_, &QCheckBox::toggled, widget, &QWidget::setVisible);
+    }
+
+    QPushButton *btn = new QPushButton("Создать");
+    connect(btn, &QPushButton::clicked, this, [this]() {
+        if (Generate(CollectData(), this))
+            close();
+    });
+    QPushButton *btn_2 = new QPushButton("Отмена");
+    connect(btn_2,&QPushButton::clicked, this, &QWidget::close);
+    QHBoxLayout *h_btn = new QHBoxLayout();
+    h_btn->addStretch(1);
     h_btn->addWidget(btn);
     h_btn->addWidget(btn_2);
-    h_btn->setAlignment(Qt::AlignLeft);
-    vbox->addLayout(h_select_pribor);
-    vbox->addLayout(h_name_pribor);
-    vbox->addLayout(h_type_pribor);
-    vbox->addLayout(h_serial_number);
-    vbox->addLayout(h_client);
-    vbox->addLayout(h_instr_calib);
-    vbox->addLayout(v_instr_calib);   // галочки — под подписью
-    vbox->addLayout(h_canal_calib);
-    vbox->addLayout(h_canal_calib_temp);
-    vbox->addLayout(h_canal_calib_bar);
-    vbox->addLayout(h_btn);
 
+    QVBoxLayout *vbox = new QVBoxLayout(this);
+    vbox->addLayout(form);
+    vbox->addWidget(instr_group);
+    vbox->addWidget(canal_group);
+    vbox->addStretch(1);
+    vbox->addLayout(h_btn);
+    setMinimumWidth(560);
 }
+
 void ProtocolWriter::GetSpisokPribors(){
     pribors_.clear();
     map_pribors_.clear();

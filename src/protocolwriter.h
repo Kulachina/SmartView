@@ -6,6 +6,7 @@
 #include <QLineEdit>
 #include <QList>
 #include <QVector>
+#include <QLabel>
 #include <QSpinBox>
 #include <QVariant>
 // Запись протокола калибровки в .xlsx на основе встроенного шаблона
@@ -52,11 +53,13 @@ private:
     QCheckBox *canal_bar_;
     QList<QString> pribors_;
     QMap<QString,QString> map_pribors_;
-    QWidget *bar_settings_widget_;
     QSpinBox *bar_points_spin_;
     QSpinBox *bar_temp_points_spin_;
-    QWidget *temp_settings_widget_;
     QSpinBox *temp_points_spin_;
+    // Подписи счётчиков скрываются вместе со своими полями, когда канал снят.
+    QLabel *temp_points_label_;
+    QLabel *bar_points_label_;
+    QLabel *bar_temp_points_label_;
     QList<QString> instruments_ = {"Лабораторный электронный термометр ЛТ-300 зав.№ 898508",
                                    "Манометр цифровой ДМ5002М-Г зав.№ 0072",
                                    "Жидкостный термостат",
