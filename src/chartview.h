@@ -77,6 +77,8 @@ private:
     void SaveZoom();
     void ResetZoom();
     void MoveSeries(QLineSeries* series, qreal dx);
+    // Перенести накопленный за перетаскивание сдвиг в точки каналов.
+    void ApplyShiftToCanals();
     void MoveCheckPoint(qreal point, qreal dx);
     void CreateMapSeries(DataSeriesSensor& data);
     void CreateMapLabel(DataSeriesSensor& data);
@@ -97,6 +99,7 @@ private:
     QPointer<QLineSeries> drag_ref_series_;   // кликнутая (прикреплённая) серия — опора для mapToValue
     QPointer<QScatterSeries> active_check_series_;
     QPoint last_pos_mouse_;
+    qreal drag_shift_dx_ = 0;   // сдвиг по времени за текущее перетаскивание
     QPointer<QLabel> point_time_;
     QRect hit_area_;
     QRubberBand band_;

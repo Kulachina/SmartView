@@ -64,6 +64,7 @@ MainWindow::MainWindow(QMainWindow *parent)
     connect(save, &QAction::triggered,this, &MainWindow::SaveAllSV);
     menu_file->addAction(save);
     QAction *close = new QAction("Выход");
+    connect(close, &QAction::triggered, this, &MainWindow::close);
     menu_file->addAction(close);
     QAction *report = new QAction("Отчеты");
     QMenu *menu_report = new QMenu();

@@ -295,6 +295,36 @@ void ChartView::MoveSeries(QLineSeries* series, qreal dx){
     }
     series->replace(points);
 }
+void ChartView::ApplyShiftToCanals(){
+    // MoveSeries двигает точки только внутри QLineSeries. Кривая канала живёт
+    // ещё и в points_rectangle/points_triangle: из них серия перезаполняется
+    // при переключении вида в окне «Вид» и из них же пишется документ .smv.
+    // Без переноса сдвиг терялся при первом же переключении вида.
+    if(qFuzzyIsNull(drag_shift_dx_)){
+        return;
+    }
+    for(DataSeriesSensor& sensor : data_base_.GetDataSerACM()){
+        for(Canal& canal : sensor.vec_canal){
+            bool dragged = false;
+            for(const QPointer<QLineSeries>& series : active_series_){
+                if(series.data() == canal.series){
+                    dragged = true;
+                    break;
+                }
+            }
+            if(!dragged){
+                continue;
+            }
+            for(QPointF& point : canal.points_rectangle){
+                point.setX(point.x() + drag_shift_dx_);
+            }
+            for(QPointF& point : canal.points_triangle){
+                point.setX(point.x() + drag_shift_dx_);
+            }
+        }
+    }
+    drag_shift_dx_ = 0;
+}
 void ChartView::MoveCheckPoint(qreal point, qreal dx){
     qint64 t = static_cast<qint64>(point + dx);
     qint64 res = RoundToSec(t);
@@ -420,6 +450,7 @@ void ChartView::mouseMoveEvent(QMouseEvent *event){
             for(QLineSeries* series : active_series_){
                 MoveSeries(series, dx);
             }
+            drag_shift_dx_ += dx;
             last_pos_mouse_ = event->pos();
         }
     }
@@ -555,6 +586,9 @@ void ChartView::mouseReleaseEvent(QMouseEvent *event){
 
     }
     if(event->button() == Qt::LeftButton){
+        if(is_dragging_series_){
+            ApplyShiftToCanals();
+        }
         is_dragging_series_ = false;
     }
     if(event->button() == Qt::LeftButton && band_.isVisible()){
