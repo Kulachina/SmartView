@@ -3,6 +3,7 @@
         <file>SmartView.png</file>
 		<file>SmartView.ico</file>
 		<file>protocol_template.xlsx</file>
+		<file>protocol_lists.json</file>
 		<file alias="CHANGELOG.md">../CHANGELOG.md</file>
 		<file>icons/open_etalon.svg</file>
 		<file>icons/add_las.svg</file>

@@ -31,6 +31,7 @@ SOURCES += \
     src/rangeswindow.cpp \
     src/sensorcanaleditor.cpp \
     src/serieswindow.cpp \
+    src/protocolcatalog.cpp \
     src/protocolwriter.cpp \
     src/updater.cpp \
     src/viewwindow.cpp
@@ -53,6 +54,7 @@ HEADERS += \
     src/las.h \
     src/mainwindow.h \
     src/masterpointswindow.h \
+    src/protocolcatalog.h \
     src/protocoldata.h \
     src/protocolwriter.h \
     src/rangeswindow.h \

@@ -18,8 +18,10 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QToolButton>
 #include <QVector>
 
 using namespace QXlsx;
@@ -29,6 +31,16 @@ using namespace QXlsx;
 namespace {
 // «Заводской номер»: столько же знаков, сколько принимает бланк.
 constexpr int kSerialMaxLen = 10;
+
+// Квадратная кнопка «+» справа от пополняемого списка: side — высота поля,
+// рядом с которым она стоит, чтобы кнопки выстроились в одну колонку.
+QToolButton* MakeAddButton(int side) {
+    QToolButton* btn = new QToolButton();
+    btn->setText(QStringLiteral("+"));
+    btn->setToolTip(QStringLiteral("Добавить пункт в список"));
+    btn->setFixedSize(side, side);
+    return btn;
+}
 }
 
 ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
@@ -38,11 +50,11 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
 
     select_pribor_ = new QComboBox();
     select_name_type_ = new QComboBox();
-    select_name_type_->addItem("Автономный цифровой манометр-термометр");
+    select_name_type_->addItems(catalog_.Items(ProtocolCatalog::kDeviceNames));
     type_pribor_ = new QComboBox();
-    type_pribor_->addItems(type_pribors_);
+    type_pribor_->addItems(catalog_.Items(ProtocolCatalog::kDeviceTypes));
     list_client_ = new QComboBox();
-    list_client_->addItems(clients_);
+    list_client_->addItems(catalog_.Items(ProtocolCatalog::kCustomers));
     for(QComboBox* box : {select_pribor_, select_name_type_, type_pribor_, list_client_}){
         box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     }
@@ -73,20 +85,33 @@ ProtocolWriter::ProtocolWriter(DataBase& data_base,QWidget* parent)
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     form->setRowWrapPolicy(QFormLayout::DontWrapRows);
     form->addRow("Выбор прибора", select_pribor_);
-    form->addRow("Наименование аппаратуры", select_name_type_);
-    form->addRow("Тип аппаратуры", type_pribor_);
+    form->addRow("Наименование аппаратуры",
+                 WithAddButton(select_name_type_, ProtocolCatalog::kDeviceNames,
+                               "Наименование аппаратуры"));
+    form->addRow("Тип аппаратуры",
+                 WithAddButton(type_pribor_, ProtocolCatalog::kDeviceTypes,
+                               "Тип аппаратуры"));
     form->addRow("Заводской номер", series_number_);
-    form->addRow("Заказчик", list_client_);
+    form->addRow("Заказчик",
+                 WithAddButton(list_client_, ProtocolCatalog::kCustomers, "Заказчик"));
 
     QGroupBox *instr_group = new QGroupBox("Средства калибровки");
-    QVBoxLayout *instr_layout = new QVBoxLayout(instr_group);
-    for (const QString& name : instruments_) {
+    instr_layout_ = new QVBoxLayout(instr_group);
+    for (const QString& name : catalog_.Items(ProtocolCatalog::kCalibMeans)) {
         QCheckBox* box = new QCheckBox(name);
         instr_boxes_.push_back(box);
-        instr_layout->addWidget(box);
+        instr_layout_->addWidget(box);
     }
     if (!instr_boxes_.isEmpty())
         instr_boxes_.front()->setChecked(true);   // как раньше в списке — первый пункт
+    // Кнопка «+» последней строкой группы — новые пункты встают перед ней.
+    QToolButton *instr_add = MakeAddButton(select_name_type_->sizeHint().height());
+    QHBoxLayout *instr_add_row = new QHBoxLayout();
+    instr_add_row->setContentsMargins(0, 0, 0, 0);
+    instr_add_row->addStretch(1);
+    instr_add_row->addWidget(instr_add);
+    instr_layout_->addLayout(instr_add_row);
+    connect(instr_add, &QToolButton::clicked, this, &ProtocolWriter::AddInstrument);
 
     canal_temp_ = new QCheckBox("Температура");
     canal_bar_ = new QCheckBox("Давление");
@@ -163,6 +188,77 @@ void ProtocolWriter::GetSpisokPribors(){
         select_pribor_->addItems(pribors_);
     }
 }
+// --- пополняемые списки ---------------------------------------------------
+
+QWidget* ProtocolWriter::WithAddButton(QComboBox* box, const QString& key,
+                                       const QString& title) {
+    QToolButton* add = MakeAddButton(box->sizeHint().height());
+    connect(add, &QToolButton::clicked, this, [this, box, key, title]() {
+        bool ok = false;
+        const QString value = QInputDialog::getText(this, title, "Новый пункт:",
+                                                    QLineEdit::Normal, QString(), &ok)
+                                  .trimmed();
+        if (!ok || value.isEmpty())
+            return;
+        const int existing = box->findText(value);
+        if (existing >= 0) {           // такой пункт уже есть — просто выбираем его
+            box->setCurrentIndex(existing);
+            return;
+        }
+        if (!StoreNewItem(key, value))
+            return;
+        box->addItem(value);
+        box->setCurrentIndex(box->count() - 1);
+    });
+    QWidget* row = new QWidget();
+    QHBoxLayout* layout = new QHBoxLayout(row);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(4);
+    layout->addWidget(box, 1);
+    layout->addWidget(add);
+    return row;
+}
+
+void ProtocolWriter::AddInstrument() {
+    bool ok = false;
+    const QString value = QInputDialog::getText(this, "Средства калибровки", "Новый пункт:",
+                                                QLineEdit::Normal, QString(), &ok)
+                              .trimmed();
+    if (!ok || value.isEmpty())
+        return;
+    for (QCheckBox* box : instr_boxes_) {
+        if (box->text() == value) {    // такой пункт уже есть — просто отмечаем его
+            box->setChecked(true);
+            return;
+        }
+    }
+    if (!StoreNewItem(ProtocolCatalog::kCalibMeans, value))
+        return;
+    QCheckBox* box = new QCheckBox(value);
+    box->setChecked(true);
+    instr_boxes_.push_back(box);
+    // Последняя строка группы — кнопка «+», новый пункт встаёт перед ней.
+    instr_layout_->insertWidget(instr_layout_->count() - 1, box);
+}
+
+bool ProtocolWriter::StoreNewItem(const QString& key, const QString& value) {
+    switch (catalog_.Add(key, value)) {
+    case ProtocolCatalog::AddResult::Added:
+        return true;
+    case ProtocolCatalog::AddResult::SaveFailed:
+        // В текущем сеансе пункт доступен, но следующий запуск его не увидит.
+        QMessageBox::warning(this, "Настройка протокола",
+                             "Не удалось сохранить список в файл\n" +
+                                 catalog_.FilePath() +
+                                 "\nПункт будет доступен только до закрытия программы.");
+        return true;
+    case ProtocolCatalog::AddResult::Empty:
+    case ProtocolCatalog::AddResult::Duplicate:
+        break;
+    }
+    return false;
+}
+
 QString ProtocolWriter::TrimNameandNumber(QString name){
     static const QRegularExpression re(QStringLiteral("№\\s*(\\d+)"));
     QRegularExpressionMatch match = re.match(name);

@@ -110,3 +110,6 @@ server/instr_from_server.txt
 *.rar
 *.zip
 *.7z
+
+# Макеты портала калибровки — черновики, в репозитории не ведутся
+/docs/portal-design/
